@@ -1,7 +1,8 @@
-import { AccountType } from '../types';
+import { AccountType, RoleStatus } from '../types';
 import { db } from '../database/models';
 
-// 验证用户名、邮箱、手机号在租户内是否唯一
+// 验证用户名、邮箱、手机号在主账号内是否唯一
+// tenantId代表主账号标识，同一主账号下的所有子账号共享相同的tenantId
 export const validateUniqueAccountInfo = (
   tenantId: string,
   username: string,
@@ -9,6 +10,7 @@ export const validateUniqueAccountInfo = (
   phone?: string,
   excludeAccountId?: string
 ): { valid: boolean; error?: string } => {
+  // 获取同一主账号下的所有账号（包括主账号本身和所有子账号）
   const accounts = db.getAllAccounts(tenantId);
 
   for (const account of accounts) {
@@ -44,12 +46,16 @@ export const validateCustomerIds = (customerIds: string[]): { valid: boolean; er
   return { valid: true };
 };
 
-// 验证角色IDs是否存在
+// 验证角色IDs是否存在且为启用状态
 export const validateRoleIds = (roleIds: string[]): { valid: boolean; error?: string } => {
   for (const roleId of roleIds) {
     const role = db.getRole(roleId);
     if (!role) {
       return { valid: false, error: `角色 ID ${roleId} 不存在` };
+    }
+    // 检查角色状态是否为ACTIVE
+    if (role.status !== RoleStatus.ACTIVE) {
+      return { valid: false, error: `角色 ${role.name} 不是启用状态，无法分配` };
     }
   }
   return { valid: true };

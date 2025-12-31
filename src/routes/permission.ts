@@ -81,9 +81,8 @@ router.get('/my-permissions', async (req: AuthRequest, res) => {
           tree: permissionTree
         },
         dataPermission: {
-          customerIds: account.accountType === AccountType.CUSTOMER 
-            ? account.customerIds 
-            : account.accessibleCustomerIds,
+          // 账号类型只起到标签作用，统一使用customerIds或accessibleCustomerIds
+          customerIds: account.customerIds || account.accessibleCustomerIds || [],
           type: account.accountType === AccountType.MAIN ? 'ALL' : 'ASSIGNED'
         }
       }
@@ -185,9 +184,8 @@ router.get('/account/:accountId', async (req: AuthRequest, res) => {
           tree: permissionTree
         },
         dataPermission: {
-          customerIds: account.accountType === AccountType.CUSTOMER 
-            ? account.customerIds 
-            : account.accessibleCustomerIds,
+          // 账号类型只起到标签作用，统一使用customerIds或accessibleCustomerIds
+          customerIds: account.customerIds || account.accessibleCustomerIds || [],
           type: account.accountType === AccountType.MAIN ? 'ALL' : 'ASSIGNED'
         }
       }

@@ -40,7 +40,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     {
       key: 'account-management',
       icon: <TeamOutlined />,
-      label: '账号管理',
+      label: '权限管理',
       children: [
         {
           key: '/accounts',

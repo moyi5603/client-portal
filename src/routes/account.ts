@@ -162,7 +162,16 @@ router.post('/partner', requireAccountType(AccountType.MAIN), async (req: AuthRe
 router.get('/', requireAccountType(AccountType.MAIN), async (req: AuthRequest, res) => {
   try {
     const tenantId = req.user!.tenantId;
-    const { page = 1, pageSize = 10, accountType, status } = req.query;
+    const { 
+      page = 1, 
+      pageSize = 10, 
+      accountType, 
+      status,
+      username,
+      email,
+      phone,
+      customerIds
+    } = req.query;
 
     let accounts = db.getAllAccounts(tenantId);
 
@@ -172,6 +181,44 @@ router.get('/', requireAccountType(AccountType.MAIN), async (req: AuthRequest, r
     }
     if (status) {
       accounts = accounts.filter(acc => acc.status === status);
+    }
+    // 用户名模糊搜索
+    if (username) {
+      const usernameStr = (username as string).toLowerCase();
+      accounts = accounts.filter(acc => 
+        acc.username.toLowerCase().includes(usernameStr)
+      );
+    }
+    // 邮箱模糊搜索
+    if (email) {
+      const emailStr = (email as string).toLowerCase();
+      accounts = accounts.filter(acc => 
+        acc.email.toLowerCase().includes(emailStr)
+      );
+    }
+    // 手机号模糊搜索
+    if (phone) {
+      const phoneStr = phone as string;
+      accounts = accounts.filter(acc => 
+        acc.phone && acc.phone.includes(phoneStr)
+      );
+    }
+    // Customer筛选（支持多选，使用AND逻辑：账号必须包含所有选中的Customer）
+    // 账号类型只起到标签作用，客户子账号和Partner子账号逻辑相同
+    if (customerIds) {
+      const customerIdArray = Array.isArray(customerIds) 
+        ? customerIds 
+        : [customerIds];
+      accounts = accounts.filter(acc => {
+        // 主账号显示所有，不筛选
+        if (acc.accountType === AccountType.MAIN) {
+          return true;
+        }
+        // 子账号统一检查：使用customerIds或accessibleCustomerIds（必须包含所有选中的Customer）
+        const accountCustomerIds = acc.customerIds || acc.accessibleCustomerIds || [];
+        return accountCustomerIds.length > 0 && 
+               customerIdArray.every(cid => accountCustomerIds.includes(cid as string));
+      });
     }
 
     // 分页
@@ -267,19 +314,11 @@ router.put('/:id', requireAccountType(AccountType.MAIN), async (req: AuthRequest
       }
     }
 
-    // 验证Customer IDs
-    if (customerIds) {
-      const customerCheck = validateCustomerIds(customerIds);
-      if (!customerCheck.valid) {
-        return res.status(400).json({
-          success: false,
-          error: customerCheck.error
-        } as ApiResponse);
-      }
-    }
-
-    if (accessibleCustomerIds) {
-      const customerCheck = validateCustomerIds(accessibleCustomerIds);
+    // 账号类型只起到标签作用，统一处理Customer IDs
+    // 优先使用accessibleCustomerIds，如果没有则使用customerIds
+    const finalCustomerIds = accessibleCustomerIds || customerIds;
+    if (finalCustomerIds) {
+      const customerCheck = validateCustomerIds(finalCustomerIds);
       if (!customerCheck.valid) {
         return res.status(400).json({
           success: false,
@@ -303,8 +342,19 @@ router.put('/:id', requireAccountType(AccountType.MAIN), async (req: AuthRequest
     if (username) updates.username = username;
     if (email) updates.email = email;
     if (phone) updates.phone = phone;
-    if (customerIds) updates.customerIds = customerIds;
-    if (accessibleCustomerIds) updates.accessibleCustomerIds = accessibleCustomerIds;
+    // 账号类型只起到标签作用，统一处理Customer IDs
+    // 根据账号类型设置对应字段以保持数据一致性
+    if (finalCustomerIds) {
+      if (account.accountType === AccountType.CUSTOMER) {
+        updates.customerIds = finalCustomerIds;
+        // 清除accessibleCustomerIds以保持数据一致性
+        updates.accessibleCustomerIds = [];
+      } else if (account.accountType === AccountType.PARTNER) {
+        updates.accessibleCustomerIds = finalCustomerIds;
+        // 清除customerIds以保持数据一致性
+        updates.customerIds = [];
+      }
+    }
     if (roleIds) updates.roles = roleIds;
     if (status) updates.status = status as AccountStatus;
 

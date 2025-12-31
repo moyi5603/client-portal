@@ -20,13 +20,8 @@ export const checkDataPermission = (req: AuthRequest, res: Response, next: NextF
   const requestedCustomerId = req.query.customerId as string || req.body.customerId;
 
   if (requestedCustomerId) {
-    let allowedCustomerIds: string[] = [];
-
-    if (accountType === AccountType.CUSTOMER) {
-      allowedCustomerIds = customerIds || [];
-    } else if (accountType === AccountType.PARTNER) {
-      allowedCustomerIds = accessibleCustomerIds || [];
-    }
+    // 账号类型只起到标签作用，统一使用customerIds或accessibleCustomerIds
+    const allowedCustomerIds = customerIds || accessibleCustomerIds || [];
 
     if (!allowedCustomerIds.includes(requestedCustomerId)) {
       return res.status(403).json({ 
@@ -40,6 +35,7 @@ export const checkDataPermission = (req: AuthRequest, res: Response, next: NextF
 };
 
 // 过滤查询结果，只返回有权限的数据
+// 账号类型只起到标签作用，客户子账号和Partner子账号逻辑相同
 export const filterDataByPermission = <T extends { customerId?: string }>(
   data: T[],
   user: { accountType: AccountType; customerIds?: string[]; accessibleCustomerIds?: string[] }
@@ -48,12 +44,8 @@ export const filterDataByPermission = <T extends { customerId?: string }>(
     return data; // 主账号可以访问所有数据
   }
 
-  let allowedCustomerIds: string[] = [];
-  if (user.accountType === AccountType.CUSTOMER) {
-    allowedCustomerIds = user.customerIds || [];
-  } else if (user.accountType === AccountType.PARTNER) {
-    allowedCustomerIds = user.accessibleCustomerIds || [];
-  }
+  // 统一使用customerIds或accessibleCustomerIds
+  const allowedCustomerIds = user.customerIds || user.accessibleCustomerIds || [];
 
   return data.filter(item => {
     if (!item.customerId) return true; // 没有customerId的数据允许访问
