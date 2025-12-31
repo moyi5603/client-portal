@@ -30,7 +30,7 @@ npm run dev:client
 
 1. 打开浏览器访问：http://localhost:3000
 2. 使用以下账号登录：
-   - **租户ID**: `tenant-1`
+   - **租户ID**: `admin`
    - **用户名**: `admin`
    - **密码**: `admin123`
 

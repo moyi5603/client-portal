@@ -141,7 +141,7 @@ auditService.log(
 
 // 查询审计日志
 const logs = auditService.query({
-  tenantId: 'tenant-1',
+  tenantId: 'admin',
   startDate: '2025-01-01',
   actionType: ActionType.ROLE_CREATED
 });

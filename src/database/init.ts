@@ -13,7 +13,7 @@ export const initTestData = () => {
     phone: '13800138000',
     accountType: AccountType.MAIN,
     status: AccountStatus.ACTIVE,
-    tenantId: 'tenant-1',
+    tenantId: 'admin',
     roles: [],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
@@ -143,7 +143,7 @@ export const initTestData = () => {
     phone: '13800138001',
     accountType: AccountType.CUSTOMER,
     status: AccountStatus.ACTIVE,
-    tenantId: 'tenant-1',
+    tenantId: 'admin',
     roles: ['SYS-ADMIN-001', 'CUST-ADMIN-001'], // 分配系统管理员和客户管理员角色
     customerIds: ['customer-1'],
     createdAt: new Date().toISOString(),
@@ -158,7 +158,7 @@ export const initTestData = () => {
     phone: '13800138002',
     accountType: AccountType.CUSTOMER,
     status: AccountStatus.ACTIVE,
-    tenantId: 'tenant-1',
+    tenantId: 'admin',
     roles: ['CSR-STANDARD-001'], // 分配客户服务代表角色
     customerIds: ['customer-1'],
     createdAt: new Date().toISOString(),
@@ -254,7 +254,7 @@ export const initTestData = () => {
   console.log('主账号: admin / admin123');
   console.log('用户账号1: zhang.san / user123 (角色: 系统管理员, 客户管理员)');
   console.log('用户账号2: li.si / user123 (角色: 客户服务代表)');
-  console.log('租户ID: tenant-1');
+  console.log('租户ID: admin');
   console.log('示例角色已创建：系统管理员、客户管理员、客户服务代表');
   console.log('已创建2条模拟操作记录');
 };

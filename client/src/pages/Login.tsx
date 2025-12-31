@@ -36,6 +36,11 @@ const Login: React.FC = () => {
           onFinish={onFinish}
           autoComplete="off"
           size="large"
+          initialValues={{
+            tenantId: 'admin',
+            username: 'admin',
+            password: 'admin123'
+          }}
         >
           <Form.Item
             name="tenantId"
@@ -71,7 +76,7 @@ const Login: React.FC = () => {
           </Form.Item>
         </Form>
         <div style={{ marginTop: 16, textAlign: 'center', color: '#999', fontSize: 12 }}>
-          <p>测试账号：tenant-1 / admin / admin123</p>
+          <p>测试账号：admin / admin / admin123</p>
         </div>
       </Card>
     </div>

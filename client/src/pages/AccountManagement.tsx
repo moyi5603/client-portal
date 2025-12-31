@@ -126,6 +126,50 @@ const AccountManagement: React.FC = () => {
     }
   };
 
+  // 获取Customer名称
+  const getCustomerNames = (account: Account) => {
+    const customerIds = account.accountType === 'CUSTOMER' 
+      ? account.customerIds || [] 
+      : account.accessibleCustomerIds || [];
+    
+    if (customerIds.length === 0) {
+      return <span style={{ color: '#999' }}>无</span>;
+    }
+    
+    return (
+      <Space wrap>
+        {customerIds.map((id: string) => {
+          const customer = customers.find(c => c.id === id);
+          return (
+            <Tag key={id} color="blue">
+              {customer ? `${customer.name}(${customer.code})` : id}
+            </Tag>
+          );
+        })}
+      </Space>
+    );
+  };
+
+  // 获取角色名称
+  const getRoleNames = (account: Account) => {
+    if (!account.roles || account.roles.length === 0) {
+      return <span style={{ color: '#999' }}>无</span>;
+    }
+    
+    return (
+      <Space wrap>
+        {account.roles.map((roleId: string) => {
+          const role = roles.find(r => r.id === roleId);
+          return (
+            <Tag key={roleId} color="purple">
+              {role ? role.name : roleId}
+            </Tag>
+          );
+        })}
+      </Space>
+    );
+  };
+
   const columns = [
     {
       title: '用户名',
@@ -155,6 +199,18 @@ const AccountManagement: React.FC = () => {
         const info = typeMap[type] || { text: type, color: 'default' };
         return <Tag color={info.color}>{info.text}</Tag>;
       }
+    },
+    {
+      title: '可访问Customer',
+      key: 'customers',
+      width: 200,
+      render: (_: any, record: Account) => getCustomerNames(record)
+    },
+    {
+      title: '角色信息',
+      key: 'roles',
+      width: 250,
+      render: (_: any, record: Account) => getRoleNames(record)
     },
     {
       title: '状态',
