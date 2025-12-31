@@ -1,0 +1,295 @@
+import express from 'express';
+import { authenticate, requireAccountType, AuthRequest } from '../middleware/auth';
+import { db } from '../database/models';
+import { generateId } from '../utils/uuid';
+import { validateCustomerIds } from '../utils/validation';
+import { Role, RoleType, RoleStatus, Environment, ApiResponse, PaginatedResponse, Permission } from '../types';
+import { auditService } from '../services/auditService';
+import { ActionType, TargetType } from '../types';
+
+const router = express.Router();
+
+router.use(authenticate);
+
+// 创建角色
+router.post('/', requireAccountType('MAIN'), async (req: AuthRequest, res) => {
+  try {
+    const { name, description, type, status, environment, permissions, defaultDataScope } = req.body;
+
+    if (!name || !type) {
+      return res.status(400).json({
+        success: false,
+        error: '角色名称和类型不能为空'
+      } as ApiResponse);
+    }
+
+    const role: Role = {
+      id: generateId(),
+      name,
+      description,
+      type: type as RoleType,
+      status: (status as RoleStatus) || RoleStatus.ACTIVE,
+      environment: environment as Environment,
+      permissions: permissions || [],
+      defaultDataScope,
+      usageCount: 0,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      createdBy: req.user!.accountId,
+      modifiedBy: req.user!.accountId
+    };
+
+    db.createRole(role);
+
+    // 记录审计日志
+    auditService.log(
+      req.user!,
+      ActionType.ROLE_CREATED,
+      TargetType.ROLE,
+      role.id,
+      undefined,
+      role
+    );
+
+    res.status(201).json({
+      success: true,
+      data: role
+    } as ApiResponse<Role>);
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message || '创建角色失败'
+    } as ApiResponse);
+  }
+});
+
+// 获取角色列表
+router.get('/', requireAccountType('MAIN'), async (req: AuthRequest, res) => {
+  try {
+    const { page = 1, pageSize = 10, type, status, module, environment } = req.query;
+    let roles = db.getAllRoles();
+
+    // 过滤
+    if (type && type !== 'ALL') {
+      roles = roles.filter(role => role.type === type);
+    }
+    if (status) {
+      roles = roles.filter(role => role.status === status);
+    }
+    if (environment) {
+      roles = roles.filter(role => role.environment === environment);
+    }
+    if (module && module !== 'ALL') {
+      roles = roles.filter(role => 
+        role.permissions.some(p => p.module === module)
+      );
+    }
+
+    // 计算使用数量
+    const accounts = db.getAllAccounts(req.user!.tenantId);
+    roles = roles.map(role => {
+      const usageCount = accounts.filter(acc => acc.roles.includes(role.id)).length;
+      return { ...role, usageCount };
+    });
+
+    // 分页
+    const pageNum = parseInt(page as string);
+    const pageSizeNum = parseInt(pageSize as string);
+    const start = (pageNum - 1) * pageSizeNum;
+    const end = start + pageSizeNum;
+    const paginatedRoles = roles.slice(start, end);
+
+    res.json({
+      success: true,
+      data: {
+        items: paginatedRoles,
+        total: roles.length,
+        page: pageNum,
+        pageSize: pageSizeNum
+      }
+    } as ApiResponse<PaginatedResponse<Role>>);
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message || '获取角色列表失败'
+    } as ApiResponse);
+  }
+});
+
+// 获取角色详情
+router.get('/:id', requireAccountType('MAIN'), async (req: AuthRequest, res) => {
+  try {
+    const role = db.getRole(req.params.id);
+    if (!role) {
+      return res.status(404).json({
+        success: false,
+        error: '角色不存在'
+      } as ApiResponse);
+    }
+
+    // 计算使用数量
+    const accounts = db.getAllAccounts(req.user!.tenantId);
+    const usageCount = accounts.filter(acc => acc.roles.includes(role.id)).length;
+    const roleWithUsage = { ...role, usageCount };
+
+    res.json({
+      success: true,
+      data: roleWithUsage
+    } as ApiResponse<Role>);
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message || '获取角色详情失败'
+    } as ApiResponse);
+  }
+});
+
+// 更新角色
+router.put('/:id', requireAccountType('MAIN'), async (req: AuthRequest, res) => {
+  try {
+    const role = db.getRole(req.params.id);
+    if (!role) {
+      return res.status(404).json({
+        success: false,
+        error: '角色不存在'
+      } as ApiResponse);
+    }
+
+    const { name, description, type, status, environment, permissions, defaultDataScope } = req.body;
+    const previousValue = { ...role };
+
+    const updates: Partial<Role> = {};
+    if (name) updates.name = name;
+    if (description !== undefined) updates.description = description;
+    if (type) updates.type = type as RoleType;
+    if (status) updates.status = status as RoleStatus;
+    if (environment) updates.environment = environment as Environment;
+    if (permissions) updates.permissions = permissions as Permission[];
+    if (defaultDataScope !== undefined) updates.defaultDataScope = defaultDataScope;
+    updates.modifiedBy = req.user!.accountId;
+
+    const updated = db.updateRole(role.id, updates);
+    if (!updated) {
+      return res.status(500).json({
+        success: false,
+        error: '更新角色失败'
+      } as ApiResponse);
+    }
+
+    const updatedRole = db.getRole(role.id);
+
+    // 记录审计日志
+    const changes = auditService.computeChanges(previousValue, updatedRole!);
+    auditService.log(
+      req.user!,
+      ActionType.ROLE_UPDATED,
+      TargetType.ROLE,
+      role.id,
+      previousValue,
+      updatedRole,
+      changes
+    );
+
+    res.json({
+      success: true,
+      data: updatedRole
+    } as ApiResponse<Role>);
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message || '更新角色失败'
+    } as ApiResponse);
+  }
+});
+
+// 废弃角色
+router.post('/:id/deprecate', requireAccountType('MAIN'), async (req: AuthRequest, res) => {
+  try {
+    const role = db.getRole(req.params.id);
+    if (!role) {
+      return res.status(404).json({
+        success: false,
+        error: '角色不存在'
+      } as ApiResponse);
+    }
+
+    const previousValue = { ...role };
+    const updated = db.updateRole(role.id, { 
+      status: RoleStatus.DEPRECATED,
+      modifiedBy: req.user!.accountId
+    });
+
+    if (!updated) {
+      return res.status(500).json({
+        success: false,
+        error: '废弃角色失败'
+      } as ApiResponse);
+    }
+
+    const updatedRole = db.getRole(role.id);
+
+    // 记录审计日志
+    auditService.log(
+      req.user!,
+      ActionType.ROLE_DEPRECATED,
+      TargetType.ROLE,
+      role.id,
+      previousValue,
+      updatedRole
+    );
+
+    res.json({
+      success: true,
+      data: updatedRole
+    } as ApiResponse<Role>);
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message || '废弃角色失败'
+    } as ApiResponse);
+  }
+});
+
+// 删除角色
+router.delete('/:id', requireAccountType('MAIN'), async (req: AuthRequest, res) => {
+  try {
+    const role = db.getRole(req.params.id);
+    if (!role) {
+      return res.status(404).json({
+        success: false,
+        error: '角色不存在'
+      } as ApiResponse);
+    }
+
+    // 检查是否被使用
+    const accounts = db.getAllAccounts(req.user!.tenantId);
+    const isUsed = accounts.some(acc => acc.roles.includes(role.id));
+    if (isUsed) {
+      return res.status(400).json({
+        success: false,
+        error: '角色正在使用中，无法删除'
+      } as ApiResponse);
+    }
+
+    const deleted = db.deleteRole(role.id);
+    if (!deleted) {
+      return res.status(500).json({
+        success: false,
+        error: '删除角色失败'
+      } as ApiResponse);
+    }
+
+    res.json({
+      success: true,
+      message: '角色删除成功'
+    } as ApiResponse);
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message || '删除角色失败'
+    } as ApiResponse);
+  }
+});
+
+export default router;
+
