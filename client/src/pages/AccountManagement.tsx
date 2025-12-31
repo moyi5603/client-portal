@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Table, Button, Modal, Form, Input, Select, message, Space, Tag, Popconfirm } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import api from '../utils/api';
+import { useAuth } from '../contexts/AuthContext';
 
 const { Option } = Select;
 
@@ -9,7 +10,7 @@ interface Account {
   id: string;
   username: string;
   email: string;
-  phone: string;
+  phone?: string;  // 手机号（可选）
   accountType: string;
   status: string;
   customerIds?: string[];
@@ -18,6 +19,7 @@ interface Account {
 }
 
 const AccountManagement: React.FC = () => {
+  const { user } = useAuth();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
@@ -97,6 +99,17 @@ const AccountManagement: React.FC = () => {
 
   const handleSubmit = async (values: any) => {
     try {
+      // 处理"全部customer"选项：将"ALL"转换为所有customer的ID列表
+      if (values.accountType === 'CUSTOMER' && values.customerIds) {
+        if (values.customerIds.includes('ALL')) {
+          values.customerIds = customers.map(c => c.id);
+        }
+      } else if (values.accountType === 'PARTNER' && values.accessibleCustomerIds) {
+        if (values.accessibleCustomerIds.includes('ALL')) {
+          values.accessibleCustomerIds = customers.map(c => c.id);
+        }
+      }
+
       if (editingAccount) {
         // 更新
         const response = await api.put(`/accounts/${editingAccount.id}`, values);
@@ -128,12 +141,26 @@ const AccountManagement: React.FC = () => {
 
   // 获取Customer名称
   const getCustomerNames = (account: Account) => {
+    // 主账号固定显示"全部customer"
+    if (account.accountType === 'MAIN') {
+      return <Tag color="blue">全部customer</Tag>;
+    }
+    
     const customerIds = account.accountType === 'CUSTOMER' 
       ? account.customerIds || [] 
       : account.accessibleCustomerIds || [];
     
     if (customerIds.length === 0) {
       return <span style={{ color: '#999' }}>无</span>;
+    }
+    
+    // 检查是否选择了所有customer（数量相等且所有ID都在列表中）
+    const allCustomerIds = customers.map(c => c.id);
+    const hasAllCustomers = customerIds.length === allCustomerIds.length && 
+      allCustomerIds.every(id => customerIds.includes(id));
+    
+    if (hasAllCustomers) {
+      return <Tag color="blue">全部customer</Tag>;
     }
     
     return (
@@ -152,6 +179,11 @@ const AccountManagement: React.FC = () => {
 
   // 获取角色名称
   const getRoleNames = (account: Account) => {
+    // 主账号固定显示"全部权限"
+    if (account.accountType === 'MAIN') {
+      return <Tag color="purple">全部权限</Tag>;
+    }
+    
     if (!account.roles || account.roles.length === 0) {
       return <span style={{ color: '#999' }}>无</span>;
     }
@@ -174,22 +206,26 @@ const AccountManagement: React.FC = () => {
     {
       title: '用户名',
       dataIndex: 'username',
-      key: 'username'
+      key: 'username',
+      width: 120
     },
     {
       title: '邮箱',
       dataIndex: 'email',
-      key: 'email'
+      key: 'email',
+      width: 150
     },
     {
       title: '手机号',
       dataIndex: 'phone',
-      key: 'phone'
+      key: 'phone',
+      width: 120
     },
     {
       title: '账号类型',
       dataIndex: 'accountType',
       key: 'accountType',
+      width: 120,
       render: (type: string) => {
         const typeMap: Record<string, { text: string; color: string }> = {
           MAIN: { text: '主账号', color: 'red' },
@@ -203,19 +239,20 @@ const AccountManagement: React.FC = () => {
     {
       title: '可访问Customer',
       key: 'customers',
-      width: 200,
+      width: 300,
       render: (_: any, record: Account) => getCustomerNames(record)
     },
     {
       title: '角色信息',
       key: 'roles',
-      width: 250,
+      width: 350,
       render: (_: any, record: Account) => getRoleNames(record)
     },
     {
       title: '状态',
       dataIndex: 'status',
       key: 'status',
+      width: 100,
       render: (status: string) => {
         const statusMap: Record<string, { text: string; color: string }> = {
           ACTIVE: { text: '启用', color: 'green' },
@@ -229,23 +266,62 @@ const AccountManagement: React.FC = () => {
     {
       title: '操作',
       key: 'action',
-      render: (_: any, record: Account) => (
-        <Space>
-          <Button type="link" icon={<EditOutlined />} onClick={() => handleEdit(record)}>
-            编辑
-          </Button>
-          <Popconfirm
-            title="确定要删除这个账号吗？"
-            onConfirm={() => handleDelete(record.id)}
-            okText="确定"
-            cancelText="取消"
-          >
-            <Button type="link" danger icon={<DeleteOutlined />}>
-              删除
+      width: 150,
+      render: (_: any, record: Account) => {
+        // admin账号可以管理其他账号，但不能管理自己
+        const isAdmin = user?.username === 'admin';
+        const isCurrentUser = user?.id === record.id;
+        
+        // 如果是admin账号自己，不支持任何操作
+        if (isAdmin && isCurrentUser) {
+          return <span style={{ color: '#999' }}>-</span>;
+        }
+        
+        // 如果是admin账号，可以管理其他账号
+        if (isAdmin) {
+          return (
+            <Space>
+              <Button type="link" icon={<EditOutlined />} onClick={() => handleEdit(record)}>
+                编辑
+              </Button>
+              <Popconfirm
+                title="确定要删除这个账号吗？"
+                onConfirm={() => handleDelete(record.id)}
+                okText="确定"
+                cancelText="取消"
+              >
+                <Button type="link" danger icon={<DeleteOutlined />}>
+                  删除
+                </Button>
+              </Popconfirm>
+            </Space>
+          );
+        }
+        
+        // 其他主账号不支持任何操作
+        if (record.accountType === 'MAIN') {
+          return <span style={{ color: '#999' }}>-</span>;
+        }
+        
+        // 其他账号类型正常显示操作按钮
+        return (
+          <Space>
+            <Button type="link" icon={<EditOutlined />} onClick={() => handleEdit(record)}>
+              编辑
             </Button>
-          </Popconfirm>
-        </Space>
-      )
+            <Popconfirm
+              title="确定要删除这个账号吗？"
+              onConfirm={() => handleDelete(record.id)}
+              okText="确定"
+              cancelText="取消"
+            >
+              <Button type="link" danger icon={<DeleteOutlined />}>
+                删除
+              </Button>
+            </Popconfirm>
+          </Space>
+        );
+      }
     }
   ];
 
@@ -309,9 +385,8 @@ const AccountManagement: React.FC = () => {
           <Form.Item
             name="phone"
             label="手机号"
-            rules={[{ required: true, message: '请输入手机号' }]}
           >
-            <Input />
+            <Input placeholder="选填" />
           </Form.Item>
           {!editingAccount && (
             <Form.Item
@@ -334,16 +409,47 @@ const AccountManagement: React.FC = () => {
             </Select>
           </Form.Item>
           <Form.Item
-            name={form.getFieldValue('accountType') === 'CUSTOMER' ? 'customerIds' : 'accessibleCustomerIds'}
-            label={form.getFieldValue('accountType') === 'CUSTOMER' ? '所属Customer' : '可访问Customer'}
+            noStyle
+            shouldUpdate={(prevValues, currentValues) => prevValues.accountType !== currentValues.accountType}
           >
-            <Select mode="multiple" placeholder="请选择Customer">
-              {customers.map(customer => (
-                <Option key={customer.id} value={customer.id}>
-                  {customer.name} ({customer.code})
-                </Option>
-              ))}
-            </Select>
+            {({ getFieldValue }) => {
+              const accountType = getFieldValue('accountType');
+              const fieldName = accountType === 'CUSTOMER' ? 'customerIds' : 'accessibleCustomerIds';
+              const label = accountType === 'CUSTOMER' ? '所属Customer' : '可访问Customer';
+              
+              return (
+                <Form.Item
+                  name={fieldName}
+                  label={label}
+                >
+                  <Select 
+                    mode="multiple" 
+                    placeholder="请选择Customer"
+                    onChange={(value: string[]) => {
+                      // 如果选择了"全部customer"，清空其他选择
+                      if (value.includes('ALL')) {
+                        form.setFieldsValue({
+                          [fieldName]: ['ALL']
+                        });
+                      } else {
+                        // 如果选择了其他customer，移除"ALL"选项
+                        const filteredValue = value.filter(v => v !== 'ALL');
+                        form.setFieldsValue({
+                          [fieldName]: filteredValue
+                        });
+                      }
+                    }}
+                  >
+                    <Option key="ALL" value="ALL">全部customer</Option>
+                    {customers.map(customer => (
+                      <Option key={customer.id} value={customer.id}>
+                        {customer.name} ({customer.code})
+                      </Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+              );
+            }}
           </Form.Item>
           <Form.Item
             name="roleIds"

@@ -1,9 +1,9 @@
 import express from 'express';
 import { authenticate, requireAccountType, AuthRequest } from '../middleware/auth';
 import { db } from '../database/models';
-import { generateId } from '../utils/uuid';
+import { generateId, generateRoleId } from '../utils/uuid';
 import { validateCustomerIds } from '../utils/validation';
-import { Role, RoleType, RoleStatus, Environment, ApiResponse, PaginatedResponse, Permission } from '../types';
+import { Role, RoleStatus, ApiResponse, PaginatedResponse, Permission } from '../types';
 import { auditService } from '../services/auditService';
 import { ActionType, TargetType } from '../types';
 
@@ -14,24 +14,21 @@ router.use(authenticate);
 // 创建角色
 router.post('/', requireAccountType('MAIN'), async (req: AuthRequest, res) => {
   try {
-    const { name, description, type, status, environment, permissions, defaultDataScope } = req.body;
+    const { name, description, status, permissions } = req.body;
 
-    if (!name || !type) {
+    if (!name) {
       return res.status(400).json({
         success: false,
-        error: '角色名称和类型不能为空'
+        error: '角色名称不能为空'
       } as ApiResponse);
     }
 
     const role: Role = {
-      id: generateId(),
+      id: generateRoleId(),
       name,
       description,
-      type: type as RoleType,
       status: (status as RoleStatus) || RoleStatus.ACTIVE,
-      environment: environment as Environment,
       permissions: permissions || [],
-      defaultDataScope,
       usageCount: 0,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -66,18 +63,12 @@ router.post('/', requireAccountType('MAIN'), async (req: AuthRequest, res) => {
 // 获取角色列表
 router.get('/', requireAccountType('MAIN'), async (req: AuthRequest, res) => {
   try {
-    const { page = 1, pageSize = 10, type, status, module, environment } = req.query;
+    const { page = 1, pageSize = 10, status, module } = req.query;
     let roles = db.getAllRoles();
 
     // 过滤
-    if (type && type !== 'ALL') {
-      roles = roles.filter(role => role.type === type);
-    }
     if (status) {
       roles = roles.filter(role => role.status === status);
-    }
-    if (environment) {
-      roles = roles.filter(role => role.environment === environment);
     }
     if (module && module !== 'ALL') {
       roles = roles.filter(role => 
@@ -155,17 +146,14 @@ router.put('/:id', requireAccountType('MAIN'), async (req: AuthRequest, res) => 
       } as ApiResponse);
     }
 
-    const { name, description, type, status, environment, permissions, defaultDataScope } = req.body;
+    const { name, description, status, permissions } = req.body;
     const previousValue = { ...role };
 
     const updates: Partial<Role> = {};
     if (name) updates.name = name;
     if (description !== undefined) updates.description = description;
-    if (type) updates.type = type as RoleType;
     if (status) updates.status = status as RoleStatus;
-    if (environment) updates.environment = environment as Environment;
     if (permissions) updates.permissions = permissions as Permission[];
-    if (defaultDataScope !== undefined) updates.defaultDataScope = defaultDataScope;
     updates.modifiedBy = req.user!.accountId;
 
     const updated = db.updateRole(role.id, updates);

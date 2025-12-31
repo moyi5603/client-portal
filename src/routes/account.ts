@@ -15,10 +15,10 @@ router.post('/customer', requireAccountType(AccountType.MAIN), async (req: AuthR
   try {
     const { username, email, phone, password, customerIds, roleIds, status } = req.body;
 
-    if (!username || !email || !phone || !password) {
+    if (!username || !email || !password) {
       return res.status(400).json({
         success: false,
-        error: '用户名、邮箱、手机号和密码不能为空'
+        error: '用户名、邮箱和密码不能为空'
       } as ApiResponse);
     }
 
@@ -89,10 +89,10 @@ router.post('/partner', requireAccountType(AccountType.MAIN), async (req: AuthRe
   try {
     const { username, email, phone, password, accessibleCustomerIds, roleIds, status } = req.body;
 
-    if (!username || !email || !phone || !password) {
+    if (!username || !email || !password) {
       return res.status(400).json({
         success: false,
-        error: '用户名、邮箱、手机号和密码不能为空'
+        error: '用户名、邮箱和密码不能为空'
       } as ApiResponse);
     }
 

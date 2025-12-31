@@ -1,7 +1,7 @@
 import express from 'express';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { db } from '../database/models';
-import { ApiResponse, PermissionMatrix, Module, RoleType } from '../types';
+import { ApiResponse, PermissionMatrix, Module } from '../types';
 
 const router = express.Router();
 
@@ -18,11 +18,6 @@ router.get('/', async (req: AuthRequest, res) => {
     if (roleIds) {
       const roleIdArray = (roleIds as string).split(',');
       roles = roles.filter(r => roleIdArray.includes(r.id));
-    }
-
-    if (types) {
-      const typeArray = (types as string).split(',') as RoleType[];
-      roles = roles.filter(r => typeArray.includes(r.type));
     }
 
     // 获取所有模块
@@ -83,11 +78,6 @@ router.get('/export', async (req: AuthRequest, res) => {
     if (roleIds) {
       const roleIdArray = (roleIds as string).split(',');
       roles = roles.filter(r => roleIdArray.includes(r.id));
-    }
-
-    if (types) {
-      const typeArray = (types as string).split(',') as RoleType[];
-      roles = roles.filter(r => typeArray.includes(r.type));
     }
 
     const allModules = Object.values(Module);

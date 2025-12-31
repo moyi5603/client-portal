@@ -1,5 +1,5 @@
 import { db } from './models';
-import { Account, AccountType, AccountStatus, Role, RoleType, RoleStatus, Environment, Module, Operation, ActionType, TargetType } from '../types';
+import { Account, AccountType, AccountStatus, Role, RoleStatus, Module, Operation, ActionType, TargetType } from '../types';
 import { generateId } from '../utils/uuid';
 import { auditService } from '../services/auditService';
 
@@ -22,12 +22,10 @@ export const initTestData = () => {
 
   // 创建示例角色（使用新的权限结构）
   const systemAdminRole: Role = {
-    id: 'SYS-ADMIN-001',
+    id: 'ROLE-001',
     name: '系统管理员',
     description: '拥有所有权限的完整系统访问权限',
-    type: RoleType.INTERNAL,
     status: RoleStatus.ACTIVE,
-    environment: Environment.PROD,
     permissions: [
       {
         module: Module.ADMIN,
@@ -49,12 +47,10 @@ export const initTestData = () => {
   db.createRole(systemAdminRole);
 
   const customerAdminRole: Role = {
-    id: 'CUST-ADMIN-001',
+    id: 'ROLE-002',
     name: '客户管理员',
     description: '管理客户用户和角色',
-    type: RoleType.CUSTOMER,
     status: RoleStatus.ACTIVE,
-    environment: Environment.PROD,
     permissions: [
       {
         module: Module.INVENTORY,
@@ -75,9 +71,6 @@ export const initTestData = () => {
         operations: [Operation.VIEW, Operation.CREATE, Operation.EDIT, Operation.EXPORT]
       }
     ],
-    defaultDataScope: {
-      customers: ['customer-1']
-    },
     usageCount: 0,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
@@ -85,12 +78,10 @@ export const initTestData = () => {
   db.createRole(customerAdminRole);
 
   const csrRole: Role = {
-    id: 'CSR-STANDARD-001',
+    id: 'ROLE-003',
     name: '客户服务代表',
     description: '处理客户咨询、处理订单并提供支持',
-    type: RoleType.CUSTOMER,
     status: RoleStatus.ACTIVE,
-    environment: Environment.PROD,
     permissions: [
       {
         module: Module.KPI,
@@ -144,7 +135,7 @@ export const initTestData = () => {
     accountType: AccountType.CUSTOMER,
     status: AccountStatus.ACTIVE,
     tenantId: 'admin',
-    roles: ['SYS-ADMIN-001', 'CUST-ADMIN-001'], // 分配系统管理员和客户管理员角色
+    roles: ['ROLE-001', 'ROLE-002'], // 分配系统管理员和客户管理员角色
     customerIds: ['customer-1'],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
@@ -159,7 +150,7 @@ export const initTestData = () => {
     accountType: AccountType.CUSTOMER,
     status: AccountStatus.ACTIVE,
     tenantId: 'admin',
-    roles: ['CSR-STANDARD-001'], // 分配客户服务代表角色
+    roles: ['ROLE-003'], // 分配客户服务代表角色
     customerIds: ['customer-1'],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
@@ -167,7 +158,7 @@ export const initTestData = () => {
   db.createAccount(user2, 'user123');
 
   // 更新主账号，分配系统管理员角色
-  db.updateAccount(mainAccount.id, { roles: ['SYS-ADMIN-001'] });
+  db.updateAccount(mainAccount.id, { roles: ['ROLE-001'] });
 
   // 创建模拟操作记录数据
   const mockActor1: any = {
@@ -195,7 +186,6 @@ export const initTestData = () => {
     {
       name: systemAdminRole.name,
       description: systemAdminRole.description,
-      type: systemAdminRole.type,
       status: systemAdminRole.status,
       permissions: systemAdminRole.permissions
     },
@@ -235,13 +225,13 @@ export const initTestData = () => {
       roles: []
     },
     {
-      roles: ['SYS-ADMIN-001', 'CUST-ADMIN-001']
+      roles: ['ROLE-001', 'ROLE-002']
     },
     [
       {
         field: 'roles',
         oldValue: [],
-        newValue: ['SYS-ADMIN-001', 'CUST-ADMIN-001'],
+        newValue: ['ROLE-001', 'ROLE-002'],
         changeType: 'MODIFIED'
       }
     ],

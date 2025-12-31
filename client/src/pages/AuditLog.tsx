@@ -10,7 +10,6 @@ import {
   Tag,
   Row,
   Col,
-  Breadcrumb,
   Typography,
   Descriptions,
   Collapse,
@@ -366,17 +365,6 @@ const AuditLogPage: React.FC = () => {
 
   return (
     <div>
-      {/* 面包屑 */}
-      <Breadcrumb style={{ marginBottom: 16 }}>
-        <Breadcrumb.Item>
-          <a onClick={() => navigate('/roles')}>{t('nav.systemManagement')}</a>
-        </Breadcrumb.Item>
-        <Breadcrumb.Item>
-          <a onClick={() => navigate('/roles')}>{t('nav.accessControl')}</a>
-        </Breadcrumb.Item>
-        <Breadcrumb.Item>{t('nav.auditLog')}</Breadcrumb.Item>
-      </Breadcrumb>
-
       {/* 标题和操作 */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
         <div>

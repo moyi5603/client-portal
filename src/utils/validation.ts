@@ -6,7 +6,7 @@ export const validateUniqueAccountInfo = (
   tenantId: string,
   username: string,
   email: string,
-  phone: string,
+  phone?: string,
   excludeAccountId?: string
 ): { valid: boolean; error?: string } => {
   const accounts = db.getAllAccounts(tenantId);
@@ -24,7 +24,8 @@ export const validateUniqueAccountInfo = (
       return { valid: false, error: '邮箱已存在' };
     }
 
-    if (account.phone === phone) {
+    // 只有当手机号不为空时才进行唯一性检查
+    if (phone && phone.trim() && account.phone && account.phone === phone) {
       return { valid: false, error: '手机号已存在' };
     }
   }

@@ -149,7 +149,7 @@ const translations: Record<Locale, Record<string, string>> = {
     // 过滤器
     'filter.allModules': '所有模块',
     'filter.allTypes': '所有类型',
-    'filter.searchPlaceholder': '搜索角色名称、描述...',
+    'filter.searchPlaceholder': '搜索角色名称',
     
     // 模块
     'module.KPI': 'KPI仪表板',
@@ -355,7 +355,7 @@ const translations: Record<Locale, Record<string, string>> = {
     // Filters
     'filter.allModules': 'All Modules',
     'filter.allTypes': 'All Types',
-    'filter.searchPlaceholder': 'Search by role name, description...',
+    'filter.searchPlaceholder': 'Search by role name',
     
     // Modules
     'module.KPI': 'KPI Dashboard',

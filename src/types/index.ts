@@ -142,7 +142,7 @@ export interface Account {
   id: string;
   username: string;
   email: string;
-  phone: string;
+  phone?: string;         // 手机号（可选）
   accountType: AccountType;
   status: AccountStatus;
   tenantId: string;
@@ -172,17 +172,9 @@ export interface Role {
   id: string;
   name: string;
   description?: string;
-  type: RoleType;                 // 'INTERNAL' | 'CUSTOMER'
   status: RoleStatus;             // 'ACTIVE' | 'DEPRECATED'
-  environment?: Environment;       // 'STAGING' | 'PROD'
   // 权限配置
   permissions: Permission[];       // 权限列表（模块→页面→操作）
-  // 默认数据范围
-  defaultDataScope?: {
-    customers?: string[];
-    warehouses?: string[];
-    regions?: string[];
-  };
   // 元数据
   usageCount: number;
   createdAt: string;

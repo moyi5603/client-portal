@@ -1,7 +1,7 @@
 import { 
   Account, Role, Customer, Menu, FunctionPermission, 
-  AccountType, AccountStatus, RoleType, DataPermissionType,
-  User, IdpGroupMapping, Warehouse, Region, UserStatus, RoleStatus, Environment
+  AccountType, AccountStatus, DataPermissionType,
+  User, IdpGroupMapping, Warehouse, Region, UserStatus, RoleStatus
 } from '../types';
 
 // 内存数据库（实际项目中应使用真实数据库）

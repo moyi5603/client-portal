@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Card, Select, Table, Tag, Space, Radio, Tooltip, Avatar, Input, 
-  Checkbox, Button, Row, Col, Breadcrumb, Typography, Divider 
+  Checkbox, Button, Row, Col, Typography, Divider 
 } from 'antd';
 import { 
   UserOutlined, EyeOutlined, PlusOutlined, EditOutlined, 
@@ -21,7 +21,6 @@ interface Role {
   id: string;
   name: string;
   description?: string;
-  type: 'INTERNAL' | 'CUSTOMER';
   status: 'ACTIVE' | 'DEPRECATED';
   permissions: Permission[];
   usageCount: number;
@@ -72,7 +71,6 @@ const PermissionView: React.FC = () => {
   
   // 过滤器状态
   const [filters, setFilters] = useState({
-    roleType: 'ALL',
     module: 'ALL',
     permissionType: 'ALL_MENUS', // 'ALL_MENUS' | 'ALL_RULES'
     roleStatus: 'ACTIVE'
@@ -128,11 +126,6 @@ const PermissionView: React.FC = () => {
   // 过滤后的角色列表
   const filteredRoles = useMemo(() => {
     let result = roles;
-
-    // 角色类型过滤
-    if (filters.roleType !== 'ALL') {
-      result = result.filter(r => r.type === filters.roleType);
-    }
 
     // 角色状态过滤
     if (filters.roleStatus === 'ACTIVE') {
@@ -190,12 +183,7 @@ const PermissionView: React.FC = () => {
         sorter: (a, b) => a.roleName.localeCompare(b.roleName),
         render: (text: string, record: any) => (
           <div>
-            <div style={{ fontWeight: 500, marginBottom: 4 }}>{text}</div>
-            <Space size={4}>
-              <Tag color={record.roleType === 'INTERNAL' ? 'blue' : 'purple'} size="small">
-                {record.roleType === 'INTERNAL' ? t('common.internal') : t('common.customer')}
-              </Tag>
-            </Space>
+            <div style={{ fontWeight: 500 }}>{text}</div>
           </div>
         )
       }
@@ -288,7 +276,6 @@ const PermissionView: React.FC = () => {
       const row: any = {
         key: role.id,
         roleName: role.name,
-        roleType: role.type,
         users: getAccountsWithRole(role.id)
       };
 
@@ -312,13 +299,6 @@ const PermissionView: React.FC = () => {
       render: (text: string, record: any) => (
         <div>
           <div style={{ fontWeight: 500 }}>{text}</div>
-          <Tag 
-            color={record.roleType === 'INTERNAL' ? 'blue' : 'purple'} 
-            size="small"
-            style={{ marginTop: 4 }}
-          >
-            {record.roleType === 'INTERNAL' ? t('common.internal') : t('common.customer')}
-          </Tag>
         </div>
       )
     },
@@ -427,7 +407,6 @@ const PermissionView: React.FC = () => {
         data.push({
           key: `${role.id}-${perm.module}-${perm.pageCode}`,
           roleName: role.name,
-          roleType: role.type,
           module: perm.module,
           parentMenuName: moduleConfig.name, // 一级菜单名（模块）
           menuName: perm.page, // 二级菜单名（页面）
@@ -442,7 +421,6 @@ const PermissionView: React.FC = () => {
 
   const handleReset = () => {
     setFilters({
-      roleType: 'ALL',
       module: 'ALL',
       permissionType: 'ALL_MENUS',
       roleStatus: 'ACTIVE'
@@ -460,17 +438,6 @@ const PermissionView: React.FC = () => {
 
   return (
     <div>
-      {/* 面包屑 */}
-      <Breadcrumb style={{ marginBottom: 16 }}>
-        <Breadcrumb.Item>
-          <a onClick={() => navigate('/roles')}>{t('nav.systemManagement')}</a>
-        </Breadcrumb.Item>
-        <Breadcrumb.Item>
-          <a onClick={() => navigate('/roles')}>{t('nav.accessControl')}</a>
-        </Breadcrumb.Item>
-        <Breadcrumb.Item>{t('nav.permissionMatrix')}</Breadcrumb.Item>
-      </Breadcrumb>
-
       {/* 标题和操作 */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
         <div>
@@ -494,18 +461,6 @@ const PermissionView: React.FC = () => {
       {/* 过滤器和搜索 */}
       <Card style={{ marginBottom: 16 }}>
         <Row gutter={16}>
-          <Col span={6}>
-            <div style={{ marginBottom: 8 }}>{t('common.type')}</div>
-            <Select
-              style={{ width: '100%' }}
-              value={filters.roleType}
-              onChange={(value) => setFilters({ ...filters, roleType: value })}
-            >
-              <Option value="ALL">{t('filter.allTypes')}</Option>
-              <Option value="INTERNAL">{t('common.internal')}</Option>
-              <Option value="CUSTOMER">{t('common.customer')}</Option>
-            </Select>
-          </Col>
           <Col span={6}>
             <div style={{ marginBottom: 8 }}>{t('role.module')}</div>
             <Select

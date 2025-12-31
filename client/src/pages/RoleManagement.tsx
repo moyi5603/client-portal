@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import {
   Table,
@@ -16,9 +16,8 @@ import {
   Collapse,
   Tooltip,
   message,
-  Breadcrumb,
-  Dropdown,
-  Popconfirm
+  Popconfirm,
+  Modal
 } from 'antd';
 import {
   PlusOutlined,
@@ -27,7 +26,6 @@ import {
   CopyOutlined,
   UploadOutlined,
   DownloadOutlined,
-  MoreOutlined,
   InfoCircleOutlined,
   ArrowLeftOutlined
 } from '@ant-design/icons';
@@ -43,15 +41,8 @@ interface Role {
   id: string;
   name: string;
   description?: string;
-  type: 'INTERNAL' | 'CUSTOMER';
   status: 'ACTIVE' | 'DEPRECATED';
-  environment?: 'STAGING' | 'PROD';
   permissions: Permission[];
-  defaultDataScope?: {
-    customers?: string[];
-    warehouses?: string[];
-    regions?: string[];
-  };
   usageCount: number;
   createdAt: string;
   updatedAt: string;
@@ -81,18 +72,23 @@ const RoleManagement: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingRole, setEditingRole] = useState<Role | null>(null);
+  const [accounts, setAccounts] = useState<any[]>([]);
   
   // 过滤器状态
   const [filters, setFilters] = useState({
     module: 'ALL',
-    type: 'ALL',
-    status: 'ACTIVE',
-    environment: 'PROD'
+    status: 'ACTIVE'
   });
   const [searchText, setSearchText] = useState('');
   
   // 权限选择状态
   const [selectedPermissions, setSelectedPermissions] = useState<Record<string, Record<string, string[]>>>({});
+  
+  // 用户列表Modal状态
+  const [userListVisible, setUserListVisible] = useState(false);
+  const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
+  const [usersWithRole, setUsersWithRole] = useState<any[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
 
   // 获取模块、操作和页面定义（在组件内部，使用 t 函数）
   const MODULES = [
@@ -111,7 +107,6 @@ const RoleManagement: React.FC = () => {
     { value: 'CREATE', label: t('operation.CREATE') },
     { value: 'EDIT', label: t('operation.EDIT') },
     { value: 'DELETE', label: t('operation.DELETE') },
-    { value: 'APPROVE', label: t('operation.APPROVE') },
     { value: 'EXPORT', label: t('operation.EXPORT') }
   ];
 
@@ -161,20 +156,17 @@ const RoleManagement: React.FC = () => {
     try {
       const response = await api.get('/roles', {
         params: {
-          type: filters.type !== 'ALL' ? filters.type : undefined,
           status: filters.status,
-          module: filters.module !== 'ALL' ? filters.module : undefined,
-          environment: filters.environment
+          module: filters.module !== 'ALL' ? filters.module : undefined
         }
       });
       if (response.data.success) {
         let data = response.data.data.items || [];
         
-        // 搜索过滤
+        // 搜索过滤（只搜索角色名称）
         if (searchText) {
           data = data.filter((role: Role) =>
-            role.name.toLowerCase().includes(searchText.toLowerCase()) ||
-            role.description?.toLowerCase().includes(searchText.toLowerCase())
+            role.name.toLowerCase().includes(searchText.toLowerCase())
           );
         }
         
@@ -215,10 +207,7 @@ const RoleManagement: React.FC = () => {
         form.setFieldsValue({
           name: role.name,
           description: role.description,
-          type: role.type,
-          status: role.status,
-          environment: role.environment || 'PROD',
-          defaultDataScope: role.defaultDataScope ? 'ASSIGNED' : 'ALL'
+          status: role.status
         });
         
         // 设置权限选择
@@ -240,10 +229,79 @@ const RoleManagement: React.FC = () => {
   };
 
   useEffect(() => {
+    // 首次加载时获取账号列表
+    loadAccounts();
+  }, []);
+
+  useEffect(() => {
     if (!isEditMode) {
       loadRoles();
     }
   }, [filters, isEditMode, loadRoles]);
+
+  const loadAccounts = async () => {
+    try {
+      const response = await api.get('/accounts', {
+        params: { page: 1, pageSize: 1000 }
+      });
+      if (response.data.success) {
+        setAccounts(response.data.data.items || []);
+      }
+    } catch (error) {
+      console.error('加载账号列表失败');
+    }
+  };
+
+  // 创建账号ID到用户名的映射，提高查找效率
+  const accountIdToUsernameMap = useMemo(() => {
+    const map = new Map<string, string>();
+    accounts.forEach(acc => {
+      map.set(acc.id, acc.username);
+    });
+    return map;
+  }, [accounts]);
+
+  const getUsernameByAccountId = (accountId: string | undefined): string => {
+    if (!accountId) {
+      return t('role.system');
+    }
+    const username = accountIdToUsernameMap.get(accountId);
+    // 如果找不到账号，可能是账号列表还在加载中，返回accountId作为临时显示
+    // 一旦账号列表加载完成，会自动更新显示
+    return username || accountId;
+  };
+
+  const handleViewUsers = async (roleId: string) => {
+    setSelectedRoleId(roleId);
+    setUserListVisible(true);
+    setLoadingUsers(true);
+    
+    try {
+      // 获取所有账号
+      const response = await api.get('/accounts', {
+        params: { page: 1, pageSize: 1000 }
+      });
+      
+      if (response.data.success) {
+        // 过滤出使用该角色的账号
+        const allAccounts = response.data.data.items || [];
+        const users = allAccounts.filter((account: any) => 
+          account.roles && account.roles.includes(roleId)
+        );
+        setUsersWithRole(users);
+      }
+    } catch (error) {
+      message.error('加载用户列表失败');
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
+
+  const handleCloseUserList = () => {
+    setUserListVisible(false);
+    setSelectedRoleId(null);
+    setUsersWithRole([]);
+  };
 
   const handleCreate = () => {
     setIsEditMode(true);
@@ -261,10 +319,7 @@ const RoleManagement: React.FC = () => {
     form.setFieldsValue({
       name: role.name,
       description: role.description,
-      type: role.type,
-      status: role.status,
-      environment: role.environment || 'PROD',
-      defaultDataScope: role.defaultDataScope ? 'ASSIGNED' : 'ALL'
+      status: role.status
     });
     
     // 设置权限选择
@@ -285,11 +340,8 @@ const RoleManagement: React.FC = () => {
       const response = await api.post('/roles', {
         name: `${role.name} (副本)`,
         description: role.description,
-        type: role.type,
         status: 'ACTIVE',
-        environment: role.environment,
-        permissions: role.permissions,
-        defaultDataScope: role.defaultDataScope
+        permissions: role.permissions
       });
       if (response.data.success) {
         message.success(t('role.copySuccess'));
@@ -335,8 +387,7 @@ const RoleManagement: React.FC = () => {
 
       const payload = {
         ...values,
-        permissions,
-        defaultDataScope: values.defaultDataScope === 'ASSIGNED' ? {} : undefined
+        permissions
       };
 
       if (editingRole) {
@@ -401,6 +452,51 @@ const RoleManagement: React.FC = () => {
     setSelectedPermissions({});
   };
 
+  // 全选某个模块的所有权限
+  const handleSelectModule = (moduleValue: string) => {
+    const pages = MODULE_PAGES[moduleValue] || [];
+    const newPerms = { ...selectedPermissions };
+    if (!newPerms[moduleValue]) {
+      newPerms[moduleValue] = {};
+    }
+    pages.forEach(page => {
+      newPerms[moduleValue][page.code] = OPERATIONS.map(op => op.value);
+    });
+    setSelectedPermissions(newPerms);
+  };
+
+  // 清空某个模块的所有权限
+  const handleClearModule = (moduleValue: string) => {
+    const newPerms = { ...selectedPermissions };
+    if (newPerms[moduleValue]) {
+      delete newPerms[moduleValue];
+      setSelectedPermissions(newPerms);
+    }
+  };
+
+  // 全选某个页面的所有操作
+  const handleSelectPage = (moduleValue: string, pageCode: string) => {
+    const newPerms = { ...selectedPermissions };
+    if (!newPerms[moduleValue]) {
+      newPerms[moduleValue] = {};
+    }
+    newPerms[moduleValue][pageCode] = OPERATIONS.map(op => op.value);
+    setSelectedPermissions(newPerms);
+  };
+
+  // 清空某个页面的所有操作
+  const handleClearPage = (moduleValue: string, pageCode: string) => {
+    const newPerms = { ...selectedPermissions };
+    if (newPerms[moduleValue] && newPerms[moduleValue][pageCode]) {
+      delete newPerms[moduleValue][pageCode];
+      // 如果模块下没有其他页面了，删除模块
+      if (Object.keys(newPerms[moduleValue]).length === 0) {
+        delete newPerms[moduleValue];
+      }
+      setSelectedPermissions(newPerms);
+    }
+  };
+
   const getModuleChips = (role: Role) => {
     const modules = new Set(role.permissions.map(p => p.module));
     if (modules.size === MODULES.length) {
@@ -432,16 +528,6 @@ const RoleManagement: React.FC = () => {
         ellipsis: true
       },
       {
-        title: t('common.type'),
-        dataIndex: 'type',
-        key: 'type',
-        render: (type: string) => (
-          <Tag color={type === 'INTERNAL' ? 'blue' : 'purple'}>
-            {type === 'INTERNAL' ? t('common.internal') : t('common.customer')}
-          </Tag>
-        )
-      },
-      {
         title: t('role.modules'),
         key: 'modules',
         render: (_: any, record: Role) => getModuleChips(record)
@@ -450,7 +536,17 @@ const RoleManagement: React.FC = () => {
         title: t('role.users'),
         dataIndex: 'usageCount',
         key: 'usageCount',
-        align: 'center' as const
+        align: 'center' as const,
+        render: (count: number, record: Role) => (
+          <Button
+            type="link"
+            onClick={() => handleViewUsers(record.id)}
+            disabled={count === 0}
+            style={{ padding: 0 }}
+          >
+            {count}
+          </Button>
+        )
       },
       {
         title: t('common.status'),
@@ -468,7 +564,7 @@ const RoleManagement: React.FC = () => {
         render: (_: any, record: Role) => (
           <div>
             <div>{new Date(record.updatedAt).toLocaleDateString(locale === 'zh-CN' ? 'zh-CN' : 'en-US')}</div>
-            <div style={{ fontSize: 12, color: '#666' }}>{t('role.modifiedBy')} {record.modifiedBy || t('role.system')}</div>
+            <div style={{ fontSize: 12, color: '#666' }}>{t('role.modifiedBy')} {getUsernameByAccountId(record.modifiedBy)}</div>
           </div>
         )
       },
@@ -476,40 +572,35 @@ const RoleManagement: React.FC = () => {
         title: t('common.actions'),
         key: 'actions',
         render: (_: any, record: Role) => {
-          const menuItems: MenuProps['items'] = [
-            {
-              key: 'edit',
-              label: t('common.edit'),
-              icon: <EditOutlined />,
-              onClick: () => handleEdit(record)
-            },
-            {
-              key: 'duplicate',
-              label: t('role.duplicate'),
-              icon: <CopyOutlined />,
-              onClick: () => handleDuplicate(record)
-            },
-            {
-              key: 'delete',
-              label: t('common.delete'),
-              icon: <DeleteOutlined />,
-              danger: true,
-              disabled: record.usageCount > 0,
-              onClick: () => {
-                if (record.usageCount === 0) {
-                  handleDelete(record.id);
-                }
-              }
-            }
-          ];
-          
           return (
             <Space>
-              <Button type="text" icon={<EditOutlined />} onClick={() => handleEdit(record)} title={t('common.edit')} />
-              <Button type="text" icon={<CopyOutlined />} onClick={() => handleDuplicate(record)} title={t('role.duplicate')} />
-              <Dropdown menu={{ items: menuItems }} trigger={['click']}>
-                <Button type="text" icon={<MoreOutlined />} />
-              </Dropdown>
+              <Button type="link" icon={<EditOutlined />} onClick={() => handleEdit(record)}>
+                {t('common.edit')}
+              </Button>
+              <Button type="link" icon={<CopyOutlined />} onClick={() => handleDuplicate(record)}>
+                {t('role.duplicate')}
+              </Button>
+              <Popconfirm
+                title="确定要删除这个角色吗？"
+                onConfirm={() => handleDelete(record.id)}
+                okText="确定"
+                cancelText="取消"
+                disabled={record.usageCount > 0}
+              >
+                <Tooltip 
+                  title={record.usageCount > 0 ? `该角色正在被 ${record.usageCount} 个用户使用，无法删除` : ''}
+                  placement="top"
+                >
+                  <Button 
+                    type="link" 
+                    danger 
+                    icon={<DeleteOutlined />}
+                    disabled={record.usageCount > 0}
+                  >
+                    {t('common.delete')}
+                  </Button>
+                </Tooltip>
+              </Popconfirm>
             </Space>
           );
         }
@@ -518,13 +609,6 @@ const RoleManagement: React.FC = () => {
 
     return (
       <div>
-        {/* 面包屑 */}
-        <Breadcrumb style={{ marginBottom: 16 }}>
-          <Breadcrumb.Item>{t('nav.systemManagement')}</Breadcrumb.Item>
-          <Breadcrumb.Item>{t('nav.accessControl')}</Breadcrumb.Item>
-          <Breadcrumb.Item>{t('nav.roleManagement')}</Breadcrumb.Item>
-        </Breadcrumb>
-
         {/* 标题和操作按钮 */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
           <h1 style={{ margin: 0, fontSize: 24 }}>{t('role.title')}</h1>
@@ -539,7 +623,7 @@ const RoleManagement: React.FC = () => {
 
         {/* 过滤器和搜索 */}
         <Card style={{ marginBottom: 16 }}>
-          <Row gutter={16}>
+          <Row gutter={16} align="middle">
             <Col span={6}>
               <Select
                 style={{ width: '100%' }}
@@ -556,18 +640,6 @@ const RoleManagement: React.FC = () => {
             <Col span={6}>
               <Select
                 style={{ width: '100%' }}
-                value={filters.type}
-                onChange={(value) => setFilters({ ...filters, type: value })}
-                placeholder={t('common.type')}
-              >
-                <Option value="ALL">{t('filter.allTypes')}</Option>
-                <Option value="INTERNAL">{t('common.internal')}</Option>
-                <Option value="CUSTOMER">{t('common.customer')}</Option>
-              </Select>
-            </Col>
-            <Col span={6}>
-              <Select
-                style={{ width: '100%' }}
                 value={filters.status}
                 onChange={(value) => setFilters({ ...filters, status: value })}
                 placeholder={t('common.status')}
@@ -576,20 +648,7 @@ const RoleManagement: React.FC = () => {
                 <Option value="DEPRECATED">{t('common.deprecated')}</Option>
               </Select>
             </Col>
-            <Col span={6}>
-              <Select
-                style={{ width: '100%' }}
-                value={filters.environment}
-                onChange={(value) => setFilters({ ...filters, environment: value })}
-                placeholder={t('role.environment')}
-              >
-                <Option value="PROD">{t('common.production')}</Option>
-                <Option value="STAGING">{t('common.staging')}</Option>
-              </Select>
-            </Col>
-          </Row>
-          <Row gutter={16} style={{ marginTop: 16 }}>
-            <Col span={18}>
+            <Col span={8}>
               <Input
                 placeholder={t('filter.searchPlaceholder')}
                 value={searchText}
@@ -597,10 +656,10 @@ const RoleManagement: React.FC = () => {
                 onPressEnter={loadRoles}
               />
             </Col>
-            <Col span={6}>
+            <Col span={4}>
               <Space>
                 <Button onClick={() => {
-                  setFilters({ module: 'ALL', type: 'ALL', status: 'ACTIVE', environment: 'PROD' });
+                  setFilters({ module: 'ALL', status: 'ACTIVE' });
                   setSearchText('');
                   loadRoles();
                 }}>
@@ -624,6 +683,72 @@ const RoleManagement: React.FC = () => {
             showSizeChanger: true
           }}
         />
+
+        {/* 用户列表Modal */}
+        <Modal
+          title="使用该角色的用户列表"
+          open={userListVisible}
+          onCancel={handleCloseUserList}
+          footer={[
+            <Button key="close" onClick={handleCloseUserList}>
+              关闭
+            </Button>
+          ]}
+          width={800}
+        >
+          <Table
+            dataSource={usersWithRole}
+            loading={loadingUsers}
+            rowKey="id"
+            pagination={{ pageSize: 10 }}
+            columns={[
+              {
+                title: '用户名',
+                dataIndex: 'username',
+                key: 'username'
+              },
+              {
+                title: '邮箱',
+                dataIndex: 'email',
+                key: 'email'
+              },
+              {
+                title: '手机号',
+                dataIndex: 'phone',
+                key: 'phone',
+                render: (phone: string) => phone || '-'
+              },
+              {
+                title: '账号类型',
+                dataIndex: 'accountType',
+                key: 'accountType',
+                render: (type: string) => {
+                  const typeMap: Record<string, { text: string; color: string }> = {
+                    MAIN: { text: '主账号', color: 'red' },
+                    CUSTOMER: { text: '客户子账号', color: 'blue' },
+                    PARTNER: { text: 'Partner账号', color: 'green' }
+                  };
+                  const info = typeMap[type] || { text: type, color: 'default' };
+                  return <Tag color={info.color}>{info.text}</Tag>;
+                }
+              },
+              {
+                title: '状态',
+                dataIndex: 'status',
+                key: 'status',
+                render: (status: string) => {
+                  const statusMap: Record<string, { text: string; color: string }> = {
+                    ACTIVE: { text: '启用', color: 'green' },
+                    INACTIVE: { text: '禁用', color: 'default' },
+                    SUSPENDED: { text: '暂停', color: 'orange' }
+                  };
+                  const info = statusMap[status] || { text: status, color: 'default' };
+                  return <Tag color={info.color}>{info.text}</Tag>;
+                }
+              }
+            ]}
+          />
+        </Modal>
       </div>
     );
   }
@@ -631,20 +756,6 @@ const RoleManagement: React.FC = () => {
   // 编辑/创建页
   return (
     <div>
-      {/* 面包屑 */}
-      <Breadcrumb style={{ marginBottom: 16 }}>
-        <Breadcrumb.Item>
-          <a onClick={() => navigate('/roles')}>{t('nav.systemManagement')}</a>
-        </Breadcrumb.Item>
-        <Breadcrumb.Item>
-          <a onClick={() => navigate('/roles')}>{t('nav.accessControl')}</a>
-        </Breadcrumb.Item>
-        <Breadcrumb.Item>
-          <a onClick={() => navigate('/roles')}>{t('nav.roleManagement')}</a>
-        </Breadcrumb.Item>
-        <Breadcrumb.Item>{editingRole ? t('role.editTitle') : t('role.createTitle')}</Breadcrumb.Item>
-      </Breadcrumb>
-
       {/* 标题和操作按钮 */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <div>
@@ -701,94 +812,32 @@ const RoleManagement: React.FC = () => {
             />
           </Form.Item>
 
-          <Row gutter={24}>
-            <Col span={12}>
-              <Form.Item
-                name="type"
-                label={
-                  <>
-                    {t('role.type')} <span style={{ color: 'red' }}>*</span>
-                  </>
-                }
-                rules={[{ required: true, message: t('role.typeRequired') }]}
-              >
-                <Radio.Group>
-                  <Space direction="vertical">
-                    <Radio value="CUSTOMER">
-                      <div>
-                        <div style={{ fontWeight: 500 }}>{t('role.typeCustomer')}</div>
-                        <div style={{ fontSize: 12, color: '#666' }}>{t('role.typeCustomerDesc')}</div>
-                      </div>
-                    </Radio>
-                    <Radio value="INTERNAL">
-                      <div>
-                        <div style={{ fontWeight: 500 }}>{t('role.typeInternal')}</div>
-                        <div style={{ fontSize: 12, color: '#666' }}>{t('role.typeInternalDesc')}</div>
-                      </div>
-                    </Radio>
-                  </Space>
-                </Radio.Group>
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                name="status"
-                label={
-                  <>
-                    {t('common.status')} <span style={{ color: 'red' }}>*</span>
-                  </>
-                }
-                rules={[{ required: true, message: t('role.statusRequired') }]}
-              >
-                <Radio.Group>
-                  <Space direction="vertical">
-                    <Radio value="ACTIVE">
-                      <div>
-                        <div style={{ fontWeight: 500 }}>{t('role.statusActive')}</div>
-                        <div style={{ fontSize: 12, color: '#666' }}>{t('role.statusActiveDesc')}</div>
-                      </div>
-                    </Radio>
-                    <Radio value="DEPRECATED">
-                      <div>
-                        <div style={{ fontWeight: 500 }}>{t('role.statusDeprecated')}</div>
-                        <div style={{ fontSize: 12, color: '#666' }}>{t('role.statusDeprecatedDesc')}</div>
-                      </div>
-                    </Radio>
-                  </Space>
-                </Radio.Group>
-              </Form.Item>
-            </Col>
-          </Row>
-
-          <Row gutter={24}>
-            <Col span={12}>
-              <Form.Item
-                name="defaultDataScope"
-                label={t('role.dataScope')}
-              >
-                <Select>
-                  <Option value="ALL">{t('role.dataScopeAll')}</Option>
-                  <Option value="ASSIGNED">{t('role.dataScopeAssigned')}</Option>
-                </Select>
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                name="environment"
-                label={
-                  <>
-                    {t('role.environment')} <span style={{ color: 'red' }}>*</span>
-                  </>
-                }
-                rules={[{ required: true, message: t('role.environmentRequired') }]}
-              >
-                <Radio.Group>
-                  <Radio value="PROD">{t('role.environmentProd')}</Radio>
-                  <Radio value="STAGING">{t('role.environmentStaging')}</Radio>
-                </Radio.Group>
-              </Form.Item>
-            </Col>
-          </Row>
+          <Form.Item
+            name="status"
+            label={
+              <>
+                {t('common.status')} <span style={{ color: 'red' }}>*</span>
+              </>
+            }
+            rules={[{ required: true, message: t('role.statusRequired') }]}
+          >
+            <Radio.Group>
+              <Space>
+                <Radio value="ACTIVE">
+                  <div>
+                    <div style={{ fontWeight: 500 }}>{t('role.statusActive')}</div>
+                    <div style={{ fontSize: 12, color: '#666' }}>{t('role.statusActiveDesc')}</div>
+                  </div>
+                </Radio>
+                <Radio value="DEPRECATED">
+                  <div>
+                    <div style={{ fontWeight: 500 }}>{t('role.statusDeprecated')}</div>
+                    <div style={{ fontSize: 12, color: '#666' }}>{t('role.statusDeprecatedDesc')}</div>
+                  </div>
+                </Radio>
+              </Space>
+            </Radio.Group>
+          </Form.Item>
         </Card>
 
         {/* Permission Configuration */}
@@ -798,7 +847,6 @@ const RoleManagement: React.FC = () => {
             <Space>
               <Button onClick={handleSelectAll}>{t('common.selectAll')}</Button>
               <Button onClick={handleClearAll}>{t('common.clearAll')}</Button>
-              <Button>{t('common.copyFrom')}</Button>
             </Space>
           }
         >
@@ -806,7 +854,36 @@ const RoleManagement: React.FC = () => {
             {MODULES.map(module => {
               const pages = MODULE_PAGES[module.value] || [];
               return (
-                <Panel header={module.label} key={module.value}>
+                <Panel 
+                  header={
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span>{module.label}</span>
+                      <Button 
+                        type="link" 
+                        size="small" 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSelectModule(module.value);
+                        }}
+                        style={{ padding: 0, height: 'auto' }}
+                      >
+                        全选
+                      </Button>
+                      <Button 
+                        type="link" 
+                        size="small" 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleClearModule(module.value);
+                        }}
+                        style={{ padding: 0, height: 'auto' }}
+                      >
+                        清空
+                      </Button>
+                    </div>
+                  } 
+                  key={module.value}
+                >
                   <Table
                     dataSource={pages}
                     rowKey="code"
@@ -824,6 +901,22 @@ const RoleManagement: React.FC = () => {
                                 <InfoCircleOutlined style={{ color: '#999' }} />
                               </Tooltip>
                             )}
+                            <Button
+                              type="link"
+                              size="small"
+                              onClick={() => handleSelectPage(module.value, record.code)}
+                              style={{ padding: 0, height: 'auto', fontSize: 12 }}
+                            >
+                              全选
+                            </Button>
+                            <Button
+                              type="link"
+                              size="small"
+                              onClick={() => handleClearPage(module.value, record.code)}
+                              style={{ padding: 0, height: 'auto', fontSize: 12 }}
+                            >
+                              清空
+                            </Button>
                           </Space>
                         )
                       },
