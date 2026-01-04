@@ -24,8 +24,6 @@ import {
   EditOutlined,
   DeleteOutlined,
   CopyOutlined,
-  UploadOutlined,
-  DownloadOutlined,
   InfoCircleOutlined,
   ArrowLeftOutlined
 } from '@ant-design/icons';
@@ -90,64 +88,139 @@ const RoleManagement: React.FC = () => {
   const [usersWithRole, setUsersWithRole] = useState<any[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
 
-  // 获取模块、操作和页面定义（在组件内部，使用 t 函数）
+  // 获取模块、操作和页面定义（根据PRD文档）
   const MODULES = [
-    { value: 'KPI', label: t('module.KPI') },
-    { value: 'INBOUND', label: t('module.INBOUND') },
-    { value: 'INVENTORY', label: t('module.INVENTORY') },
-    { value: 'OUTBOUND', label: t('module.OUTBOUND') },
-    { value: 'RETURNS', label: t('module.RETURNS') },
-    { value: 'FINANCE', label: t('module.FINANCE') },
-    { value: 'SUPPLY_CHAIN', label: t('module.SUPPLY_CHAIN') },
-    { value: 'ADMIN', label: t('module.ADMIN') }
+    { value: 'DASHBOARDS', label: 'Dashboards（仪表盘）' },
+    { value: 'PURCHASE_MANAGEMENT', label: 'Purchase Management（采购管理）' },
+    { value: 'SALES_ORDER', label: 'Sales Order（销售订单）' },
+    { value: 'WORK_ORDER', label: 'Work Order（工单）' },
+    { value: 'INBOUND', label: 'Inbound（入库管理）' },
+    { value: 'INVENTORY', label: 'Inventory（库存管理）' },
+    { value: 'OUTBOUND', label: 'Outbound（出库管理）' },
+    { value: 'RETURNS', label: 'Returns（退货管理）' },
+    { value: 'YARD_MANAGEMENT', label: 'Yard Management（堆场管理）' },
+    { value: 'SUPPLY_CHAIN', label: 'Supply Chain Mgmt（供应链管理）' },
+    { value: 'FINANCE', label: 'Finance（财务管理）' },
+    { value: 'SYSTEM_MANAGEMENT', label: 'System Management（系统管理）' },
+    { value: 'PERMISSION_MANAGEMENT', label: 'Permission Management（权限管理）' }
   ];
 
-  const OPERATIONS = [
-    { value: 'VIEW', label: t('operation.VIEW') },
-    { value: 'CREATE', label: t('operation.CREATE') },
-    { value: 'EDIT', label: t('operation.EDIT') },
-    { value: 'DELETE', label: t('operation.DELETE') },
-    { value: 'EXPORT', label: t('operation.EXPORT') }
+  // 所有可能的操作类型
+  const ALL_OPERATIONS = [
+    { value: 'VIEW', label: '查看' },
+    { value: 'CREATE', label: '创建' },
+    { value: 'EDIT', label: '编辑' },
+    { value: 'DELETE', label: '删除' },
+    { value: 'EXPORT', label: '导出' },
+    { value: 'CANCEL', label: 'Cancel' },
+    { value: 'PRINT_PACKING_SLIP', label: 'Print Packing Slip' },
+    { value: 'HOLD_INVENTORY', label: 'Hold Inventory' },
+    { value: 'RELEASE_INVENTORY', label: 'Release Inventory' },
+    { value: 'DOWNLOAD_PDF', label: 'Download PDF' },
+    { value: 'ADD_ATTACHMENT', label: 'Add Attachment' },
+    { value: 'IMPORT_RMA', label: 'Import RMA' },
+    { value: 'DOWNLOAD_TEMPLATE', label: 'Download Template' },
+    { value: 'RESET_FIELDS', label: 'Reset Fields' },
+    { value: 'DOWNLOAD', label: 'Download' },
+    { value: 'BATCH_IMPORT', label: 'Batch Import' },
+    { value: 'PAY', label: 'Pay' },
+    { value: 'INVOICE_DETAIL', label: 'Invoice Detail' },
+    { value: 'RELOAD', label: 'reload' },
+    { value: 'SET_ALERT', label: 'set alert' },
+    { value: 'SET_DEFAULT', label: 'Set Default' },
+    { value: 'IMPORT', label: '导入' }
   ];
 
-  const MODULE_PAGES: Record<string, Array<{ code: string; name: string; tooltip?: string }>> = {
-    KPI: [
-      { code: 'dashboard-view', name: t('page.dashboard-view'), tooltip: t('tooltip.dashboard-view') },
-      { code: 'performance-metrics', name: t('page.performance-metrics'), tooltip: t('tooltip.performance-metrics') },
-      { code: 'custom-reports', name: t('page.custom-reports'), tooltip: t('tooltip.custom-reports') }
+  // 模块页面配置（根据PRD文档）
+  const MODULE_PAGES: Record<string, Array<{ 
+    code: string; 
+    name: string; 
+    operations: string[]; // 该页面支持的操作列表
+    tooltip?: string 
+  }>> = {
+    DASHBOARDS: [
+      { code: 'kpi', name: 'KPI', operations: ['VIEW'] }
+    ],
+    PURCHASE_MANAGEMENT: [
+      { code: 'projects', name: 'Projects', operations: ['VIEW', 'CREATE', 'EXPORT'] },
+      { code: 'purchase-request', name: 'Purchase Request', operations: ['VIEW', 'CREATE', 'EXPORT'] },
+      { code: 'purchase-order', name: 'Purchase Order', operations: ['VIEW'] }
+    ],
+    SALES_ORDER: [
+      { code: 'wholesale-orders', name: 'Wholesale Orders', operations: ['VIEW'] },
+      { code: 'retail-orders', name: 'Retail Orders', operations: ['VIEW'] }
+    ],
+    WORK_ORDER: [
+      { code: 'work-orders', name: 'Work Orders', operations: ['VIEW'] }
     ],
     INBOUND: [
-      { code: 'receiving', name: t('page.receiving'), tooltip: t('tooltip.receiving') },
-      { code: 'put-away', name: t('page.put-away'), tooltip: t('tooltip.put-away') },
-      { code: 'inbound-orders', name: t('page.inbound-orders'), tooltip: t('tooltip.inbound-orders') }
+      { code: 'inquiry', name: 'Inquiry（询价单）', operations: ['VIEW', 'EDIT', 'EXPORT', 'CANCEL', 'PRINT_PACKING_SLIP'] },
+      { code: 'schedule-summary', name: 'Schedule Summary（计划汇总）', operations: ['VIEW'] },
+      { code: 'received-summary', name: 'Received Summary（收货汇总）', operations: ['VIEW'] },
+      { code: 'receipt-entry', name: 'Receipt Entry（收货录入）', operations: ['CREATE'] },
+      { code: 'put-away-report', name: 'Put Away Report（上架报告）', operations: ['VIEW', 'EXPORT'] },
+      { code: 'make-appointment', name: 'Make Appointment（预约）', operations: ['CREATE'] },
+      { code: 'appointment-list', name: 'Appointment List（预约列表）', operations: ['VIEW', 'CREATE', 'EDIT', 'CANCEL'] }
     ],
     INVENTORY: [
-      { code: 'inventory-status', name: t('page.inventory-status'), tooltip: t('tooltip.inventory-status') },
-      { code: 'sn-lookup', name: t('page.sn-lookup'), tooltip: t('tooltip.sn-lookup') },
-      { code: 'cycle-count', name: t('page.cycle-count'), tooltip: t('tooltip.cycle-count') }
+      { code: 'sn-look-up', name: 'SN Look Up（序列号查询）', operations: ['VIEW', 'EXPORT'] },
+      { code: 'inventory-activity', name: 'Inventory Activity（库存活动）', operations: ['VIEW', 'EXPORT'] },
+      { code: 'inventory-adjustment', name: 'Inventory Adjustment（库存调整）', operations: ['VIEW', 'EXPORT'] },
+      { code: 'inventory-status', name: 'Inventory Status（库存状态）', operations: ['VIEW', 'EXPORT', 'HOLD_INVENTORY', 'RELEASE_INVENTORY'] },
+      { code: 'item-master', name: 'Item Master（物料主数据）', operations: ['VIEW', 'EXPORT'] },
+      { code: 'current-onhand', name: 'Current Onhand Inventory Aging Report（当前库存账龄报告）', operations: ['VIEW', 'EXPORT'] },
+      { code: 'historical-inventory-aging', name: 'Historical Inventory Aging Report（历史库存账龄报告）', operations: ['VIEW', 'EXPORT'] },
+      { code: 'warehouse-projects', name: 'Warehouse Projects（仓库项目）', operations: ['VIEW', 'EXPORT'] }
     ],
     OUTBOUND: [
-      { code: 'order-list', name: t('page.order-list'), tooltip: t('tooltip.order-list') },
-      { code: 'order-details', name: t('page.order-details'), tooltip: t('tooltip.order-details') },
-      { code: 'order-fulfillment', name: t('page.order-fulfillment'), tooltip: t('tooltip.order-fulfillment') },
-      { code: 'returns-processing', name: t('page.returns-processing'), tooltip: t('tooltip.returns-processing') }
+      { code: 'inquiry', name: 'Inquiry（询价单）', operations: ['VIEW', 'EXPORT', 'DOWNLOAD_PDF', 'ADD_ATTACHMENT'] },
+      { code: 'schedule-summary', name: 'Schedule Summary（计划汇总）', operations: ['VIEW'] },
+      { code: 'shipped-summary', name: 'Shipped Summary（发货汇总）', operations: ['VIEW'] },
+      { code: 'order-carrier-update', name: 'Order Carrier Update（订单承运商更新）', operations: ['VIEW'] },
+      { code: 'order-entry', name: 'Order Entry（订单录入）', operations: ['CREATE'] },
+      { code: 'small-parcel-tracking', name: 'Small Parcel Tracking Status（小包裹跟踪状态）', operations: ['VIEW'] },
+      { code: 'freight-quote', name: 'Freight Quote（运费报价）', operations: ['VIEW', 'CREATE'] }
     ],
     RETURNS: [
-      { code: 'returns-list', name: t('page.returns-list'), tooltip: t('tooltip.returns-list') },
-      { code: 'returns-processing', name: t('page.returns-processing'), tooltip: t('tooltip.returns-processing') }
+      { code: 'rma', name: 'RMA', operations: ['VIEW', 'EXPORT', 'IMPORT_RMA', 'DOWNLOAD_TEMPLATE', 'RESET_FIELDS'] },
+      { code: 'traveler-id', name: 'Traveler ID', operations: ['VIEW', 'RESET_FIELDS'] },
+      { code: 'return-report', name: 'Return Report（退货报告）', operations: ['VIEW', 'EXPORT'] },
+      { code: 'restock-report', name: 'Restock Report（补货报告）', operations: ['VIEW', 'EXPORT'] },
+      { code: 'adjustment-report', name: 'Adjustment Report（调整报告）', operations: ['VIEW', 'EXPORT'] },
+      { code: 'scrap-report', name: 'Scrap Report（报废报告）', operations: ['VIEW', 'EXPORT'] },
+      { code: 'service-claim-report', name: 'Service Claim Report（服务索赔报告）', operations: ['VIEW', 'EXPORT'] }
     ],
-    FINANCE: [
-      { code: 'invoice-list', name: t('page.invoice-list'), tooltip: t('tooltip.invoice-list') },
-      { code: 'financial-reports', name: t('page.financial-reports'), tooltip: t('tooltip.financial-reports') }
+    YARD_MANAGEMENT: [
+      { code: 'equipment-history-report', name: 'Equipment History Report（设备历史报告）', operations: ['VIEW', 'EXPORT'] },
+      { code: 'equipment-report', name: 'Equipment Report（设备报告）', operations: ['VIEW', 'EXPORT'] },
+      { code: 'yard-status-report', name: 'Yard Status Report（堆场状态报告）', operations: ['VIEW', 'EXPORT'] },
+      { code: 'yard-check-report', name: 'Yard Check Report（堆场检查报告）', operations: ['VIEW', 'EXPORT'] }
     ],
     SUPPLY_CHAIN: [
-      { code: 'supplier-management', name: t('page.supplier-management'), tooltip: t('tooltip.supplier-management') },
-      { code: 'purchase-orders', name: t('page.purchase-orders'), tooltip: t('tooltip.purchase-orders') }
+      { code: 'damaged-box-detection', name: 'Damaged Box Detection（破损箱检测）', operations: ['VIEW', 'EDIT'] },
+      { code: 'routing-report', name: 'Routing Report（路由报告）', operations: ['VIEW'] },
+      { code: 'walmart-shipments', name: 'Walmart Shipments（沃尔玛发货）', operations: ['VIEW'] },
+      { code: 'target-shipments', name: 'Target Shipments（塔吉特发货）', operations: ['VIEW'] },
+      { code: 'shipments', name: 'Shipments（发货）', operations: ['VIEW', 'CREATE'] },
+      { code: 'tracking', name: 'Tracking（跟踪）', operations: ['VIEW', 'EXPORT', 'DOWNLOAD', 'BATCH_IMPORT'] },
+      { code: 'automated-order-entry', name: 'Automated Order Entry（自动订单录入）', operations: ['CREATE'] }
     ],
-    ADMIN: [
-      { code: 'user-management', name: t('page.user-management'), tooltip: t('tooltip.user-management') },
-      { code: 'role-management', name: t('page.role-management'), tooltip: t('tooltip.role-management') },
-      { code: 'system-settings', name: t('page.system-settings'), tooltip: t('tooltip.system-settings') }
+    FINANCE: [
+      { code: 'invoice', name: 'Invoice（发票）', operations: ['VIEW', 'EXPORT', 'PAY', 'INVOICE_DETAIL'] },
+      { code: 'card-and-balance', name: 'Card and Balance（卡片和余额）', operations: ['VIEW', 'CREATE', 'RELOAD', 'SET_ALERT'] },
+      { code: 'history', name: 'History（历史）', operations: ['VIEW', 'EXPORT'] },
+      { code: 'cost-calculator', name: 'Cost Calculator（成本计算器）', operations: ['VIEW'] },
+      { code: 'claim', name: 'Claim（索赔）', operations: ['VIEW', 'CREATE', 'EDIT', 'EXPORT'] }
+    ],
+    SYSTEM_MANAGEMENT: [
+      { code: 'address-book', name: 'Address Book（地址簿）', operations: ['VIEW', 'CREATE', 'EDIT', 'DELETE', 'EXPORT', 'SET_DEFAULT', 'IMPORT'] },
+      { code: 'settings', name: 'Settings（设置）', operations: ['VIEW', 'CREATE', 'EDIT'] }
+    ],
+    PERMISSION_MANAGEMENT: [
+      { code: 'account-management', name: 'Account Management（账号管理）', operations: ['VIEW', 'CREATE', 'EDIT', 'DELETE'] },
+      { code: 'role-management', name: 'Role Management（角色管理）', operations: ['VIEW', 'CREATE', 'EDIT', 'DELETE'] },
+      { code: 'permission-view', name: 'Permission View（权限查看）', operations: ['VIEW'] },
+      { code: 'audit-log', name: 'Audit Log（操作记录）', operations: ['VIEW', 'EXPORT'] }
     ]
   };
 
@@ -442,7 +515,8 @@ const RoleManagement: React.FC = () => {
       const pages = MODULE_PAGES[module.value] || [];
       allPerms[module.value] = {};
       pages.forEach(page => {
-        allPerms[module.value][page.code] = OPERATIONS.map(op => op.value);
+        // 使用该页面支持的操作列表
+        allPerms[module.value][page.code] = [...page.operations];
       });
     });
     setSelectedPermissions(allPerms);
@@ -460,7 +534,8 @@ const RoleManagement: React.FC = () => {
       newPerms[moduleValue] = {};
     }
     pages.forEach(page => {
-      newPerms[moduleValue][page.code] = OPERATIONS.map(op => op.value);
+      // 使用该页面支持的操作列表
+      newPerms[moduleValue][page.code] = [...page.operations];
     });
     setSelectedPermissions(newPerms);
   };
@@ -476,11 +551,16 @@ const RoleManagement: React.FC = () => {
 
   // 全选某个页面的所有操作
   const handleSelectPage = (moduleValue: string, pageCode: string) => {
+    const pages = MODULE_PAGES[moduleValue] || [];
+    const page = pages.find(p => p.code === pageCode);
+    if (!page) return;
+    
     const newPerms = { ...selectedPermissions };
     if (!newPerms[moduleValue]) {
       newPerms[moduleValue] = {};
     }
-    newPerms[moduleValue][pageCode] = OPERATIONS.map(op => op.value);
+    // 使用该页面支持的操作列表
+    newPerms[moduleValue][pageCode] = [...page.operations];
     setSelectedPermissions(newPerms);
   };
 
@@ -514,6 +594,7 @@ const RoleManagement: React.FC = () => {
         title: t('role.name'),
         dataIndex: 'name',
         key: 'name',
+        width: 200,
         render: (text: string, record: Role) => (
           <div>
             <div style={{ fontWeight: 500 }}>{text}</div>
@@ -525,6 +606,7 @@ const RoleManagement: React.FC = () => {
         title: t('common.description'),
         dataIndex: 'description',
         key: 'description',
+        width: 200,
         ellipsis: true
       },
       {
@@ -536,6 +618,7 @@ const RoleManagement: React.FC = () => {
         title: t('role.users'),
         dataIndex: 'usageCount',
         key: 'usageCount',
+        width: 100,
         align: 'center' as const,
         render: (count: number, record: Role) => (
           <Button
@@ -552,6 +635,8 @@ const RoleManagement: React.FC = () => {
         title: t('common.status'),
         dataIndex: 'status',
         key: 'status',
+        width: 100,
+        align: 'center' as const,
         render: (status: string) => (
           <Tag color={status === 'ACTIVE' ? 'green' : 'default'}>
             {status === 'ACTIVE' ? t('common.active') : t('common.deprecated')}
@@ -561,6 +646,7 @@ const RoleManagement: React.FC = () => {
       {
         title: t('role.lastModified'),
         key: 'lastModified',
+        width: 150,
         render: (_: any, record: Role) => (
           <div>
             <div>{new Date(record.updatedAt).toLocaleDateString(locale === 'zh-CN' ? 'zh-CN' : 'en-US')}</div>
@@ -571,6 +657,7 @@ const RoleManagement: React.FC = () => {
       {
         title: t('common.actions'),
         key: 'actions',
+        width: 280,
         render: (_: any, record: Role) => {
           return (
             <Space>
@@ -613,8 +700,6 @@ const RoleManagement: React.FC = () => {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
           <h1 style={{ margin: 0, fontSize: 24 }}>{t('role.title')}</h1>
           <Space>
-            <Button icon={<UploadOutlined />}>{t('common.import')}</Button>
-            <Button icon={<DownloadOutlined />}>{t('common.export')}</Button>
             <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
               {t('role.create')}
             </Button>
@@ -677,6 +762,7 @@ const RoleManagement: React.FC = () => {
           dataSource={roles}
           loading={loading}
           rowKey="id"
+          scroll={{ x: 'max-content' }}
           pagination={{
             showTotal: (total, range) => t('pagination.showing', { start: String(range[0]), end: String(range[1]), total: String(total) }),
             pageSize: 10,
@@ -884,58 +970,90 @@ const RoleManagement: React.FC = () => {
                   } 
                   key={module.value}
                 >
-                  <Table
-                    dataSource={pages}
-                    rowKey="code"
-                    pagination={false}
-                    columns={[
-                      {
-                        title: t('role.feature'),
-                        dataIndex: 'name',
-                        key: 'name',
-                        render: (text: string, record: any) => (
-                          <Space>
-                            {text}
-                            {record.tooltip && (
-                              <Tooltip title={record.tooltip}>
-                                <InfoCircleOutlined style={{ color: '#999' }} />
-                              </Tooltip>
-                            )}
-                            <Button
-                              type="link"
-                              size="small"
-                              onClick={() => handleSelectPage(module.value, record.code)}
-                              style={{ padding: 0, height: 'auto', fontSize: 12 }}
-                            >
-                              全选
-                            </Button>
-                            <Button
-                              type="link"
-                              size="small"
-                              onClick={() => handleClearPage(module.value, record.code)}
-                              style={{ padding: 0, height: 'auto', fontSize: 12 }}
-                            >
-                              清空
-                            </Button>
-                          </Space>
-                        )
-                      },
-                      ...OPERATIONS.map(op => ({
-                        title: op.label,
-                        key: op.value,
-                        align: 'center' as const,
-                        render: (_: any, record: any) => {
-                          const checked = selectedPermissions[module.value]?.[record.code]?.includes(op.value) || false;
-                          return (
-                            <Checkbox
-                              checked={checked}
-                              onChange={(e) => handlePermissionChange(module.value, record.code, op.value, e.target.checked)}
-                            />
-                          );
-                        }
-                      }))
-                    ]}
-                  />
+                  {/* 获取该模块下所有页面支持的所有操作 */}
+                  {(() => {
+                    const allOperationsInModule = new Set<string>();
+                    pages.forEach(page => {
+                      page.operations.forEach(op => allOperationsInModule.add(op));
+                    });
+                    const operationsList = Array.from(allOperationsInModule);
+                    
+                    return (
+                      <Table
+                        dataSource={pages}
+                        rowKey="code"
+                        pagination={false}
+                        columns={[
+                          {
+                            title: t('role.feature'),
+                            dataIndex: 'name',
+                            key: 'name',
+                            fixed: 'left',
+                            width: 450,
+                            render: (text: string, record: any) => {
+                              // 去掉括号中的中文
+                              const displayName = text.replace(/（[^）]*）/g, '').trim();
+                              return (
+                                <Space size="middle">
+                                  <span>
+                                    {displayName}
+                                  </span>
+                                  {record.tooltip && (
+                                    <Tooltip title={record.tooltip}>
+                                      <InfoCircleOutlined style={{ color: '#999' }} />
+                                    </Tooltip>
+                                  )}
+                                  <Button
+                                    type="link"
+                                    size="small"
+                                    onClick={() => handleSelectPage(module.value, record.code)}
+                                    style={{ padding: 0, height: 'auto', fontSize: 12 }}
+                                  >
+                                    全选
+                                  </Button>
+                                  <Button
+                                    type="link"
+                                    size="small"
+                                    onClick={() => handleClearPage(module.value, record.code)}
+                                    style={{ padding: 0, height: 'auto', fontSize: 12 }}
+                                  >
+                                    清空
+                                  </Button>
+                                </Space>
+                              );
+                            }
+                          },
+                          {
+                            title: '操作',
+                            key: 'operations',
+                            render: (_: any, record: any) => {
+                              return (
+                                <div style={{ padding: '8px 0' }}>
+                                  <Space wrap size="large">
+                                    {/* 只显示该功能支持的操作 */}
+                                    {record.operations.map((opValue: string) => {
+                                      const op = ALL_OPERATIONS.find(o => o.value === opValue);
+                                      const checked = selectedPermissions[module.value]?.[record.code]?.includes(opValue) || false;
+                                      return (
+                                        <Checkbox
+                                          key={opValue}
+                                          checked={checked}
+                                          onChange={(e) => handlePermissionChange(module.value, record.code, opValue, e.target.checked)}
+                                        >
+                                          {op?.label || opValue}
+                                        </Checkbox>
+                                      );
+                                    })}
+                                  </Space>
+                                </div>
+                              );
+                            }
+                          }
+                        ]}
+                        scroll={{ x: 'max-content' }}
+                      />
+                    );
+                  })()}
                 </Panel>
               );
             })}

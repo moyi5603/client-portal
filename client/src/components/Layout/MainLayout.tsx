@@ -31,7 +31,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
   // 根据当前路径自动展开对应的父菜单
   React.useEffect(() => {
-    if (['/accounts', '/roles', '/menus', '/permissions', '/audit-logs'].includes(location.pathname)) {
+    if (['/accounts', '/roles', '/permissions', '/audit-logs'].includes(location.pathname)) {
       setOpenKeys(['account-management']);
     }
   }, [location.pathname]);
@@ -51,11 +51,6 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           key: '/roles',
           icon: <SafetyOutlined />,
           label: t('nav.roleManagement')
-        },
-        {
-          key: '/menus',
-          icon: <MenuOutlined />,
-          label: t('nav.menuManagement')
         },
         {
           key: '/permissions',
