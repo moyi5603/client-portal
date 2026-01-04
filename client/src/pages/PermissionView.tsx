@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Card, Select, Table, Tag, Space, Radio, Tooltip, Avatar, Input, 
-  Checkbox, Button, Row, Col, Typography, Divider 
+  Button, Row, Col, Typography, Divider 
 } from 'antd';
 import { 
   UserOutlined, EyeOutlined, PlusOutlined, EditOutlined, 
@@ -39,26 +39,51 @@ interface Account {
   roles: string[];
 }
 
-// 模块配置（包含颜色和显示名称）
+// 模块配置（包含颜色和显示名称）- 与角色管理保持一致
 const MODULE_CONFIG: Record<string, { name: string; color: string }> = {
-  'KPI': { name: 'KPI Dashboard', color: '#722ed1' },
-  'INBOUND': { name: 'Order Management', color: '#fa8c16' },
-  'INVENTORY': { name: 'Inventory', color: '#52c41a' },
-  'OUTBOUND': { name: 'Order Management', color: '#fa8c16' },
-  'RETURNS': { name: 'Returns', color: '#eb2f96' },
+  'DASHBOARDS': { name: 'Dashboards', color: '#722ed1' },
+  'PURCHASE_MANAGEMENT': { name: 'Purchase Management', color: '#fa8c16' },
+  'SALES_ORDER': { name: 'Sales Order', color: '#52c41a' },
+  'WORK_ORDER': { name: 'Work Order', color: '#eb2f96' },
+  'INBOUND': { name: 'Inbound', color: '#f5222d' },
+  'INVENTORY': { name: 'Inventory', color: '#1890ff' },
+  'OUTBOUND': { name: 'Outbound', color: '#722ed1' },
+  'RETURNS': { name: 'Returns', color: '#fa8c16' },
+  'YARD_MANAGEMENT': { name: 'Yard Management', color: '#52c41a' },
+  'SUPPLY_CHAIN': { name: 'Supply Chain Mgmt', color: '#eb2f96' },
   'FINANCE': { name: 'Finance', color: '#f5222d' },
-  'SUPPLY_CHAIN': { name: 'Supply Chain', color: '#1890ff' },
-  'ADMIN': { name: 'System', color: '#722ed1' }
+  'SYSTEM_MANAGEMENT': { name: 'System Management', color: '#1890ff' },
+  'PERMISSION_MANAGEMENT': { name: 'Permission Management', color: '#722ed1' }
 };
 
-// 操作图标映射
+// 操作图标映射（基于角色管理中的功能配置）
 const OPERATION_ICONS: Record<string, { icon: React.ReactNode; color: string }> = {
   'VIEW': { icon: <EyeOutlined />, color: '#52c41a' },
   'CREATE': { icon: <PlusOutlined />, color: '#52c41a' },
   'EDIT': { icon: <EditOutlined />, color: '#722ed1' },
   'DELETE': { icon: <DeleteOutlined />, color: '#f5222d' },
-  'APPROVE': { icon: <CheckCircleOutlined />, color: '#faad14' },
-  'EXPORT': { icon: <DownloadOutlined />, color: '#1890ff' }
+  'EXPORT': { icon: <DownloadOutlined />, color: '#1890ff' },
+  'IMPORT': { icon: <ReloadOutlined />, color: '#1890ff' },
+  'CANCEL': { icon: <DeleteOutlined />, color: '#faad14' },
+  // 将所有 download、print 相关操作都映射为导出
+  'PRINT_PACKING_SLIP': { icon: <DownloadOutlined />, color: '#1890ff' },
+  'DOWNLOAD_PDF': { icon: <DownloadOutlined />, color: '#1890ff' },
+  'DOWNLOAD_TEMPLATE': { icon: <DownloadOutlined />, color: '#1890ff' },
+  'DOWNLOAD': { icon: <DownloadOutlined />, color: '#1890ff' },
+  // 将 inventory、attachment、setting、reload 相关操作归纳为编辑
+  'HOLD_INVENTORY': { icon: <EditOutlined />, color: '#722ed1' },
+  'RELEASE_INVENTORY': { icon: <EditOutlined />, color: '#722ed1' },
+  'ADD_ATTACHMENT': { icon: <EditOutlined />, color: '#722ed1' },
+  'SET_ALERT': { icon: <EditOutlined />, color: '#722ed1' },
+  'SET_DEFAULT': { icon: <EditOutlined />, color: '#722ed1' },
+  'RELOAD': { icon: <EditOutlined />, color: '#722ed1' },
+  // 将所有 import 相关操作都映射为导入
+  'IMPORT_RMA': { icon: <ReloadOutlined />, color: '#1890ff' },
+  'BATCH_IMPORT': { icon: <ReloadOutlined />, color: '#1890ff' },
+  'RESET_FIELDS': { icon: <ReloadOutlined />, color: '#faad14' },
+  'PAY': { icon: <CheckCircleOutlined />, color: '#52c41a' },
+  // 将 invoice detail 归纳为查看
+  'INVOICE_DETAIL': { icon: <EyeOutlined />, color: '#52c41a' }
 };
 
 const PermissionView: React.FC = () => {
@@ -72,12 +97,9 @@ const PermissionView: React.FC = () => {
   // 过滤器状态
   const [filters, setFilters] = useState({
     module: 'ALL',
-    permissionType: 'ALL_MENUS', // 'ALL_MENUS' | 'ALL_RULES'
-    roleStatus: 'ACTIVE'
+    permissionType: 'ALL_MENUS' // 'ALL_MENUS' | 'ALL_RULES'
   });
-  const [searchText, setSearchText] = useState('');
-  const [showDisabled, setShowDisabled] = useState(false);
-  const [showEmpty, setShowEmpty] = useState(false);
+  const [roleNameFilter, setRoleNameFilter] = useState('');
 
   useEffect(() => {
     loadData();
@@ -92,6 +114,7 @@ const PermissionView: React.FC = () => {
       });
       if (rolesResponse.data.success) {
         setRoles(rolesResponse.data.data.items || []);
+        console.log('Loaded roles:', rolesResponse.data.data.items?.length || 0);
       }
 
       // 加载账号列表
@@ -100,6 +123,8 @@ const PermissionView: React.FC = () => {
       });
       if (accountsResponse.data.success) {
         setAccounts(accountsResponse.data.data.items || []);
+        console.log('Loaded accounts:', accountsResponse.data.data.items?.length || 0);
+        console.log('Accounts data:', accountsResponse.data.data.items);
       }
     } catch (error) {
       console.error('加载数据失败', error);
@@ -127,11 +152,15 @@ const PermissionView: React.FC = () => {
   const filteredRoles = useMemo(() => {
     let result = roles;
 
-    // 角色状态过滤
-    if (filters.roleStatus === 'ACTIVE') {
-      result = result.filter(r => r.status === 'ACTIVE');
-    } else if (!showDisabled) {
-      result = result.filter(r => r.status === 'ACTIVE');
+    // 角色状态过滤 - 只显示活跃角色
+    result = result.filter(r => r.status === 'ACTIVE');
+
+    // 角色名称过滤
+    if (roleNameFilter) {
+      const lowerRoleFilter = roleNameFilter.toLowerCase();
+      result = result.filter(r =>
+        r.name.toLowerCase().includes(lowerRoleFilter)
+      );
     }
 
     // 模块过滤
@@ -141,26 +170,11 @@ const PermissionView: React.FC = () => {
       );
     }
 
-    // 搜索过滤
-    if (searchText) {
-      const lowerSearch = searchText.toLowerCase();
-      result = result.filter(r =>
-        r.name.toLowerCase().includes(lowerSearch) ||
-        r.description?.toLowerCase().includes(lowerSearch) ||
-        r.permissions.some(p => 
-          p.module.toLowerCase().includes(lowerSearch) ||
-          p.page.toLowerCase().includes(lowerSearch)
-        )
-      );
-    }
-
-    // 显示空权限过滤
-    if (!showEmpty) {
-      result = result.filter(r => r.permissions.length > 0);
-    }
+    // 只显示有权限的角色
+    result = result.filter(r => r.permissions.length > 0);
 
     return result;
-  }, [roles, filters, searchText, showDisabled, showEmpty]);
+  }, [roles, filters, roleNameFilter]);
 
   // 获取所有模块列表
   const allModules = useMemo(() => {
@@ -180,7 +194,6 @@ const PermissionView: React.FC = () => {
         key: 'roleName',
         fixed: 'left',
         width: 220,
-        sorter: (a, b) => a.roleName.localeCompare(b.roleName),
         render: (text: string, record: any) => (
           <div>
             <div style={{ fontWeight: 500 }}>{text}</div>
@@ -213,9 +226,44 @@ const PermissionView: React.FC = () => {
           if (permissions.length === 0) {
             return <span style={{ color: '#999' }}>-</span>;
           }
+          
+          // 合并导出相关操作
+          const exportOperations = ['EXPORT', 'PRINT_PACKING_SLIP', 'DOWNLOAD_PDF', 'DOWNLOAD_TEMPLATE', 'DOWNLOAD'];
+          const hasExport = permissions.some((op: string) => exportOperations.includes(op));
+          
+          // 合并编辑相关操作（包括 inventory、attachment、setting、reload 操作）
+          const editOperations = ['EDIT', 'HOLD_INVENTORY', 'RELEASE_INVENTORY', 'ADD_ATTACHMENT', 'SET_ALERT', 'SET_DEFAULT', 'RELOAD'];
+          const hasEdit = permissions.some((op: string) => editOperations.includes(op));
+          
+          // 合并导入相关操作
+          const importOperations = ['IMPORT', 'IMPORT_RMA', 'BATCH_IMPORT'];
+          const hasImport = permissions.some((op: string) => importOperations.includes(op));
+          
+          // 合并查看相关操作（包括 invoice detail）
+          const viewOperations = ['VIEW', 'INVOICE_DETAIL'];
+          const hasView = permissions.some((op: string) => viewOperations.includes(op));
+          
+          const otherOperations = permissions.filter((op: string) => 
+            !exportOperations.includes(op) && !editOperations.includes(op) && !importOperations.includes(op) && !viewOperations.includes(op)
+          );
+          
+          const displayOperations = [...otherOperations];
+          if (hasView) {
+            displayOperations.push('VIEW');
+          }
+          if (hasEdit) {
+            displayOperations.push('EDIT');
+          }
+          if (hasExport) {
+            displayOperations.push('EXPORT');
+          }
+          if (hasImport) {
+            displayOperations.push('IMPORT');
+          }
+          
           return (
             <Space size={4} wrap>
-              {permissions.map((op: string) => {
+              {displayOperations.map((op: string) => {
                 const opConfig = OPERATION_ICONS[op];
                 if (!opConfig) return null;
                 return (
@@ -338,9 +386,44 @@ const PermissionView: React.FC = () => {
         if (!permissions || permissions.length === 0) {
           return <Tag color="default">-</Tag>;
         }
+        
+        // 合并导出相关操作
+        const exportOperations = ['EXPORT', 'PRINT_PACKING_SLIP', 'DOWNLOAD_PDF', 'DOWNLOAD_TEMPLATE', 'DOWNLOAD'];
+        const hasExport = permissions.some(op => exportOperations.includes(op));
+        
+        // 合并编辑相关操作（包括 inventory、attachment、setting、reload 操作）
+        const editOperations = ['EDIT', 'HOLD_INVENTORY', 'RELEASE_INVENTORY', 'ADD_ATTACHMENT', 'SET_ALERT', 'SET_DEFAULT', 'RELOAD'];
+        const hasEdit = permissions.some(op => editOperations.includes(op));
+        
+        // 合并导入相关操作
+        const importOperations = ['IMPORT', 'IMPORT_RMA', 'BATCH_IMPORT'];
+        const hasImport = permissions.some(op => importOperations.includes(op));
+        
+        // 合并查看相关操作（包括 invoice detail）
+        const viewOperations = ['VIEW', 'INVOICE_DETAIL'];
+        const hasView = permissions.some(op => viewOperations.includes(op));
+        
+        const otherOperations = permissions.filter(op => 
+          !exportOperations.includes(op) && !editOperations.includes(op) && !importOperations.includes(op) && !viewOperations.includes(op)
+        );
+        
+        const displayOperations = [...otherOperations];
+        if (hasView) {
+          displayOperations.push('VIEW');
+        }
+        if (hasEdit) {
+          displayOperations.push('EDIT');
+        }
+        if (hasExport) {
+          displayOperations.push('EXPORT');
+        }
+        if (hasImport) {
+          displayOperations.push('IMPORT');
+        }
+        
         return (
           <Space wrap>
-            {permissions.map(op => {
+            {displayOperations.map(op => {
               const opConfig = OPERATION_ICONS[op];
               if (!opConfig) return null;
               return (
@@ -401,33 +484,45 @@ const PermissionView: React.FC = () => {
     const data: any[] = [];
     
     // 以角色名+二级菜单（页面）维度展示
-    filteredRoles.forEach(role => {
-      role.permissions.forEach(perm => {
-        const moduleConfig = MODULE_CONFIG[perm.module] || { name: perm.module, color: '#666' };
-        data.push({
-          key: `${role.id}-${perm.module}-${perm.pageCode}`,
-          roleName: role.name,
-          module: perm.module,
-          parentMenuName: moduleConfig.name, // 一级菜单名（模块）
-          menuName: perm.page, // 二级菜单名（页面）
-          permissions: perm.operations, // 所拥有权限
-          users: getAccountsWithRole(role.id) // 拥有该角色的账号
+    // 对于列表视图，我们需要使用所有活跃角色，然后在权限级别进行模块过滤
+    const activeRoles = roles.filter(r => r.status === 'ACTIVE' && r.permissions.length > 0);
+    
+    activeRoles.forEach(role => {
+      // 应用角色名称过滤
+      let shouldIncludeRole = true;
+      if (roleNameFilter) {
+        const lowerRoleFilter = roleNameFilter.toLowerCase();
+        shouldIncludeRole = role.name.toLowerCase().includes(lowerRoleFilter);
+      }
+      
+      if (shouldIncludeRole) {
+        role.permissions.forEach(perm => {
+          // 应用模块过滤 - 在权限级别进行过滤
+          if (filters.module === 'ALL' || perm.module === filters.module) {
+            const moduleConfig = MODULE_CONFIG[perm.module] || { name: perm.module, color: '#666' };
+            data.push({
+              key: `${role.id}-${perm.module}-${perm.pageCode}`,
+              roleName: role.name,
+              module: perm.module,
+              parentMenuName: moduleConfig.name, // 一级菜单名（模块）
+              menuName: perm.page, // 二级菜单名（页面）
+              permissions: perm.operations, // 所拥有权限
+              users: getAccountsWithRole(role.id) // 拥有该角色的账号
+            });
+          }
         });
-      });
+      }
     });
 
     return data;
-  }, [filteredRoles]);
+  }, [roles, filters.module, roleNameFilter]);
 
   const handleReset = () => {
     setFilters({
       module: 'ALL',
-      permissionType: 'ALL_MENUS',
-      roleStatus: 'ACTIVE'
+      permissionType: 'ALL_MENUS'
     });
-    setSearchText('');
-    setShowDisabled(false);
-    setShowEmpty(false);
+    setRoleNameFilter('');
     setViewMode('matrix');
   };
 
@@ -444,11 +539,6 @@ const PermissionView: React.FC = () => {
           <Title level={2} style={{ margin: 0 }}>
             {t('nav.permissionMatrix')}
           </Title>
-          <Text type="secondary">
-            {viewMode === 'matrix' 
-              ? t('permissionMatrix.matrixSubtitle')
-              : t('permissionMatrix.listSubtitle')}
-          </Text>
         </div>
         <Space>
           <Button icon={<ReloadOutlined />} onClick={loadData} />
@@ -460,7 +550,7 @@ const PermissionView: React.FC = () => {
 
       {/* 过滤器和搜索 */}
       <Card style={{ marginBottom: 16 }}>
-        <Row gutter={16}>
+        <Row gutter={16} align="middle">
           <Col span={6}>
             <div style={{ marginBottom: 8 }}>{t('role.module')}</div>
             <Select
@@ -477,40 +567,19 @@ const PermissionView: React.FC = () => {
             </Select>
           </Col>
           <Col span={6}>
-            <div style={{ marginBottom: 8 }}>{t('common.status')}</div>
-            <Select
-              style={{ width: '100%' }}
-              value={filters.roleStatus}
-              onChange={(value) => setFilters({ ...filters, roleStatus: value })}
-            >
-              <Option value="ACTIVE">Active Only</Option>
-              <Option value="ALL">All</Option>
-            </Select>
-          </Col>
-        </Row>
-        <Row gutter={16} style={{ marginTop: 16 }}>
-          <Col span={12}>
-            <Search
-              placeholder={viewMode === 'matrix' 
-                ? 'Search roles, modules...' 
-                : 'Search roles, features, permissions...'}
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
+            <div style={{ marginBottom: 8 }}>角色名称</div>
+            <Input
+              placeholder="搜索角色名称..."
+              value={roleNameFilter}
+              onChange={(e) => setRoleNameFilter(e.target.value)}
               allowClear
             />
           </Col>
           <Col span={12}>
+            <div style={{ marginBottom: 8 }}>&nbsp;</div>
             <Space>
-              <Checkbox checked={showDisabled} onChange={(e) => setShowDisabled(e.target.checked)}>
-                Show Disabled
-              </Checkbox>
-              {viewMode === 'matrix' && (
-                <Checkbox checked={showEmpty} onChange={(e) => setShowEmpty(e.target.checked)}>
-                  Show Empty
-                </Checkbox>
-              )}
               <Button onClick={handleReset}>{t('common.reset')}</Button>
-              <Button type="primary">Apply Filters</Button>
+              <Button type="primary">Search</Button>
             </Space>
           </Col>
         </Row>
@@ -524,23 +593,32 @@ const PermissionView: React.FC = () => {
             {t('permissionMatrix.legend')}
           </div>
           <Space wrap>
-            {Object.keys(OPERATION_ICONS).map(op => {
-              const opConfig = OPERATION_ICONS[op];
-              return (
+            {(() => {
+              // 定义唯一的操作类型，相关操作归纳合并
+              const uniqueOperations = [
+                { key: 'VIEW', icon: <EyeOutlined />, color: '#52c41a', label: '查看' },
+                { key: 'CREATE', icon: <PlusOutlined />, color: '#52c41a', label: '创建' },
+                { key: 'EDIT', icon: <EditOutlined />, color: '#722ed1', label: '编辑' },
+                { key: 'DELETE', icon: <DeleteOutlined />, color: '#f5222d', label: '删除' },
+                { key: 'EXPORT', icon: <DownloadOutlined />, color: '#1890ff', label: '导出' },
+                { key: 'IMPORT', icon: <ReloadOutlined />, color: '#1890ff', label: '导入' },
+                { key: 'CANCEL', icon: <DeleteOutlined />, color: '#faad14', label: 'Cancel' },
+                { key: 'PAY', icon: <CheckCircleOutlined />, color: '#52c41a', label: 'Pay' }
+              ];
+
+              return uniqueOperations.map(config => (
                 <Tag 
-                  key={op}
-                  color={opConfig.color === '#52c41a' ? 'success' : 
-                         opConfig.color === '#722ed1' ? 'purple' :
-                         opConfig.color === '#f5222d' ? 'error' :
-                         opConfig.color === '#faad14' ? 'warning' : 'processing'}
-                  icon={opConfig.icon}
+                  key={config.key}
+                  color={config.color === '#52c41a' ? 'success' : 
+                         config.color === '#722ed1' ? 'purple' :
+                         config.color === '#f5222d' ? 'error' :
+                         config.color === '#faad14' ? 'warning' : 'processing'}
+                  icon={config.icon}
                 >
-                  {opConfig.color === '#52c41a' && op === 'VIEW' ? '' : 
-                   opConfig.color === '#52c41a' && op === 'CREATE' ? '+ ' : ''}
-                  {t(`operation.${op}`) || op}
+                  {config.label}
                 </Tag>
-              );
-            })}
+              ));
+            })()}
           </Space>
         </Space>
       </Card>
@@ -567,7 +645,6 @@ const PermissionView: React.FC = () => {
               <Radio.Button value="matrix">{t('permissionMatrix.typeAllMenus')}</Radio.Button>
               <Radio.Button value="list">{t('permissionMatrix.typeAllRules')}</Radio.Button>
             </Radio.Group>
-            <Button icon={<ReloadOutlined />} onClick={loadData} />
           </Space>
         </div>
 

@@ -125,13 +125,28 @@ class Database {
   }
 
   getRole(id: string): Role | undefined {
-    return this.roles.get(id);
+    const role = this.roles.get(id);
+    if (!role) return undefined;
+    
+    // 计算角色的使用计数
+    const accounts = Array.from(this.accounts.values());
+    const usageCount = accounts.filter(acc => acc.roles.includes(role.id)).length;
+    
+    return {
+      ...role,
+      usageCount
+    };
   }
 
   getAllRoles(tenantId?: string): Role[] {
     const roles = Array.from(this.roles.values());
-    // 如果指定了tenantId，可以过滤（这里简化处理）
-    return roles;
+    // 计算每个角色的使用计数
+    const accounts = tenantId ? this.getAllAccounts(tenantId) : Array.from(this.accounts.values());
+    
+    return roles.map(role => ({
+      ...role,
+      usageCount: accounts.filter(acc => acc.roles.includes(role.id)).length
+    }));
   }
 
   updateRole(id: string, updates: Partial<Role>): boolean {

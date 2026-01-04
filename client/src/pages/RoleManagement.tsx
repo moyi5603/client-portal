@@ -120,7 +120,6 @@ const RoleManagement: React.FC = () => {
     { value: 'ADD_ATTACHMENT', label: 'Add Attachment' },
     { value: 'IMPORT_RMA', label: 'Import RMA' },
     { value: 'DOWNLOAD_TEMPLATE', label: 'Download Template' },
-    { value: 'RESET_FIELDS', label: 'Reset Fields' },
     { value: 'DOWNLOAD', label: 'Download' },
     { value: 'BATCH_IMPORT', label: 'Batch Import' },
     { value: 'PAY', label: 'Pay' },
@@ -182,8 +181,8 @@ const RoleManagement: React.FC = () => {
       { code: 'freight-quote', name: 'Freight Quote（运费报价）', operations: ['VIEW', 'CREATE'] }
     ],
     RETURNS: [
-      { code: 'rma', name: 'RMA', operations: ['VIEW', 'EXPORT', 'IMPORT_RMA', 'DOWNLOAD_TEMPLATE', 'RESET_FIELDS'] },
-      { code: 'traveler-id', name: 'Traveler ID', operations: ['VIEW', 'RESET_FIELDS'] },
+      { code: 'rma', name: 'RMA', operations: ['VIEW', 'EXPORT', 'IMPORT_RMA', 'DOWNLOAD_TEMPLATE'] },
+      { code: 'traveler-id', name: 'Traveler ID', operations: ['VIEW'] },
       { code: 'return-report', name: 'Return Report（退货报告）', operations: ['VIEW', 'EXPORT'] },
       { code: 'restock-report', name: 'Restock Report（补货报告）', operations: ['VIEW', 'EXPORT'] },
       { code: 'adjustment-report', name: 'Adjustment Report（调整报告）', operations: ['VIEW', 'EXPORT'] },

@@ -28,16 +28,28 @@ export const initTestData = () => {
     status: RoleStatus.ACTIVE,
     permissions: [
       {
-        module: Module.ADMIN,
-        page: '用户管理',
-        pageCode: 'user-management',
+        module: Module.SYSTEM_MANAGEMENT,
+        page: 'Address Book',
+        pageCode: 'address-book',
         operations: [Operation.VIEW, Operation.CREATE, Operation.EDIT, Operation.DELETE, Operation.EXPORT]
       },
       {
-        module: Module.ADMIN,
-        page: '角色管理',
+        module: Module.SYSTEM_MANAGEMENT,
+        page: 'Settings',
+        pageCode: 'settings',
+        operations: [Operation.VIEW, Operation.CREATE, Operation.EDIT]
+      },
+      {
+        module: Module.PERMISSION_MANAGEMENT,
+        page: 'Account Management',
+        pageCode: 'account-management',
+        operations: [Operation.VIEW, Operation.CREATE, Operation.EDIT, Operation.DELETE]
+      },
+      {
+        module: Module.PERMISSION_MANAGEMENT,
+        page: 'Role Management',
         pageCode: 'role-management',
-        operations: [Operation.VIEW, Operation.CREATE, Operation.EDIT, Operation.DELETE, Operation.EXPORT]
+        operations: [Operation.VIEW, Operation.CREATE, Operation.EDIT, Operation.DELETE]
       }
     ],
     usageCount: 0,
@@ -53,22 +65,28 @@ export const initTestData = () => {
     status: RoleStatus.ACTIVE,
     permissions: [
       {
+        module: Module.DASHBOARDS,
+        page: 'KPI',
+        pageCode: 'kpi',
+        operations: [Operation.VIEW]
+      },
+      {
         module: Module.INVENTORY,
-        page: '库存状态',
+        page: 'Inventory Status',
         pageCode: 'inventory-status',
         operations: [Operation.VIEW, Operation.EXPORT]
       },
       {
         module: Module.OUTBOUND,
-        page: '订单列表',
-        pageCode: 'order-list',
-        operations: [Operation.VIEW, Operation.CREATE, Operation.EDIT, Operation.EXPORT]
+        page: 'Inquiry',
+        pageCode: 'inquiry',
+        operations: [Operation.VIEW, Operation.EXPORT]
       },
       {
-        module: Module.OUTBOUND,
-        page: '订单详情',
-        pageCode: 'order-details',
-        operations: [Operation.VIEW, Operation.CREATE, Operation.EDIT, Operation.EXPORT]
+        module: Module.FINANCE,
+        page: 'Invoice',
+        pageCode: 'invoice',
+        operations: [Operation.VIEW, Operation.EXPORT]
       }
     ],
     usageCount: 0,
@@ -84,40 +102,46 @@ export const initTestData = () => {
     status: RoleStatus.ACTIVE,
     permissions: [
       {
-        module: Module.KPI,
-        page: '仪表板视图',
-        pageCode: 'dashboard-view',
+        module: Module.DASHBOARDS,
+        page: 'KPI',
+        pageCode: 'kpi',
+        operations: [Operation.VIEW]
+      },
+      {
+        module: Module.PURCHASE_MANAGEMENT,
+        page: 'Projects',
+        pageCode: 'projects',
+        operations: [Operation.VIEW, Operation.CREATE, Operation.EXPORT]
+      },
+      {
+        module: Module.SALES_ORDER,
+        page: 'Wholesale Orders',
+        pageCode: 'wholesale-orders',
+        operations: [Operation.VIEW]
+      },
+      {
+        module: Module.INBOUND,
+        page: 'Inquiry',
+        pageCode: 'inquiry',
+        operations: [Operation.VIEW, Operation.EDIT, Operation.EXPORT]
+      },
+      {
+        module: Module.INVENTORY,
+        page: 'SN Look Up',
+        pageCode: 'sn-look-up',
         operations: [Operation.VIEW, Operation.EXPORT]
       },
       {
-        module: Module.KPI,
-        page: '绩效指标',
-        pageCode: 'performance-metrics',
+        module: Module.OUTBOUND,
+        page: 'Inquiry',
+        pageCode: 'inquiry',
         operations: [Operation.VIEW, Operation.EXPORT]
       },
       {
-        module: Module.OUTBOUND,
-        page: '订单列表',
-        pageCode: 'order-list',
-        operations: [Operation.VIEW, Operation.CREATE, Operation.EDIT, Operation.EXPORT]
-      },
-      {
-        module: Module.OUTBOUND,
-        page: '订单详情',
-        pageCode: 'order-details',
-        operations: [Operation.VIEW, Operation.CREATE, Operation.EDIT, Operation.EXPORT]
-      },
-      {
-        module: Module.OUTBOUND,
-        page: '订单履约',
-        pageCode: 'order-fulfillment',
-        operations: [Operation.VIEW, Operation.EDIT, Operation.APPROVE, Operation.EXPORT]
-      },
-      {
-        module: Module.OUTBOUND,
-        page: '退货处理',
-        pageCode: 'returns-processing',
-        operations: [Operation.VIEW, Operation.CREATE, Operation.EDIT, Operation.APPROVE, Operation.EXPORT]
+        module: Module.RETURNS,
+        page: 'RMA',
+        pageCode: 'rma',
+        operations: [Operation.VIEW, Operation.EXPORT]
       }
     ],
     usageCount: 0,
