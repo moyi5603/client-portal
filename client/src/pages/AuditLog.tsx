@@ -213,12 +213,11 @@ const AuditLogPage: React.FC = () => {
       <Card style={{ marginBottom: 16 }}>
         <Row gutter={16}>
           <Col span={6}>
-            <div style={{ marginBottom: 8 }}>操作时间</div>
+            <div style={{ marginBottom: 8 }}>操作日期</div>
             <RangePicker
               style={{ width: '100%' }}
               value={filters.dateRange}
               onChange={(dates) => setFilters({ ...filters, dateRange: dates as [Dayjs, Dayjs] | null })}
-              showTime
             />
           </Col>
           <Col span={6}>
