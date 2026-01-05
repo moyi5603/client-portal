@@ -23,8 +23,8 @@ export const initTestData = () => {
   // 创建示例角色（使用新的权限结构）
   const systemAdminRole: Role = {
     id: 'ROLE-001',
-    name: '系统管理员',
-    description: '拥有所有权限的完整系统访问权限',
+    name: 'System Administrator',
+    description: 'Full system access with all permissions',
     status: RoleStatus.ACTIVE,
     permissions: [
       {
@@ -60,8 +60,8 @@ export const initTestData = () => {
 
   const customerAdminRole: Role = {
     id: 'ROLE-002',
-    name: '客户管理员',
-    description: '管理客户用户和角色',
+    name: 'Customer Administrator',
+    description: 'Manage customer users and roles',
     status: RoleStatus.ACTIVE,
     permissions: [
       {
@@ -97,8 +97,8 @@ export const initTestData = () => {
 
   const csrRole: Role = {
     id: 'ROLE-003',
-    name: '客户服务代表',
-    description: '处理客户咨询、处理订单并提供支持',
+    name: 'Customer Service Representative',
+    description: 'Handle customer inquiries, process orders and provide support',
     status: RoleStatus.ACTIVE,
     permissions: [
       {
@@ -153,8 +153,8 @@ export const initTestData = () => {
   // 创建模拟用户账号数据
   const user1: Account = {
     id: generateAccountId(),
-    username: 'zhang.san',
-    email: 'zhang.san@example.com',
+    username: 'john.smith',
+    email: 'john.smith@example.com',
     phone: '13800138001',
     accountType: AccountType.CUSTOMER,
     status: AccountStatus.ACTIVE,
@@ -168,8 +168,8 @@ export const initTestData = () => {
 
   const user2: Account = {
     id: generateAccountId(),
-    username: 'li.si',
-    email: 'li.si@example.com',
+    username: 'jane.doe',
+    email: 'jane.doe@example.com',
     phone: '13800138002',
     accountType: AccountType.CUSTOMER,
     status: AccountStatus.ACTIVE,
@@ -183,8 +183,8 @@ export const initTestData = () => {
 
   const user3: Account = {
     id: generateAccountId(),
-    username: 'wang.wu',
-    email: 'wang.wu@example.com',
+    username: 'mike.johnson',
+    email: 'mike.johnson@example.com',
     phone: '13800138003',
     accountType: AccountType.CUSTOMER,
     status: AccountStatus.ACTIVE,
@@ -198,8 +198,8 @@ export const initTestData = () => {
 
   const user4: Account = {
     id: generateAccountId(),
-    username: 'zhao.liu',
-    email: 'zhao.liu@example.com',
+    username: 'sarah.wilson',
+    email: 'sarah.wilson@example.com',
     phone: '13800138004',
     accountType: AccountType.CUSTOMER,
     status: AccountStatus.ACTIVE,
@@ -213,8 +213,8 @@ export const initTestData = () => {
 
   const user5: Account = {
     id: generateAccountId(),
-    username: 'chen.qi',
-    email: 'chen.qi@example.com',
+    username: 'david.brown',
+    email: 'david.brown@example.com',
     phone: '13800138005',
     accountType: AccountType.CUSTOMER,
     status: AccountStatus.ACTIVE,
@@ -228,8 +228,8 @@ export const initTestData = () => {
 
   const user6: Account = {
     id: generateAccountId(),
-    username: 'liu.ba',
-    email: 'liu.ba@example.com',
+    username: 'lisa.garcia',
+    email: 'lisa.garcia@example.com',
     phone: '13800138006',
     accountType: AccountType.CUSTOMER,
     status: AccountStatus.ACTIVE,
@@ -243,8 +243,8 @@ export const initTestData = () => {
 
   const user7: Account = {
     id: generateAccountId(),
-    username: 'huang.jiu',
-    email: 'huang.jiu@example.com',
+    username: 'robert.davis',
+    email: 'robert.davis@example.com',
     phone: '13800138007',
     accountType: AccountType.CUSTOMER,
     status: AccountStatus.ACTIVE,
@@ -303,14 +303,14 @@ export const initTestData = () => {
       roles: ['ROLE-001']
     },
     {
-      email: 'zhang.san@example.com',
+      email: 'john.smith@example.com',
       roles: ['ROLE-001', 'ROLE-002']
     },
     [
       {
         field: 'email',
         oldValue: 'old.email@example.com',
-        newValue: 'zhang.san@example.com',
+        newValue: 'john.smith@example.com',
         changeType: 'MODIFIED'
       },
       {
@@ -350,8 +350,8 @@ export const initTestData = () => {
     customerAdminRole.id,
     customerAdminRole.name,
     {
-      name: '客户管理员',
-      description: '管理客户用户',
+      name: 'Customer Administrator',
+      description: 'Manage customer users',
       permissions: [
         {
           module: 'DASHBOARDS',
@@ -362,8 +362,8 @@ export const initTestData = () => {
       ]
     },
     {
-      name: '客户管理员',
-      description: '管理客户用户和角色',
+      name: 'Customer Administrator',
+      description: 'Manage customer users and roles',
       permissions: [
         {
           module: 'DASHBOARDS',
@@ -382,8 +382,8 @@ export const initTestData = () => {
     [
       {
         field: 'description',
-        oldValue: '管理客户用户',
-        newValue: '管理客户用户和角色',
+        oldValue: 'Manage customer users',
+        newValue: 'Manage customer users and roles',
         changeType: 'MODIFIED'
       },
       {
@@ -422,8 +422,8 @@ export const initTestData = () => {
   const log5Timestamp = new Date(Date.now() - 10 * 60 * 1000).toISOString();
   const copiedRole = {
     id: 'ROLE-004',
-    name: '客户管理员（副本）',
-    description: '管理客户用户和角色',
+    name: 'Customer Administrator (Copy)',
+    description: 'Manage customer users and roles',
     status: 'ACTIVE',
     permissions: [...customerAdminRole.permissions]
   };
@@ -441,23 +441,23 @@ export const initTestData = () => {
     log5Timestamp
   );
 
-  console.log('测试数据初始化完成');
-  console.log('主账号: admin / admin123');
-  console.log('用户账号1: zhang.san / user123 (角色: 系统管理员, 客户管理员)');
-  console.log('用户账号2: li.si / user123 (角色: 客户服务代表)');
-  console.log('用户账号3: wang.wu / user123 (角色: 客户管理员)');
-  console.log('用户账号4: zhao.liu / user123 (角色: 客户服务代表)');
-  console.log('用户账号5: chen.qi / user123 (角色: 系统管理员)');
-  console.log('用户账号6: liu.ba / user123 (角色: 客户管理员, 客户服务代表)');
-  console.log('用户账号7: huang.jiu / user123 (角色: 客户服务代表)');
-  console.log('租户ID: admin');
-  console.log('示例角色已创建：系统管理员、客户管理员、客户服务代表');
-  console.log('已创建5条模拟操作记录：');
-  console.log('  1. 创建角色：系统管理员 (1小时前)');
-  console.log('  2. 编辑账号：zhang.san 修改邮箱和角色 (45分钟前)');
-  console.log('  3. 创建账号：li.si (30分钟前)');
-  console.log('  4. 编辑角色：客户管理员 修改描述和权限配置 (20分钟前)');
-  console.log('  5. 复制角色：客户管理员 -> 客户管理员（副本） (10分钟前)');
-  console.log('总计: 1个主账号 + 7个子账号 = 8个账号');
+  console.log('Test data initialization completed');
+  console.log('Main account: admin / admin123');
+  console.log('User account 1: john.smith / user123 (roles: System Administrator, Customer Administrator)');
+  console.log('User account 2: jane.doe / user123 (roles: Customer Service Representative)');
+  console.log('User account 3: mike.johnson / user123 (roles: Customer Administrator)');
+  console.log('User account 4: sarah.wilson / user123 (roles: Customer Service Representative)');
+  console.log('User account 5: david.brown / user123 (roles: System Administrator)');
+  console.log('User account 6: lisa.garcia / user123 (roles: Customer Administrator, Customer Service Representative)');
+  console.log('User account 7: robert.davis / user123 (roles: Customer Service Representative)');
+  console.log('Tenant ID: admin');
+  console.log('Sample roles created: System Administrator, Customer Administrator, Customer Service Representative');
+  console.log('Created 5 mock audit log entries:');
+  console.log('  1. Role created: System Administrator (1 hour ago)');
+  console.log('  2. Account updated: john.smith modified email and roles (45 minutes ago)');
+  console.log('  3. Account created: jane.doe (30 minutes ago)');
+  console.log('  4. Role updated: Customer Administrator modified description and permissions (20 minutes ago)');
+  console.log('  5. Role copied: Customer Administrator -> Customer Administrator (Copy) (10 minutes ago)');
+  console.log('Total: 1 main account + 7 sub-accounts = 8 accounts');
 };
 

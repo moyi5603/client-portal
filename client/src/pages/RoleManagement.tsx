@@ -90,19 +90,19 @@ const RoleManagement: React.FC = () => {
 
   // 获取模块、操作和页面定义（根据PRD文档）
   const MODULES = [
-    { value: 'DASHBOARDS', label: `Dashboards (${t('module.DASHBOARDS')})` },
-    { value: 'PURCHASE_MANAGEMENT', label: `Purchase Management (${t('module.PURCHASE_MANAGEMENT')})` },
-    { value: 'SALES_ORDER', label: `Sales Order (${t('module.SALES_ORDER')})` },
-    { value: 'WORK_ORDER', label: `Work Order (${t('module.WORK_ORDER')})` },
-    { value: 'INBOUND', label: `Inbound (${t('module.INBOUND')})` },
-    { value: 'INVENTORY', label: `Inventory (${t('module.INVENTORY')})` },
-    { value: 'OUTBOUND', label: `Outbound (${t('module.OUTBOUND')})` },
-    { value: 'RETURNS', label: `Returns (${t('module.RETURNS')})` },
-    { value: 'YARD_MANAGEMENT', label: `Yard Management (${t('module.YARD_MANAGEMENT')})` },
-    { value: 'SUPPLY_CHAIN', label: `Supply Chain Mgmt (${t('module.SUPPLY_CHAIN')})` },
-    { value: 'FINANCE', label: `Finance (${t('module.FINANCE')})` },
-    { value: 'SYSTEM_MANAGEMENT', label: `System Management (${t('module.SYSTEM_MANAGEMENT')})` },
-    { value: 'PERMISSION_MANAGEMENT', label: `Permission Management (${t('module.PERMISSION_MANAGEMENT')})` }
+    { value: 'DASHBOARDS', label: 'Dashboards' },
+    { value: 'PURCHASE_MANAGEMENT', label: 'Purchase Management' },
+    { value: 'SALES_ORDER', label: 'Sales Order' },
+    { value: 'WORK_ORDER', label: 'Work Order' },
+    { value: 'INBOUND', label: 'Inbound' },
+    { value: 'INVENTORY', label: 'Inventory' },
+    { value: 'OUTBOUND', label: 'Outbound' },
+    { value: 'RETURNS', label: 'Returns' },
+    { value: 'YARD_MANAGEMENT', label: 'Yard Management' },
+    { value: 'SUPPLY_CHAIN', label: 'Supply Chain Mgmt' },
+    { value: 'FINANCE', label: 'Finance' },
+    { value: 'SYSTEM_MANAGEMENT', label: 'System Management' },
+    { value: 'PERMISSION_MANAGEMENT', label: 'Permission Management' }
   ];
 
   // 所有可能的操作类型
