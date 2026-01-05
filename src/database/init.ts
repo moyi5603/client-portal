@@ -181,6 +181,81 @@ export const initTestData = () => {
   };
   db.createAccount(user2, 'user123');
 
+  const user3: Account = {
+    id: generateId(),
+    username: 'wang.wu',
+    email: 'wang.wu@example.com',
+    phone: '13800138003',
+    accountType: AccountType.CUSTOMER,
+    status: AccountStatus.ACTIVE,
+    tenantId: 'admin',
+    roles: ['ROLE-002'], // 分配客户管理员角色
+    customerIds: ['customer-2'],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+  db.createAccount(user3, 'user123');
+
+  const user4: Account = {
+    id: generateId(),
+    username: 'zhao.liu',
+    email: 'zhao.liu@example.com',
+    phone: '13800138004',
+    accountType: AccountType.CUSTOMER,
+    status: AccountStatus.ACTIVE,
+    tenantId: 'admin',
+    roles: ['ROLE-003'], // 分配客户服务代表角色
+    customerIds: ['customer-2'],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+  db.createAccount(user4, 'user123');
+
+  const user5: Account = {
+    id: generateId(),
+    username: 'chen.qi',
+    email: 'chen.qi@example.com',
+    phone: '13800138005',
+    accountType: AccountType.CUSTOMER,
+    status: AccountStatus.ACTIVE,
+    tenantId: 'admin',
+    roles: ['ROLE-001'], // 分配系统管理员角色
+    customerIds: ['customer-3'],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+  db.createAccount(user5, 'user123');
+
+  const user6: Account = {
+    id: generateId(),
+    username: 'liu.ba',
+    email: 'liu.ba@example.com',
+    phone: '13800138006',
+    accountType: AccountType.CUSTOMER,
+    status: AccountStatus.ACTIVE,
+    tenantId: 'admin',
+    roles: ['ROLE-002', 'ROLE-003'], // 分配客户管理员和客户服务代表角色
+    customerIds: ['customer-3'],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+  db.createAccount(user6, 'user123');
+
+  const user7: Account = {
+    id: generateId(),
+    username: 'huang.jiu',
+    email: 'huang.jiu@example.com',
+    phone: '13800138007',
+    accountType: AccountType.CUSTOMER,
+    status: AccountStatus.ACTIVE,
+    tenantId: 'admin',
+    roles: ['ROLE-003'], // 分配客户服务代表角色
+    customerIds: ['customer-4'],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+  db.createAccount(user7, 'user123');
+
   // 更新主账号，分配系统管理员角色
   db.updateAccount(mainAccount.id, { roles: ['ROLE-001'] });
 
@@ -268,8 +343,14 @@ export const initTestData = () => {
   console.log('主账号: admin / admin123');
   console.log('用户账号1: zhang.san / user123 (角色: 系统管理员, 客户管理员)');
   console.log('用户账号2: li.si / user123 (角色: 客户服务代表)');
+  console.log('用户账号3: wang.wu / user123 (角色: 客户管理员)');
+  console.log('用户账号4: zhao.liu / user123 (角色: 客户服务代表)');
+  console.log('用户账号5: chen.qi / user123 (角色: 系统管理员)');
+  console.log('用户账号6: liu.ba / user123 (角色: 客户管理员, 客户服务代表)');
+  console.log('用户账号7: huang.jiu / user123 (角色: 客户服务代表)');
   console.log('租户ID: admin');
   console.log('示例角色已创建：系统管理员、客户管理员、客户服务代表');
   console.log('已创建2条模拟操作记录');
+  console.log('总计: 1个主账号 + 7个子账号 = 8个账号');
 };
 

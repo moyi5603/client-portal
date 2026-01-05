@@ -6,7 +6,7 @@ import {
 import { 
   UserOutlined, EyeOutlined, PlusOutlined, EditOutlined, 
   DeleteOutlined, CheckCircleOutlined, DownloadOutlined,
-  ReloadOutlined, ExportOutlined, InfoCircleOutlined
+  ReloadOutlined, InfoCircleOutlined
 } from '@ant-design/icons';
 import api from '../utils/api';
 import { useLocale } from '../contexts/LocaleContext';
@@ -208,13 +208,6 @@ const PermissionView: React.FC = () => {
       cols.push({
         title: (
           <div style={{ textAlign: 'center' }}>
-            <div style={{ 
-              width: 8, 
-              height: 8, 
-              borderRadius: '50%', 
-              backgroundColor: config.color,
-              margin: '0 auto 4px'
-            }} />
             <div>{config.name}</div>
           </div>
         ),
@@ -358,16 +351,7 @@ const PermissionView: React.FC = () => {
       render: (text: string, record: any) => {
         const config = MODULE_CONFIG[record.module] || { name: text, color: '#666' };
         return (
-          <Space>
-            <span style={{ 
-              width: 8, 
-              height: 8, 
-              borderRadius: '50%', 
-              backgroundColor: config.color,
-              display: 'inline-block'
-            }} />
-            <span>{text}</span>
-          </Space>
+          <span>{text}</span>
         );
       }
     },
@@ -526,26 +510,15 @@ const PermissionView: React.FC = () => {
     setViewMode('matrix');
   };
 
-  const handleExport = () => {
-    // TODO: 实现导出CSV功能
-    console.log('导出CSV');
-  };
-
   return (
     <div>
-      {/* 标题和操作 */}
+      {/* 标题 */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
         <div>
           <Title level={2} style={{ margin: 0 }}>
-            {t('nav.permissionMatrix')}
+            权限查看
           </Title>
         </div>
-        <Space>
-          <Button icon={<ReloadOutlined />} onClick={loadData} />
-          <Button type="primary" icon={<ExportOutlined />} onClick={handleExport}>
-            Export CSV
-          </Button>
-        </Space>
       </div>
 
       {/* 过滤器和搜索 */}
@@ -590,7 +563,7 @@ const PermissionView: React.FC = () => {
         <Space direction="vertical" size="small" style={{ width: '100%' }}>
           <div style={{ fontWeight: 500, marginBottom: 8 }}>
             <InfoCircleOutlined style={{ marginRight: 8 }} />
-            {t('permissionMatrix.legend')}
+            权限图例
           </div>
           <Space wrap>
             {(() => {
@@ -627,7 +600,7 @@ const PermissionView: React.FC = () => {
       <Card>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <Title level={4} style={{ margin: 0 }}>
-            {viewMode === 'matrix' ? t('permissionMatrix.matrixTitle') : t('permissionMatrix.listTitle')}
+            {viewMode === 'matrix' ? '按所有角色' : '按所有页面'}
           </Title>
           <Space>
             <Radio.Group 
@@ -642,8 +615,8 @@ const PermissionView: React.FC = () => {
                 }
               }}
             >
-              <Radio.Button value="matrix">{t('permissionMatrix.typeAllMenus')}</Radio.Button>
-              <Radio.Button value="list">{t('permissionMatrix.typeAllRules')}</Radio.Button>
+              <Radio.Button value="matrix">按所有角色</Radio.Button>
+              <Radio.Button value="list">按所有页面</Radio.Button>
             </Radio.Group>
           </Space>
         </div>
