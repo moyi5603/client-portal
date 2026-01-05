@@ -502,7 +502,7 @@ const AccountManagement: React.FC = () => {
             label="用户名"
             rules={[{ required: true, message: '请输入用户名' }]}
           >
-            <Input />
+            <Input disabled={!!editingAccount} />
           </Form.Item>
           <Form.Item
             name="email"

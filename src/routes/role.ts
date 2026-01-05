@@ -44,6 +44,7 @@ router.post('/', requireAccountType('MAIN'), async (req: AuthRequest, res) => {
       ActionType.ROLE_CREATED,
       TargetType.ROLE,
       role.id,
+      role.name,
       undefined,
       role
     );
@@ -173,6 +174,7 @@ router.put('/:id', requireAccountType('MAIN'), async (req: AuthRequest, res) => 
       ActionType.ROLE_UPDATED,
       TargetType.ROLE,
       role.id,
+      role.name,
       previousValue,
       updatedRole,
       changes
@@ -190,50 +192,60 @@ router.put('/:id', requireAccountType('MAIN'), async (req: AuthRequest, res) => 
   }
 });
 
-// 废弃角色
-router.post('/:id/deprecate', requireAccountType('MAIN'), async (req: AuthRequest, res) => {
+// 复制角色
+router.post('/:id/copy', requireAccountType('MAIN'), async (req: AuthRequest, res) => {
   try {
-    const role = db.getRole(req.params.id);
-    if (!role) {
+    const sourceRole = db.getRole(req.params.id);
+    if (!sourceRole) {
       return res.status(404).json({
         success: false,
-        error: '角色不存在'
+        error: '源角色不存在'
       } as ApiResponse);
     }
 
-    const previousValue = { ...role };
-    const updated = db.updateRole(role.id, { 
-      status: RoleStatus.DEPRECATED,
-      modifiedBy: req.user!.accountId
-    });
-
-    if (!updated) {
-      return res.status(500).json({
+    const { name } = req.body;
+    if (!name) {
+      return res.status(400).json({
         success: false,
-        error: '废弃角色失败'
+        error: '新角色名称不能为空'
       } as ApiResponse);
     }
 
-    const updatedRole = db.getRole(role.id);
+    // 创建新角色
+    const newRole: Role = {
+      id: generateRoleId(),
+      name,
+      description: sourceRole.description,
+      status: sourceRole.status,
+      permissions: [...sourceRole.permissions], // 深拷贝权限
+      usageCount: 0,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      createdBy: req.user!.accountId,
+      modifiedBy: req.user!.accountId
+    };
+
+    db.createRole(newRole);
 
     // 记录审计日志
     auditService.log(
       req.user!,
-      ActionType.ROLE_DEPRECATED,
+      ActionType.ROLE_COPIED,
       TargetType.ROLE,
-      role.id,
-      previousValue,
-      updatedRole
+      newRole.id,
+      newRole.name,
+      sourceRole,
+      newRole
     );
 
-    res.json({
+    res.status(201).json({
       success: true,
-      data: updatedRole
+      data: newRole
     } as ApiResponse<Role>);
   } catch (error: any) {
     res.status(500).json({
       success: false,
-      error: error.message || '废弃角色失败'
+      error: error.message || '复制角色失败'
     } as ApiResponse);
   }
 });
@@ -266,6 +278,17 @@ router.delete('/:id', requireAccountType('MAIN'), async (req: AuthRequest, res) 
         error: '删除角色失败'
       } as ApiResponse);
     }
+
+    // 记录审计日志
+    auditService.log(
+      req.user!,
+      ActionType.ROLE_DELETED,
+      TargetType.ROLE,
+      role.id,
+      role.name,
+      role,
+      undefined
+    );
 
     res.json({
       success: true,

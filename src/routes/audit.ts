@@ -17,8 +17,8 @@ router.get('/', async (req: AuthRequest, res) => {
       endDate,
       actionType,
       targetType,
-      targetId,
-      actorId
+      targetName,
+      actorName
     } = req.query;
 
     const filters: any = {
@@ -29,8 +29,8 @@ router.get('/', async (req: AuthRequest, res) => {
     if (endDate) filters.endDate = endDate as string;
     if (actionType) filters.actionType = actionType as ActionType;
     if (targetType) filters.targetType = targetType as TargetType;
-    if (targetId) filters.targetId = targetId as string;
-    if (actorId) filters.actorId = actorId as string;
+    if (targetName) filters.targetName = targetName as string;
+    if (actorName) filters.actorName = actorName as string;
 
     const allLogs = auditService.query(filters);
 
@@ -66,8 +66,8 @@ router.get('/export', async (req: AuthRequest, res) => {
       endDate,
       actionType,
       targetType,
-      targetId,
-      actorId
+      targetName,
+      actorName
     } = req.query;
 
     const filters: any = {
@@ -78,20 +78,19 @@ router.get('/export', async (req: AuthRequest, res) => {
     if (endDate) filters.endDate = endDate as string;
     if (actionType) filters.actionType = actionType as ActionType;
     if (targetType) filters.targetType = targetType as TargetType;
-    if (targetId) filters.targetId = targetId as string;
-    if (actorId) filters.actorId = actorId as string;
+    if (targetName) filters.targetName = targetName as string;
+    if (actorName) filters.actorName = actorName as string;
 
     const logs = auditService.query(filters);
 
     // 转换为CSV格式
-    const csvHeaders = ['时间戳', '操作者', '操作类型', '目标类型', '目标ID', '变更摘要'];
+    const csvHeaders = ['操作时间', '操作者', '操作类型', '操作对象', '描述'];
     const csvRows = logs.map(log => [
       log.timestamp,
       log.actor.username,
       log.actionType,
-      log.targetType,
-      log.targetId,
-      log.changes ? `${log.changes.length}项变更` : '无变更'
+      log.targetName,
+      log.description
     ]);
 
     const csv = [
@@ -100,12 +99,12 @@ router.get('/export', async (req: AuthRequest, res) => {
     ].join('\n');
 
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res.setHeader('Content-Disposition', `attachment; filename=audit-logs-${Date.now()}.csv`);
+    res.setHeader('Content-Disposition', `attachment; filename=operation-logs-${Date.now()}.csv`);
     res.send('\ufeff' + csv); // BOM for Excel
   } catch (error: any) {
     res.status(500).json({
       success: false,
-      error: error.message || '导出审计日志失败'
+      error: error.message || '导出操作记录失败'
     } as ApiResponse);
   }
 });

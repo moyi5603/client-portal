@@ -110,8 +110,11 @@ class Database {
     return this.accounts.delete(id);
   }
 
-  getAllAccounts(tenantId: string): Account[] {
-    return Array.from(this.accounts.values()).filter(acc => acc.tenantId === tenantId);
+  getAllAccounts(tenantId?: string): Account[] {
+    if (tenantId) {
+      return Array.from(this.accounts.values()).filter(acc => acc.tenantId === tenantId);
+    }
+    return Array.from(this.accounts.values());
   }
 
   verifyPassword(accountId: string, password: string): boolean {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Card,
   Table,
@@ -10,31 +10,20 @@ import {
   Tag,
   Row,
   Col,
-  Typography,
-  Descriptions,
-  Collapse,
-  Tooltip
+  Typography
 } from 'antd';
 import {
-  ReloadOutlined,
-  ExportOutlined,
-  EyeOutlined,
-  InfoCircleOutlined
+  ReloadOutlined
 } from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom';
-import { useLocale } from '../contexts/LocaleContext';
 import api from '../utils/api';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
 import 'dayjs/locale/zh-cn';
-import 'dayjs/locale/en';
 
 const { RangePicker } = DatePicker;
 const { Option } = Select;
-const { Title, Text } = Typography;
-const { Panel } = Collapse;
-const { Search } = Input;
+const { Title } = Typography;
 
 interface AuditLog {
   id: string;
@@ -43,71 +32,49 @@ interface AuditLog {
     userId: string;
     username: string;
     email: string;
-    idpSource?: string;
   };
   actionType: string;
   targetType: string;
   targetId: string;
-  previousValue?: any;
-  newValue?: any;
-  changes?: Array<{
-    field: string;
-    oldValue: any;
-    newValue: any;
-    changeType: string;
-  }>;
-  ipAddress?: string;
-  userAgent?: string;
+  targetName: string; // 操作对象名称（用户名或角色名）
+  description: string; // 操作描述
   tenantId: string;
 }
 
 // 操作类型映射
 const ACTION_TYPE_MAP: Record<string, { label: string; color: string }> = {
+  'ACCOUNT_CREATED': { label: '创建账号', color: 'green' },
+  'ACCOUNT_UPDATED': { label: '编辑账号', color: 'blue' },
+  'ACCOUNT_DELETED': { label: '删除账号', color: 'red' },
   'ROLE_CREATED': { label: '创建角色', color: 'green' },
-  'ROLE_UPDATED': { label: '更新角色', color: 'blue' },
-  'ROLE_DEPRECATED': { label: '弃用角色', color: 'default' },
-  'PERMISSION_ADDED': { label: '添加权限', color: 'green' },
-  'PERMISSION_REMOVED': { label: '移除权限', color: 'red' },
-  'PERMISSION_MODIFIED': { label: '修改权限', color: 'orange' },
-  'USER_CREATED': { label: '创建用户', color: 'green' },
-  'USER_UPDATED': { label: '更新用户', color: 'blue' },
-  'USER_DELETED': { label: '删除用户', color: 'red' },
-  'USER_STATUS_CHANGED': { label: '用户状态变更', color: 'orange' },
-  'ROLE_ASSIGNED': { label: '分配角色', color: 'green' },
-  'ROLE_REMOVED': { label: '移除角色', color: 'red' },
-  'IDP_MAPPING_CREATED': { label: '创建IdP映射', color: 'green' },
-  'IDP_MAPPING_UPDATED': { label: '更新IdP映射', color: 'blue' },
-  'IDP_MAPPING_DELETED': { label: '删除IdP映射', color: 'red' }
+  'ROLE_UPDATED': { label: '编辑角色', color: 'blue' },
+  'ROLE_COPIED': { label: '复制角色', color: 'cyan' },
+  'ROLE_DELETED': { label: '删除角色', color: 'red' }
 };
 
 // 目标类型映射
 const TARGET_TYPE_MAP: Record<string, { label: string; color: string }> = {
-  'USER': { label: '用户', color: 'blue' },
-  'ROLE': { label: '角色', color: 'purple' },
-  'PERMISSION': { label: '权限', color: 'orange' },
-  'IDP_MAPPING': { label: 'IdP映射', color: 'cyan' }
+  'ACCOUNT': { label: '账号', color: 'blue' },
+  'ROLE': { label: '角色', color: 'purple' }
 };
 
 const AuditLogPage: React.FC = () => {
-  const { t, locale } = useLocale();
-  const navigate = useNavigate();
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(false);
-  const [expandedRowKeys, setExpandedRowKeys] = useState<string[]>([]);
 
   // 过滤器状态
   const [filters, setFilters] = useState({
     dateRange: null as [Dayjs, Dayjs] | null,
     actionType: 'ALL',
     targetType: 'ALL',
-    actorId: '',
-    targetId: ''
+    actorName: '',
+    targetName: ''
   });
 
   // 设置dayjs locale
   useEffect(() => {
-    dayjs.locale(locale === 'zh-CN' ? 'zh-cn' : 'en');
-  }, [locale]);
+    dayjs.locale('zh-cn');
+  }, []);
 
   useEffect(() => {
     loadLogs();
@@ -134,12 +101,12 @@ const AuditLogPage: React.FC = () => {
         params.targetType = filters.targetType;
       }
 
-      if (filters.actorId) {
-        params.actorId = filters.actorId;
+      if (filters.actorName) {
+        params.actorName = filters.actorName;
       }
 
-      if (filters.targetId) {
-        params.targetId = filters.targetId;
+      if (filters.targetName) {
+        params.targetName = filters.targetName;
       }
 
       const response = await api.get('/audit-logs', { params });
@@ -147,52 +114,9 @@ const AuditLogPage: React.FC = () => {
         setLogs(response.data.data.items || []);
       }
     } catch (error) {
-      console.error(t('auditLog.loadFailed'), error);
+      console.error('加载操作记录失败', error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleExport = async () => {
-    try {
-      const params: any = {};
-
-      if (filters.dateRange && filters.dateRange[0] && filters.dateRange[1]) {
-        params.startDate = filters.dateRange[0].startOf('day').toISOString();
-        params.endDate = filters.dateRange[1].endOf('day').toISOString();
-      }
-
-      if (filters.actionType !== 'ALL') {
-        params.actionType = filters.actionType;
-      }
-
-      if (filters.targetType !== 'ALL') {
-        params.targetType = filters.targetType;
-      }
-
-      if (filters.actorId) {
-        params.actorId = filters.actorId;
-      }
-
-      if (filters.targetId) {
-        params.targetId = filters.targetId;
-      }
-
-      const response = await api.get('/audit-logs/export', {
-        params,
-        responseType: 'blob'
-      });
-
-      // 创建下载链接
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `audit-logs-${Date.now()}.csv`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-    } catch (error) {
-      console.error(t('auditLog.exportFailed'), error);
     }
   };
 
@@ -201,167 +125,73 @@ const AuditLogPage: React.FC = () => {
       dateRange: null,
       actionType: 'ALL',
       targetType: 'ALL',
-      actorId: '',
-      targetId: ''
+      actorName: '',
+      targetName: ''
     });
-  };
-
-  // 格式化变更详情
-  const formatChanges = (changes?: Array<{ field: string; oldValue: any; newValue: any; changeType: string }>) => {
-    if (!changes || changes.length === 0) {
-      return null;
-    }
-
-    return (
-      <div>
-        {changes.map((change, index) => (
-          <div key={index} style={{ marginBottom: 8 }}>
-            <Text strong>{change.field}:</Text>
-            <div style={{ marginLeft: 16, marginTop: 4 }}>
-              <Tag color="red">删除: {JSON.stringify(change.oldValue)}</Tag>
-              {' → '}
-              <Tag color="green">新增: {JSON.stringify(change.newValue)}</Tag>
-            </div>
-          </div>
-        ))}
-      </div>
-    );
   };
 
   const columns: ColumnsType<AuditLog> = [
     {
-      title: t('auditLog.timestamp'),
+      title: '操作时间',
       dataIndex: 'timestamp',
       key: 'timestamp',
-      width: 180,
-      sorter: (a, b) => a.timestamp.localeCompare(b.timestamp),
+      width: 160,
       render: (text: string) => {
         return dayjs(text).format('YYYY-MM-DD HH:mm:ss');
       }
     },
     {
-      title: t('auditLog.actor'),
+      title: '操作者',
       key: 'actor',
-      width: 200,
+      width: 120,
       render: (_: any, record: AuditLog) => (
         <div>
           <div style={{ fontWeight: 500 }}>{record.actor.username}</div>
-          <div style={{ fontSize: 12, color: '#666' }}>
-            ID: {record.actor.userId}
-          </div>
-          {record.actor.idpSource && (
-            <Tag size="small" style={{ marginTop: 4 }}>
-              {record.actor.idpSource}
-            </Tag>
-          )}
         </div>
       )
     },
     {
-      title: t('auditLog.actionType'),
+      title: '操作类型',
       dataIndex: 'actionType',
       key: 'actionType',
-      width: 150,
+      width: 100,
       render: (actionType: string) => {
         const config = ACTION_TYPE_MAP[actionType] || { label: actionType, color: 'default' };
         return <Tag color={config.color}>{config.label}</Tag>;
       }
     },
     {
-      title: t('auditLog.targetType'),
-      dataIndex: 'targetType',
-      key: 'targetType',
-      width: 120,
-      render: (targetType: string) => {
-        const config = TARGET_TYPE_MAP[targetType] || { label: targetType, color: 'default' };
-        return <Tag color={config.color}>{config.label}</Tag>;
-      }
-    },
-    {
-      title: t('auditLog.targetId'),
-      dataIndex: 'targetId',
-      key: 'targetId',
-      width: 200,
-      ellipsis: true
-    },
-    {
-      title: t('auditLog.changes'),
-      key: 'changes',
-      width: 200,
+      title: '操作对象',
+      key: 'target',
+      width: 180,
       render: (_: any, record: AuditLog) => {
-        if (record.changes && record.changes.length > 0) {
-          return (
-            <Tooltip title={`${record.changes.length}${t('auditLog.changesCount')}`}>
-              <Tag color="blue">{record.changes.length}{t('auditLog.changesCount')}</Tag>
-            </Tooltip>
-          );
-        }
-        return <span style={{ color: '#999' }}>-</span>;
-      }
-    }
-  ];
-
-  const expandedRowRender = (record: AuditLog) => {
-    return (
-      <div style={{ padding: '16px 0' }}>
-        <Descriptions column={2} bordered size="small">
-          <Descriptions.Item label={t('auditLog.actorEmail')}>
-            {record.actor.email || '-'}
-          </Descriptions.Item>
-          <Descriptions.Item label={t('auditLog.ipAddress')}>
-            {record.ipAddress || '-'}
-          </Descriptions.Item>
-          <Descriptions.Item label={t('auditLog.userAgent')} span={2}>
-            {record.userAgent || '-'}
-          </Descriptions.Item>
-        </Descriptions>
-
-        {(record.changes && record.changes.length > 0) && (
-          <div style={{ marginTop: 16 }}>
-            <Text strong>{t('auditLog.changeDetails')}：</Text>
-            <div style={{ marginTop: 8, padding: 12, background: '#f5f5f5', borderRadius: 4 }}>
-              {record.changes.map((change, index) => (
-                <div key={index} style={{ marginBottom: 8 }}>
-                  <Text strong>{change.field}:</Text>
-                  <div style={{ marginLeft: 16, marginTop: 4 }}>
-                    {change.oldValue !== undefined && (
-                      <Tag color="red" style={{ marginRight: 8 }}>
-                        变更前: {typeof change.oldValue === 'object' ? JSON.stringify(change.oldValue) : String(change.oldValue)}
-                      </Tag>
-                    )}
-                    {change.newValue !== undefined && (
-                      <Tag color="green">
-                        变更后: {typeof change.newValue === 'object' ? JSON.stringify(change.newValue) : String(change.newValue)}
-                      </Tag>
-                    )}
-                  </div>
-                </div>
-              ))}
+        const typeConfig = TARGET_TYPE_MAP[record.targetType] || { label: record.targetType, color: 'default' };
+        return (
+          <div>
+            <div style={{ fontWeight: 500 }}>{record.targetName}</div>
+            <div style={{ fontSize: 12, color: '#666' }}>
+              <Tag size="small" color={typeConfig.color}>{typeConfig.label}</Tag>
+              {record.targetId}
             </div>
           </div>
-        )}
-
-        {(record.previousValue || record.newValue) && (
-          <Collapse style={{ marginTop: 16 }}>
-            {record.previousValue && (
-              <Panel header={t('auditLog.previousValue')} key="previous">
-                <pre style={{ background: '#fff', padding: 12, borderRadius: 4, overflow: 'auto' }}>
-                  {JSON.stringify(record.previousValue, null, 2)}
-                </pre>
-              </Panel>
-            )}
-            {record.newValue && (
-              <Panel header={t('auditLog.newValue')} key="new">
-                <pre style={{ background: '#fff', padding: 12, borderRadius: 4, overflow: 'auto' }}>
-                  {JSON.stringify(record.newValue, null, 2)}
-                </pre>
-              </Panel>
-            )}
-          </Collapse>
-        )}
-      </div>
-    );
-  };
+        );
+      }
+    },
+    {
+      title: '描述',
+      dataIndex: 'description',
+      key: 'description',
+      render: (text: string) => (
+        <div style={{ 
+          wordBreak: 'break-all', 
+          whiteSpace: 'pre-wrap',
+          lineHeight: '1.4'
+        }}>
+          {text}
+        </div>
+      )
+    }
+  ];
 
   return (
     <div>
@@ -369,18 +199,12 @@ const AuditLogPage: React.FC = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
         <div>
           <Title level={2} style={{ margin: 0 }}>
-            {t('nav.auditLog')}
+            操作记录
           </Title>
-          <Text type="secondary">
-            {t('auditLog.subtitle')}
-          </Text>
         </div>
         <Space>
           <Button icon={<ReloadOutlined />} onClick={loadLogs}>
-            {t('auditLog.refresh')}
-          </Button>
-          <Button type="primary" icon={<ExportOutlined />} onClick={handleExport}>
-            {t('auditLog.export')}
+            刷新
           </Button>
         </Space>
       </div>
@@ -389,7 +213,7 @@ const AuditLogPage: React.FC = () => {
       <Card style={{ marginBottom: 16 }}>
         <Row gutter={16}>
           <Col span={6}>
-            <div style={{ marginBottom: 8 }}>{t('auditLog.dateRange')}</div>
+            <div style={{ marginBottom: 8 }}>操作时间</div>
             <RangePicker
               style={{ width: '100%' }}
               value={filters.dateRange}
@@ -398,13 +222,13 @@ const AuditLogPage: React.FC = () => {
             />
           </Col>
           <Col span={6}>
-            <div style={{ marginBottom: 8 }}>{t('auditLog.actionType')}</div>
+            <div style={{ marginBottom: 8 }}>操作类型</div>
             <Select
               style={{ width: '100%' }}
               value={filters.actionType}
               onChange={(value) => setFilters({ ...filters, actionType: value })}
             >
-              <Option value="ALL">{t('common.all')}</Option>
+              <Option value="ALL">全部</Option>
               {Object.keys(ACTION_TYPE_MAP).map(action => (
                 <Option key={action} value={action}>
                   {ACTION_TYPE_MAP[action].label}
@@ -413,13 +237,13 @@ const AuditLogPage: React.FC = () => {
             </Select>
           </Col>
           <Col span={6}>
-            <div style={{ marginBottom: 8 }}>{t('auditLog.targetType')}</div>
+            <div style={{ marginBottom: 8 }}>对象类型</div>
             <Select
               style={{ width: '100%' }}
               value={filters.targetType}
               onChange={(value) => setFilters({ ...filters, targetType: value })}
             >
-              <Option value="ALL">{t('common.all')}</Option>
+              <Option value="ALL">全部</Option>
               {Object.keys(TARGET_TYPE_MAP).map(target => (
                 <Option key={target} value={target}>
                   {TARGET_TYPE_MAP[target].label}
@@ -428,30 +252,30 @@ const AuditLogPage: React.FC = () => {
             </Select>
           </Col>
           <Col span={6}>
-            <div style={{ marginBottom: 8 }}>{t('auditLog.actorId')}</div>
+            <div style={{ marginBottom: 8 }}>操作者</div>
             <Input
-              placeholder={t('auditLog.searchActorId')}
-              value={filters.actorId}
-              onChange={(e) => setFilters({ ...filters, actorId: e.target.value })}
+              placeholder="搜索操作者"
+              value={filters.actorName}
+              onChange={(e) => setFilters({ ...filters, actorName: e.target.value })}
               allowClear
             />
           </Col>
         </Row>
         <Row gutter={16} style={{ marginTop: 16 }}>
           <Col span={6}>
-            <div style={{ marginBottom: 8 }}>{t('auditLog.targetId')}</div>
+            <div style={{ marginBottom: 8 }}>操作对象</div>
             <Input
-              placeholder={t('auditLog.searchTargetId')}
-              value={filters.targetId}
-              onChange={(e) => setFilters({ ...filters, targetId: e.target.value })}
+              placeholder="搜索操作对象"
+              value={filters.targetName}
+              onChange={(e) => setFilters({ ...filters, targetName: e.target.value })}
               allowClear
             />
           </Col>
           <Col span={18}>
             <Space>
-              <Button onClick={handleReset}>{t('auditLog.reset')}</Button>
+              <Button onClick={handleReset}>重置</Button>
               <Button type="primary" onClick={loadLogs}>
-                {t('auditLog.applyFilters')}
+                搜索
               </Button>
             </Space>
           </Col>
@@ -465,16 +289,12 @@ const AuditLogPage: React.FC = () => {
           dataSource={logs}
           loading={loading}
           rowKey="id"
-          expandable={{
-            expandedRowRender,
-            expandedRowKeys,
-            onExpandedRowsChange: setExpandedRowKeys
-          }}
+          scroll={{ x: 'max-content' }}
           pagination={{
             pageSize: 20,
             showSizeChanger: true,
             showTotal: (total, range) =>
-              `显示第 ${range[0]} 到 ${range[1]} 条，共 ${total} 条日志`
+              `显示第 ${range[0]} 到 ${range[1]} 条，共 ${total} 条记录`
           }}
         />
       </Card>

@@ -1,13 +1,13 @@
 import { db } from './models';
 import { Account, AccountType, AccountStatus, Role, RoleStatus, Module, Operation, ActionType, TargetType } from '../types';
-import { generateId } from '../utils/uuid';
+import { generateAccountId, generateId } from '../utils/uuid';
 import { auditService } from '../services/auditService';
 
 // 初始化测试数据
 export const initTestData = () => {
   // 创建主账号
   const mainAccount: Account = {
-    id: generateId(),
+    id: 'ACC-000', // 主账号使用特殊ID
     username: 'admin',
     email: 'admin@example.com',
     phone: '13800138000',
@@ -152,7 +152,7 @@ export const initTestData = () => {
 
   // 创建模拟用户账号数据
   const user1: Account = {
-    id: generateId(),
+    id: generateAccountId(),
     username: 'zhang.san',
     email: 'zhang.san@example.com',
     phone: '13800138001',
@@ -167,7 +167,7 @@ export const initTestData = () => {
   db.createAccount(user1, 'user123');
 
   const user2: Account = {
-    id: generateId(),
+    id: generateAccountId(),
     username: 'li.si',
     email: 'li.si@example.com',
     phone: '13800138002',
@@ -182,7 +182,7 @@ export const initTestData = () => {
   db.createAccount(user2, 'user123');
 
   const user3: Account = {
-    id: generateId(),
+    id: generateAccountId(),
     username: 'wang.wu',
     email: 'wang.wu@example.com',
     phone: '13800138003',
@@ -197,7 +197,7 @@ export const initTestData = () => {
   db.createAccount(user3, 'user123');
 
   const user4: Account = {
-    id: generateId(),
+    id: generateAccountId(),
     username: 'zhao.liu',
     email: 'zhao.liu@example.com',
     phone: '13800138004',
@@ -212,7 +212,7 @@ export const initTestData = () => {
   db.createAccount(user4, 'user123');
 
   const user5: Account = {
-    id: generateId(),
+    id: generateAccountId(),
     username: 'chen.qi',
     email: 'chen.qi@example.com',
     phone: '13800138005',
@@ -227,7 +227,7 @@ export const initTestData = () => {
   db.createAccount(user5, 'user123');
 
   const user6: Account = {
-    id: generateId(),
+    id: generateAccountId(),
     username: 'liu.ba',
     email: 'liu.ba@example.com',
     phone: '13800138006',
@@ -242,7 +242,7 @@ export const initTestData = () => {
   db.createAccount(user6, 'user123');
 
   const user7: Account = {
-    id: generateId(),
+    id: generateAccountId(),
     username: 'huang.jiu',
     email: 'huang.jiu@example.com',
     phone: '13800138007',
@@ -281,55 +281,41 @@ export const initTestData = () => {
     ActionType.ROLE_CREATED,
     TargetType.ROLE,
     systemAdminRole.id,
+    systemAdminRole.name,
     undefined,
-    {
-      name: systemAdminRole.name,
-      description: systemAdminRole.description,
-      status: systemAdminRole.status,
-      permissions: systemAdminRole.permissions
-    },
-    [
-      {
-        field: 'name',
-        oldValue: undefined,
-        newValue: systemAdminRole.name,
-        changeType: 'ADDED'
-      },
-      {
-        field: 'description',
-        oldValue: undefined,
-        newValue: systemAdminRole.description,
-        changeType: 'ADDED'
-      },
-      {
-        field: 'permissions',
-        oldValue: undefined,
-        newValue: systemAdminRole.permissions,
-        changeType: 'ADDED'
-      }
-    ],
+    systemAdminRole,
+    undefined,
     '192.168.1.100',
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
     log1Timestamp
   );
 
-  // 模拟操作记录2：分配角色给用户（30分钟前）
-  const log2Timestamp = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+  // 模拟操作记录2：编辑账号（45分钟前）
+  const log2Timestamp = new Date(Date.now() - 45 * 60 * 1000).toISOString();
   auditService.log(
     mockActor1,
-    ActionType.ROLE_ASSIGNED,
-    TargetType.USER,
+    ActionType.ACCOUNT_UPDATED,
+    TargetType.ACCOUNT,
     user1.id,
+    user1.username,
     {
-      roles: []
+      email: 'old.email@example.com',
+      roles: ['ROLE-001']
     },
     {
+      email: 'zhang.san@example.com',
       roles: ['ROLE-001', 'ROLE-002']
     },
     [
       {
+        field: 'email',
+        oldValue: 'old.email@example.com',
+        newValue: 'zhang.san@example.com',
+        changeType: 'MODIFIED'
+      },
+      {
         field: 'roles',
-        oldValue: [],
+        oldValue: ['ROLE-001'],
         newValue: ['ROLE-001', 'ROLE-002'],
         changeType: 'MODIFIED'
       }
@@ -337,6 +323,122 @@ export const initTestData = () => {
     '192.168.1.101',
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
     log2Timestamp
+  );
+
+  // 模拟操作记录3：创建账号（30分钟前）
+  const log3Timestamp = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+  auditService.log(
+    mockActor1,
+    ActionType.ACCOUNT_CREATED,
+    TargetType.ACCOUNT,
+    user2.id,
+    user2.username,
+    undefined,
+    user2,
+    undefined,
+    '192.168.1.102',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+    log3Timestamp
+  );
+
+  // 模拟操作记录4：编辑角色（20分钟前）
+  const log4Timestamp = new Date(Date.now() - 20 * 60 * 1000).toISOString();
+  auditService.log(
+    mockActor2,
+    ActionType.ROLE_UPDATED,
+    TargetType.ROLE,
+    customerAdminRole.id,
+    customerAdminRole.name,
+    {
+      name: '客户管理员',
+      description: '管理客户用户',
+      permissions: [
+        {
+          module: 'DASHBOARDS',
+          page: 'KPI',
+          pageCode: 'kpi',
+          operations: ['VIEW']
+        }
+      ]
+    },
+    {
+      name: '客户管理员',
+      description: '管理客户用户和角色',
+      permissions: [
+        {
+          module: 'DASHBOARDS',
+          page: 'KPI',
+          pageCode: 'kpi',
+          operations: ['VIEW']
+        },
+        {
+          module: 'INVENTORY',
+          page: 'Inventory Status',
+          pageCode: 'inventory-status',
+          operations: ['VIEW', 'EXPORT']
+        }
+      ]
+    },
+    [
+      {
+        field: 'description',
+        oldValue: '管理客户用户',
+        newValue: '管理客户用户和角色',
+        changeType: 'MODIFIED'
+      },
+      {
+        field: 'permissions',
+        oldValue: [
+          {
+            module: 'DASHBOARDS',
+            page: 'KPI',
+            pageCode: 'kpi',
+            operations: ['VIEW']
+          }
+        ],
+        newValue: [
+          {
+            module: 'DASHBOARDS',
+            page: 'KPI',
+            pageCode: 'kpi',
+            operations: ['VIEW']
+          },
+          {
+            module: 'INVENTORY',
+            page: 'Inventory Status',
+            pageCode: 'inventory-status',
+            operations: ['VIEW', 'EXPORT']
+          }
+        ],
+        changeType: 'MODIFIED'
+      }
+    ],
+    '192.168.1.103',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+    log4Timestamp
+  );
+
+  // 模拟操作记录5：复制角色（10分钟前）
+  const log5Timestamp = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+  const copiedRole = {
+    id: 'ROLE-004',
+    name: '客户管理员（副本）',
+    description: '管理客户用户和角色',
+    status: 'ACTIVE',
+    permissions: [...customerAdminRole.permissions]
+  };
+  auditService.log(
+    mockActor2,
+    ActionType.ROLE_COPIED,
+    TargetType.ROLE,
+    copiedRole.id,
+    copiedRole.name,
+    customerAdminRole,
+    copiedRole,
+    undefined,
+    '192.168.1.104',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+    log5Timestamp
   );
 
   console.log('测试数据初始化完成');
@@ -350,7 +452,12 @@ export const initTestData = () => {
   console.log('用户账号7: huang.jiu / user123 (角色: 客户服务代表)');
   console.log('租户ID: admin');
   console.log('示例角色已创建：系统管理员、客户管理员、客户服务代表');
-  console.log('已创建2条模拟操作记录');
+  console.log('已创建5条模拟操作记录：');
+  console.log('  1. 创建角色：系统管理员 (1小时前)');
+  console.log('  2. 编辑账号：zhang.san 修改邮箱和角色 (45分钟前)');
+  console.log('  3. 创建账号：li.si (30分钟前)');
+  console.log('  4. 编辑角色：客户管理员 修改描述和权限配置 (20分钟前)');
+  console.log('  5. 复制角色：客户管理员 -> 客户管理员（副本） (10分钟前)');
   console.log('总计: 1个主账号 + 7个子账号 = 8个账号');
 };
 

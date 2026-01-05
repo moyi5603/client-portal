@@ -72,34 +72,21 @@ export enum Operation {
 
 // 审计日志操作类型
 export enum ActionType {
+  // 账号相关
+  ACCOUNT_CREATED = 'ACCOUNT_CREATED',
+  ACCOUNT_UPDATED = 'ACCOUNT_UPDATED', 
+  ACCOUNT_DELETED = 'ACCOUNT_DELETED',
   // 角色相关
   ROLE_CREATED = 'ROLE_CREATED',
   ROLE_UPDATED = 'ROLE_UPDATED',
-  ROLE_DEPRECATED = 'ROLE_DEPRECATED',
-  // 权限相关
-  PERMISSION_ADDED = 'PERMISSION_ADDED',
-  PERMISSION_REMOVED = 'PERMISSION_REMOVED',
-  PERMISSION_MODIFIED = 'PERMISSION_MODIFIED',
-  // 用户相关
-  USER_CREATED = 'USER_CREATED',
-  USER_UPDATED = 'USER_UPDATED',
-  USER_DELETED = 'USER_DELETED',
-  USER_STATUS_CHANGED = 'USER_STATUS_CHANGED',
-  // 角色分配相关
-  ROLE_ASSIGNED = 'ROLE_ASSIGNED',
-  ROLE_REMOVED = 'ROLE_REMOVED',
-  // IdP映射相关
-  IDP_MAPPING_CREATED = 'IDP_MAPPING_CREATED',
-  IDP_MAPPING_UPDATED = 'IDP_MAPPING_UPDATED',
-  IDP_MAPPING_DELETED = 'IDP_MAPPING_DELETED'
+  ROLE_COPIED = 'ROLE_COPIED',
+  ROLE_DELETED = 'ROLE_DELETED'
 }
 
 // 审计日志目标类型
 export enum TargetType {
-  USER = 'USER',
-  ROLE = 'ROLE',
-  PERMISSION = 'PERMISSION',
-  IDP_MAPPING = 'IDP_MAPPING'
+  ACCOUNT = 'ACCOUNT',
+  ROLE = 'ROLE'
 }
 
 // Customer信息
@@ -291,19 +278,14 @@ export interface AuditLog {
     userId: string;
     username: string;
     email: string;
-    idpSource?: string;
   };
   // 操作信息
   actionType: ActionType;
   targetType: TargetType;
   targetId: string;
-  // 变更详情
-  previousValue?: any;
-  newValue?: any;
-  changes?: ChangeDetail[];
+  targetName: string; // 操作对象名称（用户名或角色名）
+  description: string; // 操作描述
   // 上下文
-  ipAddress?: string;
-  userAgent?: string;
   tenantId: string;
 }
 

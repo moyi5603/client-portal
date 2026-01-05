@@ -1,9 +1,10 @@
 import express from 'express';
 import { authenticate, requireAccountType, AuthRequest } from '../middleware/auth';
 import { db } from '../database/models';
-import { generateId } from '../utils/uuid';
+import { generateAccountId } from '../utils/uuid';
 import { validateUniqueAccountInfo, validateCustomerIds, validateRoleIds } from '../utils/validation';
-import { Account, AccountType, AccountStatus, ApiResponse, PaginatedResponse } from '../types';
+import { Account, AccountType, AccountStatus, ApiResponse, PaginatedResponse, ActionType, TargetType } from '../types';
+import { auditService } from '../services/auditService';
 
 const router = express.Router();
 
@@ -56,7 +57,7 @@ router.post('/customer', requireAccountType(AccountType.MAIN), async (req: AuthR
     }
 
     const account: Account = {
-      id: generateId(),
+      id: generateAccountId(),
       username,
       email,
       phone,
@@ -71,6 +72,17 @@ router.post('/customer', requireAccountType(AccountType.MAIN), async (req: AuthR
     };
 
     db.createAccount(account, password);
+
+    // 记录审计日志
+    auditService.log(
+      req.user!,
+      ActionType.ACCOUNT_CREATED,
+      TargetType.ACCOUNT,
+      account.id,
+      account.username,
+      undefined,
+      account
+    );
 
     res.status(201).json({
       success: true,
@@ -130,7 +142,7 @@ router.post('/partner', requireAccountType(AccountType.MAIN), async (req: AuthRe
     }
 
     const account: Account = {
-      id: generateId(),
+      id: generateAccountId(),
       username,
       email,
       phone,
@@ -145,6 +157,17 @@ router.post('/partner', requireAccountType(AccountType.MAIN), async (req: AuthRe
     };
 
     db.createAccount(account, password);
+
+    // 记录审计日志
+    auditService.log(
+      req.user!,
+      ActionType.ACCOUNT_CREATED,
+      TargetType.ACCOUNT,
+      account.id,
+      account.username,
+      undefined,
+      account
+    );
 
     res.status(201).json({
       success: true,
@@ -367,6 +390,22 @@ router.put('/:id', requireAccountType(AccountType.MAIN), async (req: AuthRequest
     }
 
     const updatedAccount = db.getAccount(account.id);
+    
+    // 记录审计日志
+    if (Object.keys(updates).length > 0) {
+      const changes = auditService.computeChanges(account, updatedAccount);
+      auditService.log(
+        req.user!,
+        ActionType.ACCOUNT_UPDATED,
+        TargetType.ACCOUNT,
+        account.id,
+        account.username,
+        account,
+        updatedAccount,
+        changes
+      );
+    }
+
     res.json({
       success: true,
       data: updatedAccount
@@ -405,6 +444,17 @@ router.delete('/:id', requireAccountType(AccountType.MAIN), async (req: AuthRequ
         error: '删除账号失败'
       } as ApiResponse);
     }
+
+    // 记录审计日志
+    auditService.log(
+      req.user!,
+      ActionType.ACCOUNT_DELETED,
+      TargetType.ACCOUNT,
+      account.id,
+      account.username,
+      account,
+      undefined
+    );
 
     res.json({
       success: true,
