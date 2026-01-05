@@ -40,7 +40,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     {
       key: 'account-management',
       icon: <TeamOutlined />,
-      label: '权限管理',
+      label: t('nav.accessControl'),
       children: [
         {
           key: '/accounts',

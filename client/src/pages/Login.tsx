@@ -3,8 +3,10 @@ import { Form, Input, Button, Card, message } from 'antd';
 import { UserOutlined, LockOutlined, ShopOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useLocale } from '../contexts/LocaleContext';
 
 const Login: React.FC = () => {
+  const { t } = useLocale();
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { login } = useAuth();
@@ -28,8 +30,8 @@ const Login: React.FC = () => {
     }}>
       <Card style={{ width: 400, boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}>
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <h1 style={{ fontSize: 24, marginBottom: 8 }}>Client Portal</h1>
-          <p style={{ color: '#666' }}>权限管理系统</p>
+          <h1 style={{ fontSize: 24, marginBottom: 8 }}>{t('login.title')}</h1>
+          <p style={{ color: '#666' }}>{t('login.subtitle')}</p>
         </div>
         <Form
           name="login"
@@ -44,39 +46,39 @@ const Login: React.FC = () => {
         >
           <Form.Item
             name="tenantId"
-            rules={[{ required: true, message: '请输入租户ID' }]}
+            rules={[{ required: true, message: t('login.tenantIdRequired') }]}
           >
             <Input 
               prefix={<ShopOutlined />} 
-              placeholder="租户ID" 
+              placeholder={t('login.tenantId')} 
             />
           </Form.Item>
           <Form.Item
             name="username"
-            rules={[{ required: true, message: '请输入用户名' }]}
+            rules={[{ required: true, message: t('login.usernameRequired') }]}
           >
             <Input 
               prefix={<UserOutlined />} 
-              placeholder="用户名" 
+              placeholder={t('login.username')} 
             />
           </Form.Item>
           <Form.Item
             name="password"
-            rules={[{ required: true, message: '请输入密码' }]}
+            rules={[{ required: true, message: t('login.passwordRequired') }]}
           >
             <Input.Password
               prefix={<LockOutlined />}
-              placeholder="密码"
+              placeholder={t('login.password')}
             />
           </Form.Item>
           <Form.Item>
             <Button type="primary" htmlType="submit" block loading={loading}>
-              登录
+              {t('login.loginButton')}
             </Button>
           </Form.Item>
         </Form>
         <div style={{ marginTop: 16, textAlign: 'center', color: '#999', fontSize: 12 }}>
-          <p>测试账号：admin / admin / admin123</p>
+          <p>{t('login.testAccount')}</p>
         </div>
       </Card>
     </div>

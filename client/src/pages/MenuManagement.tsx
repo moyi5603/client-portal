@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Tree, Select, Button, message, Card, Space } from 'antd';
 import { ReloadOutlined } from '@ant-design/icons';
 import api from '../utils/api';
+import { useLocale } from '../contexts/LocaleContext';
 
 const { Option } = Select;
 
@@ -14,6 +15,7 @@ interface Menu {
 }
 
 const MenuManagement: React.FC = () => {
+  const { t } = useLocale();
   const [menus, setMenus] = useState<Menu[]>([]);
   const [selectedAccountId, setSelectedAccountId] = useState<string>('');
   const [accountMenus, setAccountMenus] = useState<string[]>([]);
@@ -39,7 +41,7 @@ const MenuManagement: React.FC = () => {
         setMenus(response.data.data || []);
       }
     } catch (error) {
-      message.error('加载菜单列表失败');
+      message.error(t('menu.loadMenusFailed'));
     } finally {
       setLoading(false);
     }
@@ -52,7 +54,7 @@ const MenuManagement: React.FC = () => {
         setAccounts(response.data.data.items || []);
       }
     } catch (error) {
-      console.error('加载账号列表失败');
+      console.error(t('menu.loadAccountsFailed'));
     }
   };
 
@@ -64,13 +66,13 @@ const MenuManagement: React.FC = () => {
         setAccountMenus(menuIds);
       }
     } catch (error) {
-      message.error('加载账号菜单失败');
+      message.error(t('menu.loadAccountMenusFailed'));
     }
   };
 
   const handleMenuCheck = async (checkedKeys: any) => {
     if (!selectedAccountId) {
-      message.warning('请先选择账号');
+      message.warning(t('menu.selectAccountFirst'));
       return;
     }
 
@@ -80,10 +82,10 @@ const MenuManagement: React.FC = () => {
       if (rolesResponse.data.success) {
         // 这里需要根据选中的菜单找到对应的角色，或者创建新的角色
         // 简化处理：直接更新账号的角色（实际应该通过角色管理）
-        message.info('菜单权限通过角色进行管理，请到角色管理页面配置');
+        message.info(t('menu.menuPermissionThroughRoles'));
       }
     } catch (error) {
-      message.error('更新菜单权限失败');
+      message.error(t('menu.updateMenuPermissionsFailed'));
     }
   };
 
@@ -99,31 +101,31 @@ const MenuManagement: React.FC = () => {
   return (
     <div>
       <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
-        <h2>菜单管理</h2>
+        <h2>{t('menu.title')}</h2>
         <Button icon={<ReloadOutlined />} onClick={loadMenus}>
-          刷新
+          {t('menu.refresh')}
         </Button>
       </div>
       <Card>
         <Space direction="vertical" style={{ width: '100%' }} size="large">
           <div>
-            <span style={{ marginRight: 8 }}>选择账号：</span>
+            <span style={{ marginRight: 8 }}>{t('menu.selectAccount')}</span>
             <Select
               style={{ width: 300 }}
-              placeholder="请选择账号"
+              placeholder={t('menu.selectAccountPlaceholder')}
               value={selectedAccountId}
               onChange={setSelectedAccountId}
             >
               {accounts.map(account => (
                 <Option key={account.id} value={account.id}>
-                  {account.username} ({account.accountType === 'CUSTOMER' ? '客户子账号' : account.accountType === 'PARTNER' ? 'Partner账号' : '主账号'})
+                  {account.username} ({account.accountType === 'CUSTOMER' ? t('account.typeCustomer') : account.accountType === 'PARTNER' ? t('account.typePartner') : t('account.typeMain')})
                 </Option>
               ))}
             </Select>
           </div>
           {selectedAccountId && (
             <div>
-              <h3>账号可见菜单（通过角色配置）</h3>
+              <h3>{t('menu.accountVisibleMenus')}</h3>
               <Tree
                 checkable
                 checkedKeys={accountMenus}
@@ -132,19 +134,19 @@ const MenuManagement: React.FC = () => {
                 defaultExpandAll
               />
               <div style={{ marginTop: 16, color: '#999', fontSize: 12 }}>
-                <p>提示：菜单权限通过角色进行管理。请到角色管理页面为角色分配菜单权限，然后为账号分配相应的角色。</p>
+                <p>{t('menu.menuPermissionTip')}</p>
               </div>
             </div>
           )}
           {!selectedAccountId && (
             <div>
-              <h3>系统菜单列表</h3>
+              <h3>{t('menu.systemMenuList')}</h3>
               <Tree
                 treeData={treeData}
                 defaultExpandAll
               />
               <div style={{ marginTop: 16, color: '#999', fontSize: 12 }}>
-                <p>提示：菜单由系统预定义，不能创建或删除。请选择账号查看其可见菜单。</p>
+                <p>{t('menu.systemMenuTip')}</p>
               </div>
             </div>
           )}

@@ -90,29 +90,29 @@ const RoleManagement: React.FC = () => {
 
   // 获取模块、操作和页面定义（根据PRD文档）
   const MODULES = [
-    { value: 'DASHBOARDS', label: 'Dashboards（仪表盘）' },
-    { value: 'PURCHASE_MANAGEMENT', label: 'Purchase Management（采购管理）' },
-    { value: 'SALES_ORDER', label: 'Sales Order（销售订单）' },
-    { value: 'WORK_ORDER', label: 'Work Order（工单）' },
-    { value: 'INBOUND', label: 'Inbound（入库管理）' },
-    { value: 'INVENTORY', label: 'Inventory（库存管理）' },
-    { value: 'OUTBOUND', label: 'Outbound（出库管理）' },
-    { value: 'RETURNS', label: 'Returns（退货管理）' },
-    { value: 'YARD_MANAGEMENT', label: 'Yard Management（堆场管理）' },
-    { value: 'SUPPLY_CHAIN', label: 'Supply Chain Mgmt（供应链管理）' },
-    { value: 'FINANCE', label: 'Finance（财务管理）' },
-    { value: 'SYSTEM_MANAGEMENT', label: 'System Management（系统管理）' },
-    { value: 'PERMISSION_MANAGEMENT', label: 'Permission Management（权限管理）' }
+    { value: 'DASHBOARDS', label: `Dashboards (${t('module.DASHBOARDS')})` },
+    { value: 'PURCHASE_MANAGEMENT', label: `Purchase Management (${t('module.PURCHASE_MANAGEMENT')})` },
+    { value: 'SALES_ORDER', label: `Sales Order (${t('module.SALES_ORDER')})` },
+    { value: 'WORK_ORDER', label: `Work Order (${t('module.WORK_ORDER')})` },
+    { value: 'INBOUND', label: `Inbound (${t('module.INBOUND')})` },
+    { value: 'INVENTORY', label: `Inventory (${t('module.INVENTORY')})` },
+    { value: 'OUTBOUND', label: `Outbound (${t('module.OUTBOUND')})` },
+    { value: 'RETURNS', label: `Returns (${t('module.RETURNS')})` },
+    { value: 'YARD_MANAGEMENT', label: `Yard Management (${t('module.YARD_MANAGEMENT')})` },
+    { value: 'SUPPLY_CHAIN', label: `Supply Chain Mgmt (${t('module.SUPPLY_CHAIN')})` },
+    { value: 'FINANCE', label: `Finance (${t('module.FINANCE')})` },
+    { value: 'SYSTEM_MANAGEMENT', label: `System Management (${t('module.SYSTEM_MANAGEMENT')})` },
+    { value: 'PERMISSION_MANAGEMENT', label: `Permission Management (${t('module.PERMISSION_MANAGEMENT')})` }
   ];
 
   // 所有可能的操作类型
   const ALL_OPERATIONS = [
-    { value: 'VIEW', label: '查看' },
-    { value: 'CREATE', label: '创建' },
-    { value: 'EDIT', label: '编辑' },
-    { value: 'DELETE', label: '删除' },
-    { value: 'EXPORT', label: '导出' },
-    { value: 'CANCEL', label: 'Cancel' },
+    { value: 'VIEW', label: t('operation.VIEW') },
+    { value: 'CREATE', label: t('operation.CREATE') },
+    { value: 'EDIT', label: t('operation.EDIT') },
+    { value: 'DELETE', label: t('operation.DELETE') },
+    { value: 'EXPORT', label: t('operation.EXPORT') },
+    { value: 'CANCEL', label: t('operation.CANCEL') },
     { value: 'PRINT_PACKING_SLIP', label: 'Print Packing Slip' },
     { value: 'HOLD_INVENTORY', label: 'Hold Inventory' },
     { value: 'RELEASE_INVENTORY', label: 'Release Inventory' },
@@ -127,7 +127,7 @@ const RoleManagement: React.FC = () => {
     { value: 'RELOAD', label: 'reload' },
     { value: 'SET_ALERT', label: 'set alert' },
     { value: 'SET_DEFAULT', label: 'Set Default' },
-    { value: 'IMPORT', label: '导入' }
+    { value: 'IMPORT', label: t('operation.IMPORT') }
   ];
 
   // 模块页面配置（根据PRD文档）

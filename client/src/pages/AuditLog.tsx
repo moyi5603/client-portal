@@ -16,6 +16,7 @@ import {
   ReloadOutlined
 } from '@ant-design/icons';
 import api from '../utils/api';
+import { useLocale } from '../contexts/LocaleContext';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
@@ -41,26 +42,27 @@ interface AuditLog {
   tenantId: string;
 }
 
-// 操作类型映射
-const ACTION_TYPE_MAP: Record<string, { label: string; color: string }> = {
-  'ACCOUNT_CREATED': { label: '创建账号', color: 'green' },
-  'ACCOUNT_UPDATED': { label: '编辑账号', color: 'blue' },
-  'ACCOUNT_DELETED': { label: '删除账号', color: 'red' },
-  'ROLE_CREATED': { label: '创建角色', color: 'green' },
-  'ROLE_UPDATED': { label: '编辑角色', color: 'blue' },
-  'ROLE_COPIED': { label: '复制角色', color: 'cyan' },
-  'ROLE_DELETED': { label: '删除角色', color: 'red' }
-};
-
-// 目标类型映射
-const TARGET_TYPE_MAP: Record<string, { label: string; color: string }> = {
-  'ACCOUNT': { label: '账号', color: 'blue' },
-  'ROLE': { label: '角色', color: 'purple' }
-};
-
 const AuditLogPage: React.FC = () => {
+  const { t } = useLocale();
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(false);
+
+  // 操作类型映射
+  const ACTION_TYPE_MAP: Record<string, { label: string; color: string }> = {
+    'ACCOUNT_CREATED': { label: t('actionType.ACCOUNT_CREATED'), color: 'green' },
+    'ACCOUNT_UPDATED': { label: t('actionType.ACCOUNT_UPDATED'), color: 'blue' },
+    'ACCOUNT_DELETED': { label: t('actionType.ACCOUNT_DELETED'), color: 'red' },
+    'ROLE_CREATED': { label: t('actionType.ROLE_CREATED'), color: 'green' },
+    'ROLE_UPDATED': { label: t('actionType.ROLE_UPDATED'), color: 'blue' },
+    'ROLE_COPIED': { label: t('role.copySuccess'), color: 'cyan' },
+    'ROLE_DELETED': { label: t('actionType.ROLE_DELETED'), color: 'red' }
+  };
+
+  // 目标类型映射
+  const TARGET_TYPE_MAP: Record<string, { label: string; color: string }> = {
+    'ACCOUNT': { label: t('targetType.ACCOUNT'), color: 'blue' },
+    'ROLE': { label: t('targetType.ROLE'), color: 'purple' }
+  };
 
   // 过滤器状态
   const [filters, setFilters] = useState({
@@ -114,7 +116,7 @@ const AuditLogPage: React.FC = () => {
         setLogs(response.data.data.items || []);
       }
     } catch (error) {
-      console.error('加载操作记录失败', error);
+      console.error(t('auditLog.loadFailed'), error);
     } finally {
       setLoading(false);
     }
@@ -132,7 +134,7 @@ const AuditLogPage: React.FC = () => {
 
   const columns: ColumnsType<AuditLog> = [
     {
-      title: '操作时间',
+      title: t('auditLog.timestamp'),
       dataIndex: 'timestamp',
       key: 'timestamp',
       width: 160,
@@ -141,7 +143,7 @@ const AuditLogPage: React.FC = () => {
       }
     },
     {
-      title: '操作者',
+      title: t('auditLog.actor'),
       key: 'actor',
       width: 120,
       render: (_: any, record: AuditLog) => (
@@ -151,7 +153,7 @@ const AuditLogPage: React.FC = () => {
       )
     },
     {
-      title: '操作类型',
+      title: t('auditLog.actionType'),
       dataIndex: 'actionType',
       key: 'actionType',
       width: 100,
@@ -161,7 +163,7 @@ const AuditLogPage: React.FC = () => {
       }
     },
     {
-      title: '操作对象',
+      title: t('auditLog.targetType'),
       key: 'target',
       width: 180,
       render: (_: any, record: AuditLog) => {
@@ -170,7 +172,7 @@ const AuditLogPage: React.FC = () => {
           <div>
             <div style={{ fontWeight: 500 }}>{record.targetName}</div>
             <div style={{ fontSize: 12, color: '#666' }}>
-              <Tag size="small" color={typeConfig.color}>{typeConfig.label}</Tag>
+              <Tag color={typeConfig.color}>{typeConfig.label}</Tag>
               {record.targetId}
             </div>
           </div>
@@ -178,7 +180,7 @@ const AuditLogPage: React.FC = () => {
       }
     },
     {
-      title: '描述',
+      title: t('common.description'),
       dataIndex: 'description',
       key: 'description',
       render: (text: string) => (
@@ -199,12 +201,12 @@ const AuditLogPage: React.FC = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
         <div>
           <Title level={2} style={{ margin: 0 }}>
-            操作记录
+            {t('auditLog.title')}
           </Title>
         </div>
         <Space>
           <Button icon={<ReloadOutlined />} onClick={loadLogs}>
-            刷新
+            {t('auditLog.refresh')}
           </Button>
         </Space>
       </div>
@@ -213,7 +215,7 @@ const AuditLogPage: React.FC = () => {
       <Card style={{ marginBottom: 16 }}>
         <Row gutter={16}>
           <Col span={6}>
-            <div style={{ marginBottom: 8 }}>操作日期</div>
+            <div style={{ marginBottom: 8 }}>{t('auditLog.dateRange')}</div>
             <RangePicker
               style={{ width: '100%' }}
               value={filters.dateRange}
@@ -221,13 +223,13 @@ const AuditLogPage: React.FC = () => {
             />
           </Col>
           <Col span={6}>
-            <div style={{ marginBottom: 8 }}>操作类型</div>
+            <div style={{ marginBottom: 8 }}>{t('auditLog.actionType')}</div>
             <Select
               style={{ width: '100%' }}
               value={filters.actionType}
               onChange={(value) => setFilters({ ...filters, actionType: value })}
             >
-              <Option value="ALL">全部</Option>
+              <Option value="ALL">{t('common.all')}</Option>
               {Object.keys(ACTION_TYPE_MAP).map(action => (
                 <Option key={action} value={action}>
                   {ACTION_TYPE_MAP[action].label}
@@ -236,13 +238,13 @@ const AuditLogPage: React.FC = () => {
             </Select>
           </Col>
           <Col span={6}>
-            <div style={{ marginBottom: 8 }}>对象类型</div>
+            <div style={{ marginBottom: 8 }}>{t('auditLog.targetType')}</div>
             <Select
               style={{ width: '100%' }}
               value={filters.targetType}
               onChange={(value) => setFilters({ ...filters, targetType: value })}
             >
-              <Option value="ALL">全部</Option>
+              <Option value="ALL">{t('common.all')}</Option>
               {Object.keys(TARGET_TYPE_MAP).map(target => (
                 <Option key={target} value={target}>
                   {TARGET_TYPE_MAP[target].label}
@@ -251,9 +253,9 @@ const AuditLogPage: React.FC = () => {
             </Select>
           </Col>
           <Col span={6}>
-            <div style={{ marginBottom: 8 }}>操作者</div>
+            <div style={{ marginBottom: 8 }}>{t('auditLog.actor')}</div>
             <Input
-              placeholder="搜索操作者"
+              placeholder={t('auditLog.searchActorId')}
               value={filters.actorName}
               onChange={(e) => setFilters({ ...filters, actorName: e.target.value })}
               allowClear
@@ -262,9 +264,9 @@ const AuditLogPage: React.FC = () => {
         </Row>
         <Row gutter={16} style={{ marginTop: 16 }}>
           <Col span={6}>
-            <div style={{ marginBottom: 8 }}>操作对象</div>
+            <div style={{ marginBottom: 8 }}>{t('auditLog.targetId')}</div>
             <Input
-              placeholder="搜索操作对象"
+              placeholder={t('auditLog.searchTargetId')}
               value={filters.targetName}
               onChange={(e) => setFilters({ ...filters, targetName: e.target.value })}
               allowClear
@@ -272,9 +274,9 @@ const AuditLogPage: React.FC = () => {
           </Col>
           <Col span={18}>
             <Space>
-              <Button onClick={handleReset}>重置</Button>
+              <Button onClick={handleReset}>{t('auditLog.reset')}</Button>
               <Button type="primary" onClick={loadLogs}>
-                搜索
+                {t('auditLog.applyFilters')}
               </Button>
             </Space>
           </Col>
@@ -293,7 +295,11 @@ const AuditLogPage: React.FC = () => {
             pageSize: 20,
             showSizeChanger: true,
             showTotal: (total, range) =>
-              `显示第 ${range[0]} 到 ${range[1]} 条，共 ${total} 条记录`
+              t('pagination.showing', { 
+                start: range[0].toString(), 
+                end: range[1].toString(), 
+                total: total.toString() 
+              }).replace('角色', '记录')
           }}
         />
       </Card>

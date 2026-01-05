@@ -516,7 +516,7 @@ const PermissionView: React.FC = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
         <div>
           <Title level={2} style={{ margin: 0 }}>
-            权限查看
+            {t('permission.title')}
           </Title>
         </div>
       </div>
@@ -540,9 +540,9 @@ const PermissionView: React.FC = () => {
             </Select>
           </Col>
           <Col span={6}>
-            <div style={{ marginBottom: 8 }}>角色名称</div>
+            <div style={{ marginBottom: 8 }}>{t('permission.roleName')}</div>
             <Input
-              placeholder="搜索角色名称..."
+              placeholder={t('permission.searchRoleName')}
               value={roleNameFilter}
               onChange={(e) => setRoleNameFilter(e.target.value)}
               allowClear
@@ -552,7 +552,7 @@ const PermissionView: React.FC = () => {
             <div style={{ marginBottom: 8 }}>&nbsp;</div>
             <Space>
               <Button onClick={handleReset}>{t('common.reset')}</Button>
-              <Button type="primary">Search</Button>
+              <Button type="primary">{t('common.search')}</Button>
             </Space>
           </Col>
         </Row>
@@ -563,20 +563,20 @@ const PermissionView: React.FC = () => {
         <Space direction="vertical" size="small" style={{ width: '100%' }}>
           <div style={{ fontWeight: 500, marginBottom: 8 }}>
             <InfoCircleOutlined style={{ marginRight: 8 }} />
-            权限图例
+            {t('permission.permissionLegend')}
           </div>
           <Space wrap>
             {(() => {
               // 定义唯一的操作类型，相关操作归纳合并
               const uniqueOperations = [
-                { key: 'VIEW', icon: <EyeOutlined />, color: '#52c41a', label: '查看' },
-                { key: 'CREATE', icon: <PlusOutlined />, color: '#52c41a', label: '创建' },
-                { key: 'EDIT', icon: <EditOutlined />, color: '#722ed1', label: '编辑' },
-                { key: 'DELETE', icon: <DeleteOutlined />, color: '#f5222d', label: '删除' },
-                { key: 'EXPORT', icon: <DownloadOutlined />, color: '#1890ff', label: '导出' },
-                { key: 'IMPORT', icon: <ReloadOutlined />, color: '#1890ff', label: '导入' },
-                { key: 'CANCEL', icon: <DeleteOutlined />, color: '#faad14', label: 'Cancel' },
-                { key: 'PAY', icon: <CheckCircleOutlined />, color: '#52c41a', label: 'Pay' }
+                { key: 'VIEW', icon: <EyeOutlined />, color: '#52c41a', label: t('operation.VIEW') },
+                { key: 'CREATE', icon: <PlusOutlined />, color: '#52c41a', label: t('operation.CREATE') },
+                { key: 'EDIT', icon: <EditOutlined />, color: '#722ed1', label: t('operation.EDIT') },
+                { key: 'DELETE', icon: <DeleteOutlined />, color: '#f5222d', label: t('operation.DELETE') },
+                { key: 'EXPORT', icon: <DownloadOutlined />, color: '#1890ff', label: t('operation.EXPORT') },
+                { key: 'IMPORT', icon: <ReloadOutlined />, color: '#1890ff', label: t('operation.IMPORT') },
+                { key: 'CANCEL', icon: <DeleteOutlined />, color: '#faad14', label: t('operation.CANCEL') },
+                { key: 'PAY', icon: <CheckCircleOutlined />, color: '#52c41a', label: t('operation.PAY') }
               ];
 
               return uniqueOperations.map(config => (
@@ -600,7 +600,7 @@ const PermissionView: React.FC = () => {
       <Card>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <Title level={4} style={{ margin: 0 }}>
-            {viewMode === 'matrix' ? '按所有角色' : '按所有页面'}
+            {viewMode === 'matrix' ? t('permission.matrixView') : t('permission.listView')}
           </Title>
           <Space>
             <Radio.Group 
@@ -615,8 +615,8 @@ const PermissionView: React.FC = () => {
                 }
               }}
             >
-              <Radio.Button value="matrix">按所有角色</Radio.Button>
-              <Radio.Button value="list">按所有页面</Radio.Button>
+              <Radio.Button value="matrix">{t('permission.matrixView')}</Radio.Button>
+              <Radio.Button value="list">{t('permission.listView')}</Radio.Button>
             </Radio.Group>
           </Space>
         </div>
@@ -631,7 +631,11 @@ const PermissionView: React.FC = () => {
               pageSize: 10,
               showSizeChanger: true,
               showTotal: (total, range) => 
-                `Showing ${range[0]} to ${range[1]} of ${total} roles`
+                t('permission.showingRoles', { 
+                  start: range[0].toString(), 
+                  end: range[1].toString(), 
+                  total: total.toString() 
+                })
             }}
           />
         ) : (
@@ -644,7 +648,11 @@ const PermissionView: React.FC = () => {
               pageSize: 20,
               showSizeChanger: true,
               showTotal: (total, range) => 
-                `Showing ${range[0]} to ${range[1]} of ${total} permission entries`
+                t('permission.showingPermissions', { 
+                  start: range[0].toString(), 
+                  end: range[1].toString(), 
+                  total: total.toString() 
+                })
             }}
           />
         )}
