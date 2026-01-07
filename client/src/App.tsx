@@ -1,8 +1,5 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { Layout, ConfigProvider } from 'antd';
-import zhCN from 'antd/locale/zh_CN';
-import enUS from 'antd/locale/en_US';
 import MainLayout from './components/Layout/MainLayout';
 import Login from './pages/Login';
 import AccountManagement from './pages/AccountManagement';
@@ -11,9 +8,9 @@ import MenuManagement from './pages/MenuManagement';
 import PermissionView from './pages/PermissionView';
 import AuditLog from './pages/AuditLog';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { LocaleProvider, useLocale } from './contexts/LocaleContext';
-
-const { Content } = Layout;
+import { LocaleProvider } from './contexts/LocaleContext';
+import { ThemeProvider } from './contexts/ThemeContext';
+import { Toaster } from './components/ui/toaster';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated } = useAuth();
@@ -48,26 +45,24 @@ const AppRoutes: React.FC = () => {
 };
 
 const AppContent: React.FC = () => {
-  const { locale } = useLocale();
-  
   return (
-    <ConfigProvider locale={locale === 'zh-CN' ? zhCN : enUS}>
-      <BrowserRouter>
-        <AuthProvider>
-          <AppRoutes />
-        </AuthProvider>
-      </BrowserRouter>
-    </ConfigProvider>
+    <BrowserRouter>
+      <AuthProvider>
+        <AppRoutes />
+        <Toaster />
+      </AuthProvider>
+    </BrowserRouter>
   );
 };
 
 const App: React.FC = () => {
   return (
-    <LocaleProvider>
-      <AppContent />
-    </LocaleProvider>
+    <ThemeProvider>
+      <LocaleProvider>
+        <AppContent />
+      </LocaleProvider>
+    </ThemeProvider>
   );
 };
 
 export default App;
-

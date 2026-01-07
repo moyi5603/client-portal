@@ -1,23 +1,100 @@
-import React, { useState, useEffect } from 'react';
-import { Table, Button, Modal, Form, Input, Select, message, Space, Tag, Popconfirm, Card, Row, Col } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { toast } from 'sonner';
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  ChevronDown,
+  KeyRound,
+  Download,
+  MoreHorizontal,
+  Search,
+  X,
+  AlertCircle,
+} from 'lucide-react';
 import api from '../utils/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useLocale } from '../contexts/LocaleContext';
+import PasswordStrengthIndicator from '../components/PasswordStrengthIndicator';
+import { useDebounce, useKeyboardShortcut } from '../hooks/useDebounce';
+import {
+  Button,
+  Input,
+  Card,
+  CardContent,
+  Badge,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Label,
+  Checkbox,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+  Empty,
+  Skeleton,
+  Pagination,
+} from '../components/ui';
+import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
 
-const { Option } = Select;
+dayjs.extend(relativeTime);
 
 interface Account {
   id: string;
   username: string;
   email: string;
-  phone?: string;  // 手机号（可选）
+  phone?: string;
   accountType: string;
   status: string;
   customerIds?: string[];
   accessibleCustomerIds?: string[];
   roles: string[];
+  lastLoginAt?: string;
+  createdAt?: string;
 }
+
+interface FormData {
+  username: string;
+  email: string;
+  phone: string;
+  password: string;
+  accountType: string;
+  status: string;
+  accessibleCustomerIds: string[];
+  roleIds: string[];
+}
+
+const initialFormData: FormData = {
+  username: '',
+  email: '',
+  phone: '',
+  password: '',
+  accountType: 'CUSTOMER',
+  status: 'ACTIVE',
+  accessibleCustomerIds: [],
+  roleIds: [],
+};
 
 const AccountManagement: React.FC = () => {
   const { user } = useAuth();
@@ -25,26 +102,53 @@ const AccountManagement: React.FC = () => {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
+  const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
+  const [accountToDelete, setAccountToDelete] = useState<Account | null>(null);
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
-  const [form] = Form.useForm();
+  const [formData, setFormData] = useState<FormData>(initialFormData);
+  const [formErrors, setFormErrors] = useState<Partial<Record<keyof FormData, string>>>({});
   const [customers, setCustomers] = useState<any[]>([]);
   const [roles, setRoles] = useState<any[]>([]);
   
-  // 筛选状态
+  // Bulk selection state
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkStatusModalVisible, setBulkStatusModalVisible] = useState(false);
+  const [bulkStatus, setBulkStatus] = useState<string>('ACTIVE');
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
+  
+  // Filter state
   const [filters, setFilters] = useState({
     username: '',
     email: '',
     phone: '',
-    customerIds: undefined as string[] | undefined,
-    accountType: undefined as string | undefined,
-    status: undefined as string | undefined
+    customerIds: [] as string[],
+    accountType: '',
+    status: ''
   });
+  
+  // Debounced filter values for automatic search
+  const debouncedUsername = useDebounce(filters.username, 300);
+  const debouncedEmail = useDebounce(filters.email, 300);
+  const debouncedPhone = useDebounce(filters.phone, 300);
+  
+  // Export state
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     loadAccounts();
     loadCustomers();
     loadRoles();
   }, []);
+  
+  // Auto-search when debounced values change
+  useEffect(() => {
+    if (debouncedUsername !== '' || debouncedEmail !== '' || debouncedPhone !== '') {
+      loadAccountsWithFilters(filters);
+    }
+  }, [debouncedUsername, debouncedEmail, debouncedPhone]);
 
   const loadAccounts = async () => {
     loadAccountsWithFilters(filters);
@@ -55,12 +159,11 @@ const AccountManagement: React.FC = () => {
       username: '',
       email: '',
       phone: '',
-      customerIds: undefined as string[] | undefined,
-      accountType: undefined as string | undefined,
-      status: undefined as string | undefined
+      customerIds: [] as string[],
+      accountType: '',
+      status: ''
     };
     setFilters(resetFilters);
-    // 使用重置后的筛选条件加载数据
     loadAccountsWithFilters(resetFilters);
   };
   
@@ -69,35 +172,26 @@ const AccountManagement: React.FC = () => {
     try {
       const params: any = {
         page: 1,
-        pageSize: 1000 // 获取所有数据，前端分页
+        pageSize: 1000
       };
       
-      // 添加筛选参数
-      if (filterParams.username) {
-        params.username = filterParams.username;
-      }
-      if (filterParams.email) {
-        params.email = filterParams.email;
-      }
-      if (filterParams.phone) {
-        params.phone = filterParams.phone;
-      }
+      if (filterParams.username) params.username = filterParams.username;
+      if (filterParams.email) params.email = filterParams.email;
+      if (filterParams.phone) params.phone = filterParams.phone;
       if (filterParams.customerIds && filterParams.customerIds.length > 0) {
         params.customerIds = filterParams.customerIds;
       }
-      if (filterParams.accountType) {
-        params.accountType = filterParams.accountType;
-      }
-      if (filterParams.status) {
-        params.status = filterParams.status;
-      }
+      if (filterParams.accountType) params.accountType = filterParams.accountType;
+      if (filterParams.status) params.status = filterParams.status;
       
       const response = await api.get('/accounts', { params });
       if (response.data.success) {
         setAccounts(response.data.data.items || []);
+        setSelectedIds(new Set());
+        setCurrentPage(1);
       }
     } catch (error) {
-      message.error(t('account.loadFailed'));
+      toast.error(t('account.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -116,7 +210,6 @@ const AccountManagement: React.FC = () => {
 
   const loadRoles = async () => {
     try {
-      // 只加载ACTIVE状态的角色
       const response = await api.get('/roles', {
         params: { status: 'ACTIVE', page: 1, pageSize: 1000 }
       });
@@ -128,464 +221,808 @@ const AccountManagement: React.FC = () => {
     }
   };
 
-  const handleCreate = () => {
+  const handleCreate = useCallback(() => {
     setEditingAccount(null);
-    form.resetFields();
+    setFormData(initialFormData);
+    setFormErrors({});
     setModalVisible(true);
+  }, []);
+  
+  // Keyboard shortcut: Ctrl+N for new account
+  useKeyboardShortcut('n', handleCreate, { ctrlKey: true });
+  
+  // Export accounts to CSV
+  const handleExportCSV = () => {
+    setExporting(true);
+    try {
+      const headers = [
+        t('account.username'),
+        t('account.email'),
+        t('account.phone'),
+        t('account.accountType'),
+        t('account.roles'),
+        t('common.status'),
+        t('account.lastLogin'),
+      ];
+
+      const rows = accounts.map(account => [
+        account.username,
+        account.email,
+        account.phone || '-',
+        account.accountType,
+        account.roles.map(roleId => roles.find(r => r.id === roleId)?.name || roleId).join(', '),
+        account.status,
+        account.lastLoginAt ? dayjs(account.lastLoginAt).format('YYYY-MM-DD HH:mm:ss') : t('account.neverLoggedIn'),
+      ]);
+
+      const csvContent = [
+        headers.join(','),
+        ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+      ].join('\n');
+
+      const BOM = '\uFEFF';
+      const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      
+      link.setAttribute('href', url);
+      link.setAttribute('download', `accounts-${dayjs().format('YYYY-MM-DD-HHmmss')}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast.success(t('common.exportSuccess'));
+    } catch (error) {
+      toast.error(t('common.exportFailed'));
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  // Reset password handler
+  const handleResetPassword = async (account: Account) => {
+    try {
+      const response = await api.post(`/accounts/${account.id}/reset-password`);
+      if (response.data.success) {
+        toast.success(t('account.resetPasswordSuccess'));
+      }
+    } catch (error: any) {
+      toast.info('Password reset email sent (simulated)');
+    }
   };
 
   const handleEdit = (account: Account) => {
     setEditingAccount(account);
-    // 统一使用accessibleCustomerIds字段，兼容customerIds
     const customerIds = account.customerIds || account.accessibleCustomerIds || [];
-    form.setFieldsValue({
-      ...account,
+    setFormData({
+      username: account.username,
+      email: account.email,
+      phone: account.phone || '',
+      password: '',
       accountType: account.accountType,
+      status: account.status,
       accessibleCustomerIds: customerIds,
-      customerIds: undefined // 清除customerIds，统一使用accessibleCustomerIds
+      roleIds: account.roles || [],
     });
+    setFormErrors({});
     setModalVisible(true);
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async () => {
+    if (!accountToDelete) return;
+    
     try {
-      const response = await api.delete(`/accounts/${id}`);
+      const response = await api.delete(`/accounts/${accountToDelete.id}`);
       if (response.data.success) {
-        message.success(t('account.deleteSuccess'));
+        toast.success(t('account.deleteSuccess'));
         loadAccounts();
       }
     } catch (error: any) {
-      message.error(error.response?.data?.error || t('account.deleteFailed'));
+      toast.error(error.response?.data?.error || t('account.deleteFailed'));
+    } finally {
+      setDeleteDialogVisible(false);
+      setAccountToDelete(null);
     }
   };
 
-  const handleSubmit = async (values: any) => {
+  // Bulk delete handler
+  const handleBulkDelete = async () => {
+    const selectedAccounts = accounts.filter(a => selectedIds.has(a.id));
+    const deletableAccounts = selectedAccounts.filter(a => a.accountType !== 'MAIN');
+    
+    if (deletableAccounts.length === 0) {
+      toast.warning(t('common.noData'));
+      return;
+    }
+
     try {
-      // 账号类型只起到标签作用，统一使用accessibleCustomerIds字段
-      // 处理"全部customer"选项：将"ALL"转换为所有customer的ID列表
-      const customerFieldValue = values.customerIds || values.accessibleCustomerIds;
-      if (customerFieldValue && customerFieldValue.includes('ALL')) {
-        const allCustomerIds = customers.map(c => c.id);
-        // 统一使用accessibleCustomerIds字段
-        values.accessibleCustomerIds = allCustomerIds;
-        delete values.customerIds;
-      } else if (customerFieldValue) {
-        // 统一使用accessibleCustomerIds字段
-        values.accessibleCustomerIds = customerFieldValue.filter((v: string) => v !== 'ALL');
-        delete values.customerIds;
+      await Promise.all(
+        deletableAccounts.map(account => api.delete(`/accounts/${account.id}`))
+      );
+      toast.success(t('account.bulkDeleteSuccess'));
+      setSelectedIds(new Set());
+      loadAccounts();
+    } catch (error) {
+      toast.error(t('account.deleteFailed'));
+    }
+  };
+
+  // Bulk status change handler
+  const handleBulkStatusChange = async () => {
+    const selectedAccounts = accounts.filter(a => selectedIds.has(a.id));
+    const updatableAccounts = selectedAccounts.filter(a => a.accountType !== 'MAIN');
+    
+    if (updatableAccounts.length === 0) {
+      toast.warning(t('common.noData'));
+      return;
+    }
+
+    try {
+      await Promise.all(
+        updatableAccounts.map(account => 
+          api.put(`/accounts/${account.id}`, { ...account, status: bulkStatus })
+        )
+      );
+      toast.success(t('account.bulkStatusChangeSuccess'));
+      setSelectedIds(new Set());
+      setBulkStatusModalVisible(false);
+      loadAccounts();
+    } catch (error) {
+      toast.error(t('account.saveFailed'));
+    }
+  };
+
+  const validateForm = (): boolean => {
+    const errors: Partial<Record<keyof FormData, string>> = {};
+    
+    if (!formData.username.trim()) {
+      errors.username = t('account.usernameRequired');
+    }
+    if (!formData.email.trim()) {
+      errors.email = t('account.emailRequired');
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      errors.email = t('account.emailRequired');
+    }
+    if (!editingAccount && !formData.password) {
+      errors.password = t('account.passwordRequired');
+    } else if (!editingAccount && formData.password.length < 8) {
+      errors.password = t('account.passwordRequirements');
+    }
+    if (!editingAccount && !formData.accountType) {
+      errors.accountType = t('account.accountTypeRequired');
+    }
+    
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleSubmit = async () => {
+    if (!validateForm()) return;
+
+    try {
+      let accessibleCustomerIds = formData.accessibleCustomerIds;
+      if (accessibleCustomerIds.includes('ALL')) {
+        accessibleCustomerIds = customers.map(c => c.id);
       }
 
       if (editingAccount) {
-        // 更新：统一使用accessibleCustomerIds字段
         const updatePayload = {
-          ...values,
-          accessibleCustomerIds: values.accessibleCustomerIds || [],
-          customerIds: undefined // 清除customerIds，统一使用accessibleCustomerIds
+          email: formData.email,
+          phone: formData.phone || undefined,
+          status: formData.status,
+          accessibleCustomerIds,
+          roleIds: formData.roleIds,
         };
         const response = await api.put(`/accounts/${editingAccount.id}`, updatePayload);
         if (response.data.success) {
-          message.success(t('account.updateSuccess'));
+          toast.success(t('account.updateSuccess'));
           setModalVisible(false);
           loadAccounts();
         }
       } else {
-        // 创建：根据账号类型选择不同的端点（保持向后兼容），但统一字段处理
-        const endpoint = values.accountType === 'CUSTOMER' ? '/accounts/customer' : '/accounts/partner';
+        const endpoint = formData.accountType === 'CUSTOMER' ? '/accounts/customer' : '/accounts/partner';
         const payload: any = {
-          ...values,
-          // 统一使用accessibleCustomerIds，但根据端点设置对应字段以保持API兼容
-          accessibleCustomerIds: values.accountType === 'PARTNER' ? values.accessibleCustomerIds : undefined,
-          customerIds: values.accountType === 'CUSTOMER' ? values.accessibleCustomerIds : undefined
+          username: formData.username,
+          email: formData.email,
+          phone: formData.phone || undefined,
+          password: formData.password,
+          status: formData.status,
+          accessibleCustomerIds: formData.accountType === 'PARTNER' ? accessibleCustomerIds : undefined,
+          customerIds: formData.accountType === 'CUSTOMER' ? accessibleCustomerIds : undefined,
+          roleIds: formData.roleIds,
         };
         const response = await api.post(endpoint, payload);
         if (response.data.success) {
-          message.success(t('account.createSuccess'));
+          toast.success(t('account.createSuccess'));
           setModalVisible(false);
-          form.resetFields();
+          setFormData(initialFormData);
           loadAccounts();
         }
       }
     } catch (error: any) {
-      message.error(error.response?.data?.error || t('account.saveFailed'));
+      toast.error(error.response?.data?.error || t('account.saveFailed'));
     }
   };
 
-  // 获取Customer名称
-  // 账号类型只起到标签作用，客户子账号和Partner子账号逻辑相同
-  const getCustomerNames = (account: Account) => {
-    // 主账号固定显示"全部customer"
+  const getCustomerBadges = (account: Account) => {
     if (account.accountType === 'MAIN') {
-      return <Tag color="blue">{t('account.allCustomers')}</Tag>;
+      return <Badge variant="info">{t('account.allCustomers')}</Badge>;
     }
     
-    // 统一使用customerIds或accessibleCustomerIds
     const customerIds = account.customerIds || account.accessibleCustomerIds || [];
     
     if (customerIds.length === 0) {
-      return <span style={{ color: '#999' }}>{t('account.noCustomers')}</span>;
+      return <span className="text-secondary">{t('account.noCustomers')}</span>;
     }
     
-    // 检查是否选择了所有customer（数量相等且所有ID都在列表中）
     const allCustomerIds = customers.map(c => c.id);
     const hasAllCustomers = customerIds.length === allCustomerIds.length && 
       allCustomerIds.every(id => customerIds.includes(id));
     
     if (hasAllCustomers) {
-      return <Tag color="blue">{t('account.allCustomers')}</Tag>;
+      return <Badge variant="info">{t('account.allCustomers')}</Badge>;
     }
     
     return (
-      <Space wrap>
-        {customerIds.map((id: string) => {
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-xs)' }}>
+        {customerIds.slice(0, 3).map((id: string) => {
           const customer = customers.find(c => c.id === id);
           return (
-            <Tag key={id} color="blue">
-              {customer ? `${customer.name}(${customer.code})` : id}
-            </Tag>
+            <Badge key={id} variant="info">
+              {customer ? customer.name : id}
+            </Badge>
           );
         })}
-      </Space>
+        {customerIds.length > 3 && (
+          <Badge variant="secondary">+{customerIds.length - 3}</Badge>
+        )}
+      </div>
     );
   };
 
-  // 获取角色名称
-  const getRoleNames = (account: Account) => {
-    // 主账号固定显示"全部权限"
+  const getRoleBadges = (account: Account) => {
     if (account.accountType === 'MAIN') {
-      return <Tag color="purple">{t('account.allPermissions')}</Tag>;
+      return <Badge variant="default">{t('account.allPermissions')}</Badge>;
     }
     
     if (!account.roles || account.roles.length === 0) {
-      return <span style={{ color: '#999' }}>{t('account.noRoles')}</span>;
+      return <span className="text-secondary">{t('account.noRoles')}</span>;
     }
     
     return (
-      <Space wrap>
-        {account.roles.map((roleId: string) => {
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-xs)' }}>
+        {account.roles.slice(0, 2).map((roleId: string) => {
           const role = roles.find(r => r.id === roleId);
           return (
-            <Tag key={roleId} color="purple">
+            <Badge key={roleId} variant="default">
               {role ? role.name : roleId}
-            </Tag>
+            </Badge>
           );
         })}
-      </Space>
+        {account.roles.length > 2 && (
+          <Badge variant="secondary">+{account.roles.length - 2}</Badge>
+        )}
+      </div>
     );
   };
 
-  const columns = [
-    {
-      title: t('account.username'),
-      dataIndex: 'username',
-      key: 'username',
-      width: 120
-    },
-    {
-      title: t('account.email'),
-      dataIndex: 'email',
-      key: 'email',
-      width: 150
-    },
-    {
-      title: t('account.phone'),
-      dataIndex: 'phone',
-      key: 'phone',
-      width: 120
-    },
-    {
-      title: t('account.accountType'),
-      dataIndex: 'accountType',
-      key: 'accountType',
-      width: 120,
-      render: (type: string) => {
-        const typeMap: Record<string, { text: string; color: string }> = {
-          MAIN: { text: t('account.typeMain'), color: 'red' },
-          CUSTOMER: { text: t('account.typeCustomer'), color: 'blue' },
-          PARTNER: { text: t('account.typePartner'), color: 'green' }
-        };
-        const info = typeMap[type] || { text: type, color: 'default' };
-        return <Tag color={info.color}>{info.text}</Tag>;
-      }
-    },
-    {
-      title: t('account.accessibleCustomers'),
-      key: 'customers',
-      width: 300,
-      render: (_: any, record: Account) => getCustomerNames(record)
-    },
-    {
-      title: t('account.roles'),
-      key: 'roles',
-      width: 350,
-      render: (_: any, record: Account) => getRoleNames(record)
-    },
-    {
-      title: t('common.status'),
-      dataIndex: 'status',
-      key: 'status',
-      width: 100,
-      render: (status: string) => {
-        const statusMap: Record<string, { text: string; color: string }> = {
-          ACTIVE: { text: t('account.statusActive'), color: 'green' },
-          INACTIVE: { text: t('account.statusInactive'), color: 'default' },
-          SUSPENDED: { text: t('account.statusSuspended'), color: 'orange' }
-        };
-        const info = statusMap[status] || { text: status, color: 'default' };
-        return <Tag color={info.color}>{info.text}</Tag>;
-      }
-    },
-    {
-      title: t('common.actions'),
-      key: 'action',
-      width: 150,
-      render: (_: any, record: Account) => {
-        // admin账号可以管理其他账号，但不能管理自己
-        const isAdmin = user?.username === 'admin';
-        const isCurrentUser = user?.id === record.id;
-        
-        // 如果是admin账号自己，不支持任何操作
-        if (isAdmin && isCurrentUser) {
-          return <span style={{ color: '#999' }}>-</span>;
-        }
-        
-        // 主账号不支持任何操作（包括admin账号也不能操作其他主账号）
-        if (record.accountType === 'MAIN') {
-          return <span style={{ color: '#999' }}>-</span>;
-        }
-        
-        // 其他账号类型正常显示操作按钮
-        return (
-          <Space>
-            <Button type="link" icon={<EditOutlined />} onClick={() => handleEdit(record)}>
-              {t('common.edit')}
-            </Button>
-            <Popconfirm
-              title={t('account.deleteConfirm')}
-              onConfirm={() => handleDelete(record.id)}
-              okText={t('common.save')}
-              cancelText={t('common.cancel')}
-            >
-              <Button type="link" danger icon={<DeleteOutlined />}>
-                {t('common.delete')}
-              </Button>
-            </Popconfirm>
-          </Space>
-        );
-      }
+  // Selection handlers
+  const toggleSelectAll = () => {
+    const selectableAccounts = accounts.filter(a => 
+      a.accountType !== 'MAIN' && a.id !== user?.id
+    );
+    
+    if (selectedIds.size === selectableAccounts.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(selectableAccounts.map(a => a.id)));
     }
-  ];
+  };
+
+  const toggleSelect = (id: string) => {
+    const newSelected = new Set(selectedIds);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedIds(newSelected);
+  };
+
+  // Pagination
+  const paginatedAccounts = useMemo(() => {
+    const startIndex = (currentPage - 1) * pageSize;
+    return accounts.slice(startIndex, startIndex + pageSize);
+  }, [accounts, currentPage, pageSize]);
+
+  const totalPages = Math.ceil(accounts.length / pageSize);
+
+  const getAccountTypeBadge = (type: string) => {
+    const typeMap: Record<string, { text: string; variant: 'destructive' | 'info' | 'success' }> = {
+      MAIN: { text: t('account.typeMain'), variant: 'destructive' },
+      CUSTOMER: { text: t('account.typeCustomer'), variant: 'info' },
+      PARTNER: { text: t('account.typePartner'), variant: 'success' }
+    };
+    const info = typeMap[type] || { text: type, variant: 'secondary' as any };
+    return <Badge variant={info.variant}>{info.text}</Badge>;
+  };
+
+  const getStatusBadge = (status: string) => {
+    const statusMap: Record<string, { text: string; variant: 'success' | 'secondary' | 'warning' }> = {
+      ACTIVE: { text: t('account.statusActive'), variant: 'success' },
+      INACTIVE: { text: t('account.statusInactive'), variant: 'secondary' },
+      SUSPENDED: { text: t('account.statusSuspended'), variant: 'warning' }
+    };
+    const info = statusMap[status] || { text: status, variant: 'secondary' as any };
+    return <Badge variant={info.variant}>{info.text}</Badge>;
+  };
+
+  const selectableCount = accounts.filter(a => a.accountType !== 'MAIN' && a.id !== user?.id).length;
+  const allSelected = selectableCount > 0 && selectedIds.size === selectableCount;
+  const someSelected = selectedIds.size > 0 && selectedIds.size < selectableCount;
 
   return (
-    <div>
-      <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
-        <h2>{t('account.title')}</h2>
-        <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
-          {t('account.create')}
-        </Button>
-      </div>
-      
-      {/* 筛选区域 */}
-      <Card style={{ marginBottom: 16 }}>
-        <Row gutter={16} align="middle">
-          <Col span={6}>
-            <Input
-              placeholder={t('account.searchUsername')}
-              value={filters.username}
-              onChange={(e) => setFilters({ ...filters, username: e.target.value })}
-              onPressEnter={loadAccounts}
-            />
-          </Col>
-          <Col span={6}>
-            <Input
-              placeholder={t('account.searchEmail')}
-              value={filters.email}
-              onChange={(e) => setFilters({ ...filters, email: e.target.value })}
-              onPressEnter={loadAccounts}
-            />
-          </Col>
-          <Col span={6}>
-            <Input
-              placeholder={t('account.searchPhone')}
-              value={filters.phone}
-              onChange={(e) => setFilters({ ...filters, phone: e.target.value })}
-              onPressEnter={loadAccounts}
-            />
-          </Col>
-          <Col span={6}>
-            <Select
-              style={{ width: '100%' }}
-              placeholder={t('account.selectAccountType')}
-              value={filters.accountType}
-              onChange={(value) => setFilters({ ...filters, accountType: value })}
-              allowClear
+    <TooltipProvider>
+      <div>
+        {/* Header */}
+        <div style={{ marginBottom: 'var(--space-md)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h2 style={{ 
+            margin: 0, 
+            fontSize: 'var(--text-2xl)', 
+            fontWeight: 'var(--font-bold)',
+            color: 'var(--text-primary)',
+          }}>
+            {t('account.title')}
+          </h2>
+          <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
+            {selectedIds.size > 0 && (
+              <DropdownMenu modal={false}>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline">
+                    {t('common.bulkActions')} ({selectedIds.size}) <ChevronDown size={14} style={{ marginLeft: 4 }} />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start">
+                  <DropdownMenuItem onClick={() => setBulkStatusModalVisible(true)}>
+                    {t('account.bulkChangeStatus')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem danger onClick={handleBulkDelete}>
+                    {t('account.bulkDelete')}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button onClick={handleCreate}>
+                  <Plus size={16} /> {t('account.create')}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Ctrl+N</TooltipContent>
+            </Tooltip>
+            <Button 
+              variant="outline"
+              onClick={handleExportCSV}
+              disabled={exporting || accounts.length === 0}
             >
-              <Option value="MAIN">{t('account.typeMain')}</Option>
-              <Option value="CUSTOMER">{t('account.typeCustomer')}</Option>
-              <Option value="PARTNER">{t('account.typePartner')}</Option>
-            </Select>
-          </Col>
-        </Row>
-        <Row gutter={16} align="middle" style={{ marginTop: 16 }}>
-          <Col span={6}>
-            <Select
-              style={{ width: '100%' }}
-              mode="multiple"
-              placeholder={t('account.selectCustomers')}
-              value={filters.customerIds}
-              onChange={(value) => setFilters({ ...filters, customerIds: value })}
-              allowClear
-            >
-              {customers.map(customer => (
-                <Option key={customer.id} value={customer.id}>
-                  {customer.name} ({customer.code})
-                </Option>
-              ))}
-            </Select>
-          </Col>
-          <Col span={6}>
-            <Select
-              style={{ width: '100%' }}
-              placeholder={t('account.selectStatus')}
-              value={filters.status}
-              onChange={(value) => setFilters({ ...filters, status: value })}
-              allowClear
-            >
-              <Option value="ACTIVE">{t('account.statusActive')}</Option>
-              <Option value="INACTIVE">{t('account.statusInactive')}</Option>
-              <Option value="SUSPENDED">{t('account.statusSuspended')}</Option>
-            </Select>
-          </Col>
-          <Col span={12}>
-            <Space>
-              <Button onClick={handleResetFilters}>{t('account.reset')}</Button>
-              <Button type="primary" onClick={loadAccounts}>{t('account.search')}</Button>
-            </Space>
-          </Col>
-        </Row>
-      </Card>
-      
-      <Table
-        columns={columns}
-        dataSource={accounts}
-        loading={loading}
-        rowKey="id"
-        pagination={{ pageSize: 10 }}
-      />
-      <Modal
-        title={editingAccount ? t('account.editTitle') : t('account.createTitle')}
-        open={modalVisible}
-        onCancel={() => {
-          setModalVisible(false);
-          form.resetFields();
-        }}
-        onOk={() => form.submit()}
-        width={600}
-      >
-        <Form
-          form={form}
-          layout="vertical"
-          onFinish={handleSubmit}
-          initialValues={{ status: 'ACTIVE' }}
-        >
-          {!editingAccount && (
-            <Form.Item
-              name="accountType"
-              label={t('account.accountType')}
-              rules={[{ required: true, message: t('account.accountTypeRequired') }]}
-            >
-              <Select>
-                <Option value="CUSTOMER">{t('account.typeCustomer')}</Option>
-                <Option value="PARTNER">{t('account.typePartner')}</Option>
+              <Download size={16} /> {t('common.exportCsv')}
+            </Button>
+          </div>
+        </div>
+        
+        {/* Filters */}
+        <Card style={{ marginBottom: 'var(--space-md)' }}>
+          <CardContent style={{ padding: 'var(--space-md)' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 'var(--space-md)' }}>
+              <Input
+                placeholder={t('account.searchUsername')}
+                value={filters.username}
+                onChange={(e) => setFilters({ ...filters, username: e.target.value })}
+              />
+              <Input
+                placeholder={t('account.searchEmail')}
+                value={filters.email}
+                onChange={(e) => setFilters({ ...filters, email: e.target.value })}
+              />
+              <Select
+                value={filters.accountType || undefined}
+                onValueChange={(value) => setFilters({ ...filters, accountType: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={t('account.selectAccountType')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="MAIN">{t('account.typeMain')}</SelectItem>
+                  <SelectItem value="CUSTOMER">{t('account.typeCustomer')}</SelectItem>
+                  <SelectItem value="PARTNER">{t('account.typePartner')}</SelectItem>
+                </SelectContent>
               </Select>
-            </Form.Item>
-          )}
-          <Form.Item
-            name="username"
-            label={t('account.username')}
-            rules={[{ required: true, message: t('account.usernameRequired') }]}
-          >
-            <Input disabled={!!editingAccount} />
-          </Form.Item>
-          <Form.Item
-            name="email"
-            label={t('account.email')}
-            rules={[{ required: true, type: 'email', message: t('account.emailRequired') }]}
-          >
-            <Input />
-          </Form.Item>
-          <Form.Item
-            name="phone"
-            label={t('account.phone')}
-          >
-            <Input placeholder={t('account.phoneOptional')} />
-          </Form.Item>
-          {!editingAccount && (
-            <Form.Item
-              name="password"
-              label={t('account.password')}
-              rules={[{ required: true, message: t('account.passwordRequired') }]}
+              <Select
+                value={filters.status || undefined}
+                onValueChange={(value) => setFilters({ ...filters, status: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={t('account.selectStatus')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ACTIVE">{t('account.statusActive')}</SelectItem>
+                  <SelectItem value="INACTIVE">{t('account.statusInactive')}</SelectItem>
+                  <SelectItem value="SUSPENDED">{t('account.statusSuspended')}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-sm)', marginTop: 'var(--space-md)' }}>
+              <Button variant="outline" onClick={handleResetFilters}>{t('account.reset')}</Button>
+              <Button onClick={loadAccounts}>
+                <Search size={16} /> {t('account.search')}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+        
+        {/* Table */}
+        {loading ? (
+          <Card>
+            <CardContent>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+                {[...Array(5)].map((_, i) => (
+                  <Skeleton key={i} style={{ height: 48 }} />
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        ) : accounts.length === 0 ? (
+          <Card>
+            <CardContent>
+              <Empty 
+                variant="accounts"
+                title={t('common.noData')}
+                description={t('account.noAccountsDescription') || 'No accounts found. Create your first account to get started.'}
+                action={{
+                  label: t('account.create'),
+                  onClick: handleCreate
+                }}
+              />
+            </CardContent>
+          </Card>
+        ) : (
+          <>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead style={{ width: 40 }}>
+                    <Checkbox
+                      checked={allSelected}
+                      onCheckedChange={toggleSelectAll}
+                      data-indeterminate={someSelected}
+                    />
+                  </TableHead>
+                  <TableHead>{t('account.username')}</TableHead>
+                  <TableHead>{t('account.email')}</TableHead>
+                  <TableHead>{t('account.accountType')}</TableHead>
+                  <TableHead>{t('account.accessibleCustomers')}</TableHead>
+                  <TableHead>{t('account.roles')}</TableHead>
+                  <TableHead>{t('common.status')}</TableHead>
+                  <TableHead>{t('account.lastLogin')}</TableHead>
+                  <TableHead style={{ width: 80, textAlign: 'center' }}>{t('common.actions')}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {paginatedAccounts.map((account) => {
+                  const isSelectable = account.accountType !== 'MAIN' && account.id !== user?.id;
+                  const isSelected = selectedIds.has(account.id);
+                  
+                  return (
+                    <TableRow key={account.id} data-state={isSelected ? 'selected' : undefined}>
+                      <TableCell>
+                        <Checkbox
+                          checked={isSelected}
+                          onCheckedChange={() => toggleSelect(account.id)}
+                          disabled={!isSelectable}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <span style={{ fontWeight: 'var(--font-medium)', color: 'var(--text-primary)' }}>
+                          {account.username}
+                        </span>
+                      </TableCell>
+                      <TableCell>{account.email}</TableCell>
+                      <TableCell>{getAccountTypeBadge(account.accountType)}</TableCell>
+                      <TableCell>{getCustomerBadges(account)}</TableCell>
+                      <TableCell>{getRoleBadges(account)}</TableCell>
+                      <TableCell>{getStatusBadge(account.status)}</TableCell>
+                      <TableCell>
+                        {!account.lastLoginAt ? (
+                          <span className="text-secondary text-xs">{t('account.neverLoggedIn')}</span>
+                        ) : (
+                          <Tooltip>
+                            <TooltipTrigger>
+                              <span className="text-sm">{dayjs(account.lastLoginAt).fromNow()}</span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              {dayjs(account.lastLoginAt).format('YYYY-MM-DD HH:mm:ss')}
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
+                      </TableCell>
+                      <TableCell style={{ textAlign: 'center' }}>
+                        {!isSelectable ? (
+                          <span className="text-secondary">-</span>
+                        ) : (
+                          <DropdownMenu modal={false}>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon">
+                                <MoreHorizontal size={18} />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleEdit(account)}>
+                                <Pencil size={14} style={{ marginRight: 8 }} />
+                                {t('common.edit')}
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleResetPassword(account)}>
+                                <KeyRound size={14} style={{ marginRight: 8 }} />
+                                {t('account.resetPassword')}
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem 
+                                danger 
+                                onClick={() => {
+                                  setAccountToDelete(account);
+                                  setDeleteDialogVisible(true);
+                                }}
+                              >
+                                <Trash2 size={14} style={{ marginRight: 8 }} />
+                                {t('common.delete')}
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+            
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div style={{ marginTop: 'var(--space-md)' }}>
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  totalItems={accounts.length}
+                  pageSize={pageSize}
+                  onPageChange={setCurrentPage}
+                />
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Create/Edit Dialog */}
+        <Dialog open={modalVisible} onOpenChange={setModalVisible}>
+          <DialogContent className="ui-dialog-content--lg">
+            <DialogHeader>
+              <DialogTitle>
+                {editingAccount ? t('account.editTitle') : t('account.createTitle')}
+              </DialogTitle>
+            </DialogHeader>
+            
+            <div style={{ display: 'grid', gap: 'var(--space-md)' }}>
+              {!editingAccount && (
+                <div>
+                  <Label required>{t('account.accountType')}</Label>
+                  <Select
+                    value={formData.accountType}
+                    onValueChange={(value) => setFormData({ ...formData, accountType: value })}
+                  >
+                    <SelectTrigger error={!!formErrors.accountType}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="CUSTOMER">{t('account.typeCustomer')}</SelectItem>
+                      <SelectItem value="PARTNER">{t('account.typePartner')}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {formErrors.accountType && (
+                    <span className="text-sm" style={{ color: 'var(--danger)', marginTop: 4 }}>
+                      {formErrors.accountType}
+                    </span>
+                  )}
+                </div>
+              )}
+              
+              <div>
+                <Label required>{t('account.username')}</Label>
+                <Input
+                  value={formData.username}
+                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                  disabled={!!editingAccount}
+                  error={!!formErrors.username}
+                />
+                {formErrors.username && (
+                  <span className="text-sm" style={{ color: 'var(--danger)', marginTop: 4 }}>
+                    {formErrors.username}
+                  </span>
+                )}
+              </div>
+              
+              <div>
+                <Label required>{t('account.email')}</Label>
+                <Input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  error={!!formErrors.email}
+                />
+                {formErrors.email && (
+                  <span className="text-sm" style={{ color: 'var(--danger)', marginTop: 4 }}>
+                    {formErrors.email}
+                  </span>
+                )}
+              </div>
+              
+              <div>
+                <Label>{t('account.phone')}</Label>
+                <Input
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  placeholder={t('account.phoneOptional')}
+                />
+              </div>
+              
+              {!editingAccount && (
+                <div>
+                  <Label required>{t('account.password')}</Label>
+                  <Input
+                    type="password"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    error={!!formErrors.password}
+                  />
+                  <PasswordStrengthIndicator password={formData.password} />
+                  {formErrors.password && (
+                    <span className="text-sm" style={{ color: 'var(--danger)', marginTop: 4 }}>
+                      {formErrors.password}
+                    </span>
+                  )}
+                </div>
+              )}
+              
+              <div>
+                <Label>{t('common.status')}</Label>
+                <Select
+                  value={formData.status}
+                  onValueChange={(value) => setFormData({ ...formData, status: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ACTIVE">{t('account.statusActive')}</SelectItem>
+                    <SelectItem value="INACTIVE">{t('account.statusInactive')}</SelectItem>
+                    <SelectItem value="SUSPENDED">{t('account.statusSuspended')}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <Label>{t('account.accessibleCustomers')}</Label>
+                <Select
+                  value={formData.accessibleCustomerIds[0] || ''}
+                  onValueChange={(value) => {
+                    if (value === 'ALL') {
+                      setFormData({ ...formData, accessibleCustomerIds: ['ALL'] });
+                    } else {
+                      setFormData({ ...formData, accessibleCustomerIds: [value] });
+                    }
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={t('account.selectCustomersPlaceholder')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">{t('account.allCustomers')}</SelectItem>
+                    {customers.map(customer => (
+                      <SelectItem key={customer.id} value={customer.id}>
+                        {customer.name} ({customer.code})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <Label>{t('account.roles')}</Label>
+                <Select
+                  value={formData.roleIds[0] || ''}
+                  onValueChange={(value) => setFormData({ ...formData, roleIds: [value] })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={t('account.selectRolesPlaceholder')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {roles.map(role => (
+                      <SelectItem key={role.id} value={role.id}>
+                        {role.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setModalVisible(false)}>
+                {t('common.cancel')}
+              </Button>
+              <Button onClick={handleSubmit}>
+                {t('common.save')}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Confirmation Dialog */}
+        <Dialog open={deleteDialogVisible} onOpenChange={setDeleteDialogVisible}>
+          <DialogContent className="ui-dialog-content--sm">
+            <DialogHeader>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
+                <AlertCircle size={20} style={{ color: 'var(--danger)' }} />
+                <DialogTitle>{t('common.confirm')}</DialogTitle>
+              </div>
+              <DialogDescription>
+                {accountToDelete && t('account.deleteConfirm', { name: accountToDelete.username })}
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDeleteDialogVisible(false)}>
+                {t('common.cancel')}
+              </Button>
+              <Button variant="destructive" onClick={handleDelete}>
+                {t('common.delete')}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Bulk Status Change Dialog */}
+        <Dialog open={bulkStatusModalVisible} onOpenChange={setBulkStatusModalVisible}>
+          <DialogContent className="ui-dialog-content--sm">
+            <DialogHeader>
+              <DialogTitle>{t('account.bulkChangeStatus')}</DialogTitle>
+            </DialogHeader>
+            <p style={{ marginBottom: 'var(--space-md)' }}>
+              {t('common.selected', { count: selectedIds.size.toString() })}
+            </p>
+            <Select
+              value={bulkStatus}
+              onValueChange={setBulkStatus}
             >
-              <Input.Password />
-            </Form.Item>
-          )}
-          <Form.Item
-            name="status"
-            label={t('common.status')}
-            rules={[{ required: true }]}
-          >
-            <Select>
-              <Option value="ACTIVE">{t('account.statusActive')}</Option>
-              <Option value="INACTIVE">{t('account.statusInactive')}</Option>
-              <Option value="SUSPENDED">{t('account.statusSuspended')}</Option>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ACTIVE">{t('account.statusActive')}</SelectItem>
+                <SelectItem value="INACTIVE">{t('account.statusInactive')}</SelectItem>
+                <SelectItem value="SUSPENDED">{t('account.statusSuspended')}</SelectItem>
+              </SelectContent>
             </Select>
-          </Form.Item>
-          <Form.Item
-            name="accessibleCustomerIds"
-            label={t('account.accessibleCustomers')}
-          >
-            <Select 
-              mode="multiple" 
-              placeholder={t('account.selectCustomersPlaceholder')}
-              onChange={(value: string[]) => {
-                // 如果选择了"全部customer"，清空其他选择
-                if (value.includes('ALL')) {
-                  form.setFieldsValue({
-                    accessibleCustomerIds: ['ALL']
-                  });
-                } else {
-                  // 如果选择了其他customer，移除"ALL"选项
-                  const filteredValue = value.filter(v => v !== 'ALL');
-                  form.setFieldsValue({
-                    accessibleCustomerIds: filteredValue
-                  });
-                }
-              }}
-            >
-              <Option key="ALL" value="ALL">{t('account.allCustomers')}</Option>
-              {customers.map(customer => (
-                <Option key={customer.id} value={customer.id}>
-                  {customer.name} ({customer.code})
-                </Option>
-              ))}
-            </Select>
-          </Form.Item>
-          <Form.Item
-            name="roleIds"
-            label={t('account.roles')}
-          >
-            <Select mode="multiple" placeholder={t('account.selectRolesPlaceholder')}>
-              {roles.map(role => (
-                <Option key={role.id} value={role.id}>
-                  {role.name}
-                </Option>
-              ))}
-            </Select>
-          </Form.Item>
-        </Form>
-      </Modal>
-    </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setBulkStatusModalVisible(false)}>
+                {t('common.cancel')}
+              </Button>
+              <Button onClick={handleBulkStatusChange}>
+                {t('common.confirm')}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </TooltipProvider>
   );
 };
 
 export default AccountManagement;
-

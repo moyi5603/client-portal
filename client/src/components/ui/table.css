@@ -1,0 +1,117 @@
+.ui-table-wrapper {
+  position: relative;
+  width: 100%;
+  overflow: auto;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+}
+
+.ui-table {
+  width: 100%;
+  caption-side: bottom;
+  font-size: var(--text-sm);
+  border-collapse: collapse;
+}
+
+.ui-table-header {
+  background-color: var(--bg-secondary);
+}
+
+.ui-table-header tr {
+  border-bottom: 1px solid var(--border-color);
+}
+
+.ui-table-body tr {
+  border-bottom: 1px solid var(--border-color);
+  transition: background-color var(--transition-fast);
+}
+
+.ui-table-body tr:last-child {
+  border-bottom: none;
+}
+
+.ui-table-body tr:hover {
+  background-color: var(--bg-secondary);
+}
+
+.ui-table-body tr[data-state="selected"] {
+  background-color: var(--bg-tertiary);
+}
+
+.ui-table-footer {
+  background-color: var(--bg-secondary);
+  font-weight: var(--font-medium);
+}
+
+.ui-table-footer tr {
+  border-top: 1px solid var(--border-color);
+}
+
+.ui-table-row {
+  transition: background-color var(--transition-fast);
+}
+
+.ui-table-head {
+  height: 48px;
+  padding: 0 var(--space-md);
+  text-align: left;
+  vertical-align: middle;
+  font-weight: var(--font-medium);
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.ui-table-head[data-sortable="true"] {
+  cursor: pointer;
+}
+
+.ui-table-head[data-sortable="true"]:hover {
+  background-color: var(--bg-tertiary);
+}
+
+.ui-table-cell {
+  padding: var(--space-md);
+  vertical-align: middle;
+  color: var(--text-regular);
+}
+
+.ui-table-caption {
+  margin-top: var(--space-md);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+/* Sticky header */
+.ui-table--sticky .ui-table-header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+/* Compact variant */
+.ui-table--compact .ui-table-head {
+  height: 40px;
+  padding: 0 var(--space-sm);
+}
+
+.ui-table--compact .ui-table-cell {
+  padding: var(--space-sm);
+}
+
+/* Dark mode */
+.dark .ui-table-wrapper {
+  border-color: var(--border-color);
+}
+
+.dark .ui-table-header {
+  background-color: var(--bg-tertiary);
+}
+
+.dark .ui-table-body tr:hover {
+  background-color: var(--bg-tertiary);
+}
+
+.dark .ui-table-footer {
+  background-color: var(--bg-tertiary);
+}
+

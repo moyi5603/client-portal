@@ -1,39 +1,70 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate, useLocation, useParams } from 'react-router-dom';
+import { toast } from 'sonner';
 import {
-  Table,
-  Button,
-  Form,
-  Input,
-  Select,
-  Radio,
-  Space,
-  Tag,
-  Card,
-  Row,
-  Col,
-  Checkbox,
-  Collapse,
-  Tooltip,
-  message,
-  Popconfirm,
-  Modal
-} from 'antd';
-import {
-  PlusOutlined,
-  EditOutlined,
-  DeleteOutlined,
-  CopyOutlined,
-  InfoCircleOutlined,
-  ArrowLeftOutlined
-} from '@ant-design/icons';
+  Plus,
+  Pencil,
+  Trash2,
+  Copy,
+  Info,
+  Zap,
+  MoreHorizontal,
+  AlertTriangle,
+  Search,
+} from 'lucide-react';
 import api from '../utils/api';
 import { useLocale } from '../contexts/LocaleContext';
-import type { MenuProps } from 'antd';
-
-const { Option } = Select;
-const { TextArea } = Input;
-const { Panel } = Collapse;
+import { useKeyboardShortcut } from '../hooks/useDebounce';
+import {
+  Button,
+  Input,
+  Textarea,
+  Label,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Badge,
+  Checkbox,
+  RadioGroup,
+  RadioGroupItem,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+  Empty,
+  Skeleton,
+  Pagination,
+  Separator,
+} from '../components/ui';
+import PermissionsTree from '../components/PermissionsTree';
 
 interface Role {
   id: string;
@@ -64,7 +95,6 @@ const RoleManagement: React.FC = () => {
   const location = useLocation();
   const params = useParams<{ id?: string }>();
   const { locale, t } = useLocale();
-  const [form] = Form.useForm();
   
   const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(false);
@@ -72,23 +102,41 @@ const RoleManagement: React.FC = () => {
   const [editingRole, setEditingRole] = useState<Role | null>(null);
   const [accounts, setAccounts] = useState<any[]>([]);
   
-  // 过滤器状态
-  const [filters, setFilters] = useState({
-    module: 'ALL',
-    status: 'ACTIVE'
+  // Form state
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    status: 'ACTIVE' as 'ACTIVE' | 'DEPRECATED',
   });
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  
+  // Filters
+  const [filters, setFilters] = useState({ module: 'ALL', status: 'ACTIVE' });
   const [searchText, setSearchText] = useState('');
   
-  // 权限选择状态
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
+  
+  // Permission state
   const [selectedPermissions, setSelectedPermissions] = useState<Record<string, Record<string, string[]>>>({});
   
-  // 用户列表Modal状态
+  // User list modal
   const [userListVisible, setUserListVisible] = useState(false);
-  const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
   const [usersWithRole, setUsersWithRole] = useState<any[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
+  
+  // Delete dialog
+  const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
+  const [roleToDelete, setRoleToDelete] = useState<Role | null>(null);
+  
+  // Unsaved changes tracking
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [showUnsavedModal, setShowUnsavedModal] = useState(false);
+  const [pendingNavigation, setPendingNavigation] = useState<string | null>(null);
+  const initialPermissionsRef = useRef<string>('');
 
-  // 获取模块、操作和页面定义（根据PRD文档）
+  // Module definitions
   const MODULES = [
     { value: 'DASHBOARDS', label: 'Dashboards' },
     { value: 'PURCHASE_MANAGEMENT', label: 'Purchase Management' },
@@ -105,7 +153,6 @@ const RoleManagement: React.FC = () => {
     { value: 'PERMISSION_MANAGEMENT', label: 'Permission Management' }
   ];
 
-  // 所有可能的操作类型
   const ALL_OPERATIONS = [
     { value: 'VIEW', label: t('operation.VIEW') },
     { value: 'CREATE', label: t('operation.CREATE') },
@@ -113,33 +160,26 @@ const RoleManagement: React.FC = () => {
     { value: 'DELETE', label: t('operation.DELETE') },
     { value: 'EXPORT', label: t('operation.EXPORT') },
     { value: 'CANCEL', label: t('operation.CANCEL') },
-    { value: 'PRINT_PACKING_SLIP', label: 'Print Packing Slip' },
-    { value: 'HOLD_INVENTORY', label: 'Hold Inventory' },
-    { value: 'RELEASE_INVENTORY', label: 'Release Inventory' },
-    { value: 'DOWNLOAD_PDF', label: 'Download PDF' },
-    { value: 'ADD_ATTACHMENT', label: 'Add Attachment' },
-    { value: 'IMPORT_RMA', label: 'Import RMA' },
-    { value: 'DOWNLOAD_TEMPLATE', label: 'Download Template' },
-    { value: 'DOWNLOAD', label: 'Download' },
-    { value: 'BATCH_IMPORT', label: 'Batch Import' },
-    { value: 'PAY', label: 'Pay' },
-    { value: 'INVOICE_DETAIL', label: 'Invoice Detail' },
-    { value: 'RELOAD', label: 'reload' },
-    { value: 'SET_ALERT', label: 'set alert' },
-    { value: 'SET_DEFAULT', label: 'Set Default' },
-    { value: 'IMPORT', label: t('operation.IMPORT') }
+    { value: 'PRINT_PACKING_SLIP', label: t('operation.PRINT_PACKING_SLIP') },
+    { value: 'HOLD_INVENTORY', label: t('operation.HOLD_INVENTORY') },
+    { value: 'RELEASE_INVENTORY', label: t('operation.RELEASE_INVENTORY') },
+    { value: 'DOWNLOAD_PDF', label: t('operation.DOWNLOAD_PDF') },
+    { value: 'ADD_ATTACHMENT', label: t('operation.ADD_ATTACHMENT') },
+    { value: 'IMPORT_RMA', label: t('operation.IMPORT_RMA') },
+    { value: 'DOWNLOAD_TEMPLATE', label: t('operation.DOWNLOAD_TEMPLATE') },
+    { value: 'DOWNLOAD', label: t('operation.DOWNLOAD') },
+    { value: 'BATCH_IMPORT', label: t('operation.BATCH_IMPORT') },
+    { value: 'PAY', label: t('operation.PAY') },
+    { value: 'INVOICE_DETAIL', label: t('operation.INVOICE_DETAIL') },
+    { value: 'RELOAD', label: t('operation.RELOAD') },
+    { value: 'SET_ALERT', label: t('operation.SET_ALERT') },
+    { value: 'SET_DEFAULT', label: t('operation.SET_DEFAULT') },
+    { value: 'IMPORT', label: t('operation.IMPORT') },
+    { value: 'RESET_FIELDS', label: t('operation.RESET_FIELDS') }
   ];
 
-  // 模块页面配置（根据PRD文档）
-  const MODULE_PAGES: Record<string, Array<{ 
-    code: string; 
-    name: string; 
-    operations: string[]; // 该页面支持的操作列表
-    tooltip?: string 
-  }>> = {
-    DASHBOARDS: [
-      { code: 'kpi', name: 'KPI', operations: ['VIEW'] }
-    ],
+  const MODULE_PAGES: Record<string, Array<{ code: string; name: string; operations: string[]; tooltip?: string }>> = {
+    DASHBOARDS: [{ code: 'kpi', name: 'KPI', operations: ['VIEW'] }],
     PURCHASE_MANAGEMENT: [
       { code: 'projects', name: 'Projects', operations: ['VIEW', 'CREATE', 'EXPORT'] },
       { code: 'purchase-request', name: 'Purchase Request', operations: ['VIEW', 'CREATE', 'EXPORT'] },
@@ -149,77 +189,75 @@ const RoleManagement: React.FC = () => {
       { code: 'wholesale-orders', name: 'Wholesale Orders', operations: ['VIEW'] },
       { code: 'retail-orders', name: 'Retail Orders', operations: ['VIEW'] }
     ],
-    WORK_ORDER: [
-      { code: 'work-orders', name: 'Work Orders', operations: ['VIEW'] }
-    ],
+    WORK_ORDER: [{ code: 'work-orders', name: 'Work Orders', operations: ['VIEW'] }],
     INBOUND: [
-      { code: 'inquiry', name: 'Inquiry（询价单）', operations: ['VIEW', 'EDIT', 'EXPORT', 'CANCEL', 'PRINT_PACKING_SLIP'] },
-      { code: 'schedule-summary', name: 'Schedule Summary（计划汇总）', operations: ['VIEW'] },
-      { code: 'received-summary', name: 'Received Summary（收货汇总）', operations: ['VIEW'] },
-      { code: 'receipt-entry', name: 'Receipt Entry（收货录入）', operations: ['CREATE'] },
-      { code: 'put-away-report', name: 'Put Away Report（上架报告）', operations: ['VIEW', 'EXPORT'] },
-      { code: 'make-appointment', name: 'Make Appointment（预约）', operations: ['CREATE'] },
-      { code: 'appointment-list', name: 'Appointment List（预约列表）', operations: ['VIEW', 'CREATE', 'EDIT', 'CANCEL'] }
+      { code: 'inquiry', name: 'Inquiry', operations: ['VIEW', 'EDIT', 'EXPORT', 'CANCEL', 'PRINT_PACKING_SLIP'] },
+      { code: 'schedule-summary', name: 'Schedule Summary', operations: ['VIEW'] },
+      { code: 'received-summary', name: 'Received Summary', operations: ['VIEW'] },
+      { code: 'receipt-entry', name: 'Receipt Entry', operations: ['CREATE'] },
+      { code: 'put-away-report', name: 'Put Away Report', operations: ['VIEW', 'EXPORT'] },
+      { code: 'make-appointment', name: 'Make Appointment', operations: ['CREATE'] },
+      { code: 'appointment-list', name: 'Appointment List', operations: ['VIEW', 'CREATE', 'EDIT', 'CANCEL'] }
     ],
     INVENTORY: [
-      { code: 'sn-look-up', name: 'SN Look Up（序列号查询）', operations: ['VIEW', 'EXPORT'] },
-      { code: 'inventory-activity', name: 'Inventory Activity（库存活动）', operations: ['VIEW', 'EXPORT'] },
-      { code: 'inventory-adjustment', name: 'Inventory Adjustment（库存调整）', operations: ['VIEW', 'EXPORT'] },
-      { code: 'inventory-status', name: 'Inventory Status（库存状态）', operations: ['VIEW', 'EXPORT', 'HOLD_INVENTORY', 'RELEASE_INVENTORY'] },
-      { code: 'item-master', name: 'Item Master（物料主数据）', operations: ['VIEW', 'EXPORT'] },
-      { code: 'current-onhand', name: 'Current Onhand Inventory Aging Report（当前库存账龄报告）', operations: ['VIEW', 'EXPORT'] },
-      { code: 'historical-inventory-aging', name: 'Historical Inventory Aging Report（历史库存账龄报告）', operations: ['VIEW', 'EXPORT'] },
-      { code: 'warehouse-projects', name: 'Warehouse Projects（仓库项目）', operations: ['VIEW', 'EXPORT'] }
+      { code: 'sn-look-up', name: 'SN Look Up', operations: ['VIEW', 'EXPORT'] },
+      { code: 'inventory-activity', name: 'Inventory Activity', operations: ['VIEW', 'EXPORT'] },
+      { code: 'inventory-adjustment', name: 'Inventory Adjustment', operations: ['VIEW', 'EXPORT'] },
+      { code: 'inventory-status', name: 'Inventory Status', operations: ['VIEW', 'EXPORT', 'HOLD_INVENTORY', 'RELEASE_INVENTORY'] },
+      { code: 'item-master', name: 'Item Master', operations: ['VIEW', 'EXPORT'] },
+      { code: 'current-onhand', name: 'Current Onhand Inventory Aging Report', operations: ['VIEW', 'EXPORT'] },
+      { code: 'historical-inventory-aging', name: 'Historical Inventory Aging Report', operations: ['VIEW', 'EXPORT'] },
+      { code: 'warehouse-projects', name: 'Warehouse Projects', operations: ['VIEW', 'EXPORT'] }
     ],
     OUTBOUND: [
-      { code: 'inquiry', name: 'Inquiry（询价单）', operations: ['VIEW', 'EXPORT', 'DOWNLOAD_PDF', 'ADD_ATTACHMENT'] },
-      { code: 'schedule-summary', name: 'Schedule Summary（计划汇总）', operations: ['VIEW'] },
-      { code: 'shipped-summary', name: 'Shipped Summary（发货汇总）', operations: ['VIEW'] },
-      { code: 'order-carrier-update', name: 'Order Carrier Update（订单承运商更新）', operations: ['VIEW'] },
-      { code: 'order-entry', name: 'Order Entry（订单录入）', operations: ['CREATE'] },
-      { code: 'small-parcel-tracking', name: 'Small Parcel Tracking Status（小包裹跟踪状态）', operations: ['VIEW'] },
-      { code: 'freight-quote', name: 'Freight Quote（运费报价）', operations: ['VIEW', 'CREATE'] }
+      { code: 'inquiry', name: 'Inquiry', operations: ['VIEW', 'EXPORT', 'DOWNLOAD_PDF', 'ADD_ATTACHMENT'] },
+      { code: 'schedule-summary', name: 'Schedule Summary', operations: ['VIEW'] },
+      { code: 'shipped-summary', name: 'Shipped Summary', operations: ['VIEW'] },
+      { code: 'order-carrier-update', name: 'Order Carrier Update', operations: ['VIEW'] },
+      { code: 'order-entry', name: 'Order Entry', operations: ['CREATE'] },
+      { code: 'small-parcel-tracking', name: 'Small Parcel Tracking Status', operations: ['VIEW'] },
+      { code: 'freight-quote', name: 'Freight Quote', operations: ['VIEW', 'CREATE'] }
     ],
     RETURNS: [
       { code: 'rma', name: 'RMA', operations: ['VIEW', 'EXPORT', 'IMPORT_RMA', 'DOWNLOAD_TEMPLATE'] },
       { code: 'traveler-id', name: 'Traveler ID', operations: ['VIEW'] },
-      { code: 'return-report', name: 'Return Report（退货报告）', operations: ['VIEW', 'EXPORT'] },
-      { code: 'restock-report', name: 'Restock Report（补货报告）', operations: ['VIEW', 'EXPORT'] },
-      { code: 'adjustment-report', name: 'Adjustment Report（调整报告）', operations: ['VIEW', 'EXPORT'] },
-      { code: 'scrap-report', name: 'Scrap Report（报废报告）', operations: ['VIEW', 'EXPORT'] },
-      { code: 'service-claim-report', name: 'Service Claim Report（服务索赔报告）', operations: ['VIEW', 'EXPORT'] }
+      { code: 'return-report', name: 'Return Report', operations: ['VIEW', 'EXPORT'] },
+      { code: 'restock-report', name: 'Restock Report', operations: ['VIEW', 'EXPORT'] },
+      { code: 'adjustment-report', name: 'Adjustment Report', operations: ['VIEW', 'EXPORT'] },
+      { code: 'scrap-report', name: 'Scrap Report', operations: ['VIEW', 'EXPORT'] },
+      { code: 'service-claim-report', name: 'Service Claim Report', operations: ['VIEW', 'EXPORT'] }
     ],
     YARD_MANAGEMENT: [
-      { code: 'equipment-history-report', name: 'Equipment History Report（设备历史报告）', operations: ['VIEW', 'EXPORT'] },
-      { code: 'equipment-report', name: 'Equipment Report（设备报告）', operations: ['VIEW', 'EXPORT'] },
-      { code: 'yard-status-report', name: 'Yard Status Report（堆场状态报告）', operations: ['VIEW', 'EXPORT'] },
-      { code: 'yard-check-report', name: 'Yard Check Report（堆场检查报告）', operations: ['VIEW', 'EXPORT'] }
+      { code: 'equipment-history-report', name: 'Equipment History Report', operations: ['VIEW', 'EXPORT'] },
+      { code: 'equipment-report', name: 'Equipment Report', operations: ['VIEW', 'EXPORT'] },
+      { code: 'yard-status-report', name: 'Yard Status Report', operations: ['VIEW', 'EXPORT'] },
+      { code: 'yard-check-report', name: 'Yard Check Report', operations: ['VIEW', 'EXPORT'] }
     ],
     SUPPLY_CHAIN: [
-      { code: 'damaged-box-detection', name: 'Damaged Box Detection（破损箱检测）', operations: ['VIEW', 'EDIT'] },
-      { code: 'routing-report', name: 'Routing Report（路由报告）', operations: ['VIEW'] },
-      { code: 'walmart-shipments', name: 'Walmart Shipments（沃尔玛发货）', operations: ['VIEW'] },
-      { code: 'target-shipments', name: 'Target Shipments（塔吉特发货）', operations: ['VIEW'] },
-      { code: 'shipments', name: 'Shipments（发货）', operations: ['VIEW', 'CREATE'] },
-      { code: 'tracking', name: 'Tracking（跟踪）', operations: ['VIEW', 'EXPORT', 'DOWNLOAD', 'BATCH_IMPORT'] },
-      { code: 'automated-order-entry', name: 'Automated Order Entry（自动订单录入）', operations: ['CREATE'] }
+      { code: 'damaged-box-detection', name: 'Damaged Box Detection', operations: ['VIEW', 'EDIT'] },
+      { code: 'routing-report', name: 'Routing Report', operations: ['VIEW'] },
+      { code: 'walmart-shipments', name: 'Walmart Shipments', operations: ['VIEW'] },
+      { code: 'target-shipments', name: 'Target Shipments', operations: ['VIEW'] },
+      { code: 'shipments', name: 'Shipments', operations: ['VIEW', 'CREATE'] },
+      { code: 'tracking', name: 'Tracking', operations: ['VIEW', 'EXPORT', 'DOWNLOAD', 'BATCH_IMPORT'] },
+      { code: 'automated-order-entry', name: 'Automated Order Entry', operations: ['CREATE'] }
     ],
     FINANCE: [
-      { code: 'invoice', name: 'Invoice（发票）', operations: ['VIEW', 'EXPORT', 'PAY', 'INVOICE_DETAIL'] },
-      { code: 'card-and-balance', name: 'Card and Balance（卡片和余额）', operations: ['VIEW', 'CREATE', 'RELOAD', 'SET_ALERT'] },
-      { code: 'history', name: 'History（历史）', operations: ['VIEW', 'EXPORT'] },
-      { code: 'cost-calculator', name: 'Cost Calculator（成本计算器）', operations: ['VIEW'] },
-      { code: 'claim', name: 'Claim（索赔）', operations: ['VIEW', 'CREATE', 'EDIT', 'EXPORT'] }
+      { code: 'invoice', name: 'Invoice', operations: ['VIEW', 'EXPORT', 'PAY', 'INVOICE_DETAIL'] },
+      { code: 'card-and-balance', name: 'Card and Balance', operations: ['VIEW', 'CREATE', 'RELOAD', 'SET_ALERT'] },
+      { code: 'history', name: 'History', operations: ['VIEW', 'EXPORT'] },
+      { code: 'cost-calculator', name: 'Cost Calculator', operations: ['VIEW'] },
+      { code: 'claim', name: 'Claim', operations: ['VIEW', 'CREATE', 'EDIT', 'EXPORT'] }
     ],
     SYSTEM_MANAGEMENT: [
-      { code: 'address-book', name: 'Address Book（地址簿）', operations: ['VIEW', 'CREATE', 'EDIT', 'DELETE', 'EXPORT', 'SET_DEFAULT', 'IMPORT'] },
-      { code: 'settings', name: 'Settings（设置）', operations: ['VIEW', 'CREATE', 'EDIT'] }
+      { code: 'address-book', name: 'Address Book', operations: ['VIEW', 'CREATE', 'EDIT', 'DELETE', 'EXPORT', 'SET_DEFAULT', 'IMPORT'] },
+      { code: 'settings', name: 'Settings', operations: ['VIEW', 'CREATE', 'EDIT'] }
     ],
     PERMISSION_MANAGEMENT: [
-      { code: 'account-management', name: 'Account Management（账号管理）', operations: ['VIEW', 'CREATE', 'EDIT', 'DELETE'] },
-      { code: 'role-management', name: 'Role Management（角色管理）', operations: ['VIEW', 'CREATE', 'EDIT', 'DELETE'] },
-      { code: 'permission-view', name: 'Permission View（权限查看）', operations: ['VIEW'] },
-      { code: 'audit-log', name: 'Audit Log（操作记录）', operations: ['VIEW', 'EXPORT'] }
+      { code: 'account-management', name: 'Account Management', operations: ['VIEW', 'CREATE', 'EDIT', 'DELETE'] },
+      { code: 'role-management', name: 'Role Management', operations: ['VIEW', 'CREATE', 'EDIT', 'DELETE'] },
+      { code: 'permission-view', name: 'Permission View', operations: ['VIEW'] },
+      { code: 'audit-log', name: 'Audit Log', operations: ['VIEW', 'EXPORT'] }
     ]
   };
 
@@ -234,18 +272,16 @@ const RoleManagement: React.FC = () => {
       });
       if (response.data.success) {
         let data = response.data.data.items || [];
-        
-        // 搜索过滤（只搜索角色名称）
         if (searchText) {
           data = data.filter((role: Role) =>
             role.name.toLowerCase().includes(searchText.toLowerCase())
           );
         }
-        
         setRoles(data);
+        setCurrentPage(1);
       }
     } catch (error) {
-      message.error(t('role.loadFailed'));
+      toast.error(t('role.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -255,17 +291,40 @@ const RoleManagement: React.FC = () => {
     const path = location.pathname;
     if (path === '/roles' || path === '/roles/') {
       setIsEditMode(false);
+      setHasUnsavedChanges(false);
       loadRoles();
     } else if (path === '/roles/create') {
       setIsEditMode(true);
       setEditingRole(null);
-      form.resetFields();
+      setFormData({ name: '', description: '', status: 'ACTIVE' });
       setSelectedPermissions({});
+      initialPermissionsRef.current = JSON.stringify({});
+      setHasUnsavedChanges(false);
     } else if (params.id && path.includes('/edit')) {
       setIsEditMode(true);
       loadRoleForEdit(params.id);
     }
-  }, [location.pathname, params.id, loadRoles, form]);
+  }, [location.pathname, params.id, loadRoles]);
+
+  useEffect(() => {
+    if (isEditMode) {
+      const currentPermissions = JSON.stringify(selectedPermissions);
+      if (initialPermissionsRef.current && currentPermissions !== initialPermissionsRef.current) {
+        setHasUnsavedChanges(true);
+      }
+    }
+  }, [selectedPermissions, isEditMode]);
+
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges && isEditMode) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedChanges, isEditMode]);
 
   const loadRoleForEdit = async (id: string) => {
     setLoading(true);
@@ -274,15 +333,12 @@ const RoleManagement: React.FC = () => {
       if (response.data.success) {
         const role = response.data.data;
         setEditingRole(role);
-        
-        // 设置表单值
-        form.setFieldsValue({
+        setFormData({
           name: role.name,
-          description: role.description,
-          status: role.status
+          description: role.description || '',
+          status: role.status,
         });
         
-        // 设置权限选择
         const permissions: Record<string, Record<string, string[]>> = {};
         role.permissions.forEach((perm: Permission) => {
           if (!permissions[perm.module]) {
@@ -291,9 +347,11 @@ const RoleManagement: React.FC = () => {
           permissions[perm.module][perm.pageCode] = perm.operations;
         });
         setSelectedPermissions(permissions);
+        initialPermissionsRef.current = JSON.stringify(permissions);
+        setHasUnsavedChanges(false);
       }
     } catch (error) {
-      message.error(t('role.loadDetailFailed'));
+      toast.error(t('role.loadDetailFailed'));
       navigate('/roles');
     } finally {
       setLoading(false);
@@ -301,7 +359,6 @@ const RoleManagement: React.FC = () => {
   };
 
   useEffect(() => {
-    // 首次加载时获取账号列表
     loadAccounts();
   }, []);
 
@@ -313,49 +370,33 @@ const RoleManagement: React.FC = () => {
 
   const loadAccounts = async () => {
     try {
-      const response = await api.get('/accounts', {
-        params: { page: 1, pageSize: 1000 }
-      });
+      const response = await api.get('/accounts', { params: { page: 1, pageSize: 1000 } });
       if (response.data.success) {
         setAccounts(response.data.data.items || []);
       }
     } catch (error) {
-      console.error('加载账号列表失败');
+      console.error('Failed to load accounts');
     }
   };
 
-  // 创建账号ID到用户名的映射，提高查找效率
   const accountIdToUsernameMap = useMemo(() => {
     const map = new Map<string, string>();
-    accounts.forEach(acc => {
-      map.set(acc.id, acc.username);
-    });
+    accounts.forEach(acc => map.set(acc.id, acc.username));
     return map;
   }, [accounts]);
 
   const getUsernameByAccountId = (accountId: string | undefined): string => {
-    if (!accountId) {
-      return t('role.system');
-    }
-    const username = accountIdToUsernameMap.get(accountId);
-    // 如果找不到账号，可能是账号列表还在加载中，返回accountId作为临时显示
-    // 一旦账号列表加载完成，会自动更新显示
-    return username || accountId;
+    if (!accountId) return t('role.system');
+    return accountIdToUsernameMap.get(accountId) || accountId;
   };
 
   const handleViewUsers = async (roleId: string) => {
-    setSelectedRoleId(roleId);
     setUserListVisible(true);
     setLoadingUsers(true);
     
     try {
-      // 获取所有账号
-      const response = await api.get('/accounts', {
-        params: { page: 1, pageSize: 1000 }
-      });
-      
+      const response = await api.get('/accounts', { params: { page: 1, pageSize: 1000 } });
       if (response.data.success) {
-        // 过滤出使用该角色的账号
         const allAccounts = response.data.data.items || [];
         const users = allAccounts.filter((account: any) => 
           account.roles && account.roles.includes(roleId)
@@ -363,22 +404,16 @@ const RoleManagement: React.FC = () => {
         setUsersWithRole(users);
       }
     } catch (error) {
-      message.error('加载用户列表失败');
+      toast.error(t('account.loadFailed'));
     } finally {
       setLoadingUsers(false);
     }
   };
 
-  const handleCloseUserList = () => {
-    setUserListVisible(false);
-    setSelectedRoleId(null);
-    setUsersWithRole([]);
-  };
-
   const handleCreate = () => {
     setIsEditMode(true);
     setEditingRole(null);
-    form.resetFields();
+    setFormData({ name: '', description: '', status: 'ACTIVE' });
     setSelectedPermissions({});
     navigate('/roles/create');
   };
@@ -386,61 +421,65 @@ const RoleManagement: React.FC = () => {
   const handleEdit = (role: Role) => {
     setIsEditMode(true);
     setEditingRole(role);
-    
-    // 设置表单值
-    form.setFieldsValue({
+    setFormData({
       name: role.name,
-      description: role.description,
-      status: role.status
+      description: role.description || '',
+      status: role.status,
     });
     
-    // 设置权限选择
     const permissions: Record<string, Record<string, string[]>> = {};
     role.permissions.forEach(perm => {
-      if (!permissions[perm.module]) {
-        permissions[perm.module] = {};
-      }
+      if (!permissions[perm.module]) permissions[perm.module] = {};
       permissions[perm.module][perm.pageCode] = perm.operations;
     });
     setSelectedPermissions(permissions);
-    
     navigate(`/roles/${role.id}/edit`);
   };
 
   const handleDuplicate = async (role: Role) => {
     try {
       const response = await api.post('/roles', {
-        name: `${role.name} (副本)`,
+        name: `${role.name} (Copy)`,
         description: role.description,
         status: 'ACTIVE',
         permissions: role.permissions
       });
       if (response.data.success) {
-        message.success(t('role.copySuccess'));
+        toast.success(t('role.copySuccess'));
         loadRoles();
       }
     } catch (error: any) {
-      message.error(error.response?.data?.error || t('role.copyFailed'));
+      toast.error(error.response?.data?.error || t('role.copyFailed'));
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async () => {
+    if (!roleToDelete) return;
     try {
-      const response = await api.delete(`/roles/${id}`);
+      const response = await api.delete(`/roles/${roleToDelete.id}`);
       if (response.data.success) {
-        message.success(t('role.deleteSuccess'));
+        toast.success(t('role.deleteSuccess'));
         loadRoles();
       }
     } catch (error: any) {
-      message.error(error.response?.data?.error || t('role.deleteFailed'));
+      toast.error(error.response?.data?.error || t('role.deleteFailed'));
+    } finally {
+      setDeleteDialogVisible(false);
+      setRoleToDelete(null);
     }
+  };
+
+  const validateForm = (): boolean => {
+    const errors: Record<string, string> = {};
+    if (!formData.name.trim()) errors.name = t('role.nameRequired');
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
   };
 
   const handleSave = async () => {
+    if (!validateForm()) return;
+
     try {
-      const values = await form.validateFields();
-      
-      // 构建权限数组
       const permissions: Permission[] = [];
       Object.keys(selectedPermissions).forEach(module => {
         Object.keys(selectedPermissions[module]).forEach(pageCode => {
@@ -457,53 +496,65 @@ const RoleManagement: React.FC = () => {
         });
       });
 
-      const payload = {
-        ...values,
-        permissions
-      };
+      const payload = { ...formData, permissions };
 
       if (editingRole) {
         const response = await api.put(`/roles/${editingRole.id}`, payload);
         if (response.data.success) {
-          message.success(t('role.updateSuccess'));
-          handleCancel();
+          toast.success(t('role.updateSuccess'));
+          performCancel();
         }
       } else {
         const response = await api.post('/roles', payload);
         if (response.data.success) {
-          message.success(t('role.createSuccess'));
-          handleCancel();
+          toast.success(t('role.createSuccess'));
+          performCancel();
         }
       }
     } catch (error: any) {
-      message.error(error.response?.data?.error || t('role.saveFailed'));
+      toast.error(error.response?.data?.error || t('role.saveFailed'));
     }
   };
 
   const handleCancel = () => {
+    if (hasUnsavedChanges) {
+      setShowUnsavedModal(true);
+      setPendingNavigation('/roles');
+    } else {
+      performCancel();
+    }
+  };
+
+  const performCancel = () => {
     setIsEditMode(false);
     setEditingRole(null);
-    form.resetFields();
+    setFormData({ name: '', description: '', status: 'ACTIVE' });
     setSelectedPermissions({});
+    setHasUnsavedChanges(false);
+    setShowUnsavedModal(false);
     navigate('/roles');
   };
+
+  const handleConfirmLeave = () => {
+    setHasUnsavedChanges(false);
+    setShowUnsavedModal(false);
+    if (pendingNavigation) navigate(pendingNavigation);
+  };
+
+  useKeyboardShortcut('s', handleSave, { ctrlKey: true, enabled: isEditMode });
+  useKeyboardShortcut('Escape', handleCancel, { enabled: isEditMode });
 
   const handlePermissionChange = (module: string, pageCode: string, operation: string, checked: boolean) => {
     setSelectedPermissions(prev => {
       const newPerms = { ...prev };
-      if (!newPerms[module]) {
-        newPerms[module] = {};
-      }
-      if (!newPerms[module][pageCode]) {
-        newPerms[module][pageCode] = [];
-      }
+      if (!newPerms[module]) newPerms[module] = {};
+      if (!newPerms[module][pageCode]) newPerms[module][pageCode] = [];
       
       if (checked) {
         newPerms[module][pageCode] = [...newPerms[module][pageCode], operation];
       } else {
         newPerms[module][pageCode] = newPerms[module][pageCode].filter(op => op !== operation);
       }
-      
       return newPerms;
     });
   };
@@ -514,552 +565,454 @@ const RoleManagement: React.FC = () => {
       const pages = MODULE_PAGES[module.value] || [];
       allPerms[module.value] = {};
       pages.forEach(page => {
-        // 使用该页面支持的操作列表
         allPerms[module.value][page.code] = [...page.operations];
       });
     });
     setSelectedPermissions(allPerms);
   };
 
-  const handleClearAll = () => {
-    setSelectedPermissions({});
-  };
+  const handleClearAll = () => setSelectedPermissions({});
 
-  // 全选某个模块的所有权限
   const handleSelectModule = (moduleValue: string) => {
     const pages = MODULE_PAGES[moduleValue] || [];
     const newPerms = { ...selectedPermissions };
-    if (!newPerms[moduleValue]) {
-      newPerms[moduleValue] = {};
-    }
+    if (!newPerms[moduleValue]) newPerms[moduleValue] = {};
     pages.forEach(page => {
-      // 使用该页面支持的操作列表
       newPerms[moduleValue][page.code] = [...page.operations];
     });
     setSelectedPermissions(newPerms);
   };
 
-  // 清空某个模块的所有权限
   const handleClearModule = (moduleValue: string) => {
     const newPerms = { ...selectedPermissions };
-    if (newPerms[moduleValue]) {
-      delete newPerms[moduleValue];
-      setSelectedPermissions(newPerms);
-    }
-  };
-
-  // 全选某个页面的所有操作
-  const handleSelectPage = (moduleValue: string, pageCode: string) => {
-    const pages = MODULE_PAGES[moduleValue] || [];
-    const page = pages.find(p => p.code === pageCode);
-    if (!page) return;
-    
-    const newPerms = { ...selectedPermissions };
-    if (!newPerms[moduleValue]) {
-      newPerms[moduleValue] = {};
-    }
-    // 使用该页面支持的操作列表
-    newPerms[moduleValue][pageCode] = [...page.operations];
+    delete newPerms[moduleValue];
     setSelectedPermissions(newPerms);
   };
 
-  // 清空某个页面的所有操作
-  const handleClearPage = (moduleValue: string, pageCode: string) => {
-    const newPerms = { ...selectedPermissions };
-    if (newPerms[moduleValue] && newPerms[moduleValue][pageCode]) {
-      delete newPerms[moduleValue][pageCode];
-      // 如果模块下没有其他页面了，删除模块
-      if (Object.keys(newPerms[moduleValue]).length === 0) {
-        delete newPerms[moduleValue];
-      }
-      setSelectedPermissions(newPerms);
+  const applyTemplate = (templateKey: string) => {
+    const templates: Record<string, { operations: string[]; modules?: string[] }> = {
+      fullAccess: { operations: [] },
+      readOnly: { operations: ['VIEW'] },
+      dataEditor: { operations: ['VIEW', 'CREATE', 'EDIT'] },
+      manager: { operations: ['VIEW', 'CREATE', 'EDIT', 'DELETE', 'EXPORT'] },
+      exporter: { operations: ['VIEW', 'EXPORT'] },
+    };
+
+    if (templateKey === 'fullAccess') {
+      handleSelectAll();
+      return;
     }
+
+    const template = templates[templateKey];
+    if (!template) return;
+
+    const newPerms: Record<string, Record<string, string[]>> = {};
+    MODULES.forEach(moduleValue => {
+      const pages = MODULE_PAGES[moduleValue.value] || [];
+      newPerms[moduleValue.value] = {};
+      pages.forEach(page => {
+        const allowedOps = page.operations.filter(op => template.operations.includes(op));
+        if (allowedOps.length > 0) newPerms[moduleValue.value][page.code] = allowedOps;
+      });
+    });
+    setSelectedPermissions(newPerms);
+    toast.success(t('role.templateApplied', { name: templateKey }));
   };
 
-  const getModuleChips = (role: Role) => {
+  const getModuleBadges = (role: Role) => {
     const modules = new Set(role.permissions.map(p => p.module));
     if (modules.size === MODULES.length) {
-      return <Tag>{t('common.all')}</Tag>;
+      return <Badge variant="default">{t('common.all')}</Badge>;
     }
-    return Array.from(modules).map(module => (
-      <Tag key={module}>{MODULES.find(m => m.value === module)?.label || module}</Tag>
-    ));
+    return (
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-xs)' }}>
+        {Array.from(modules).slice(0, 3).map(module => (
+          <Badge key={module} variant="secondary">
+            {MODULES.find(m => m.value === module)?.label || module}
+          </Badge>
+        ))}
+        {modules.size > 3 && <Badge variant="outline">+{modules.size - 3}</Badge>}
+      </div>
+    );
   };
 
-  // 列表页
+  // Pagination
+  const paginatedRoles = useMemo(() => {
+    const startIndex = (currentPage - 1) * pageSize;
+    return roles.slice(startIndex, startIndex + pageSize);
+  }, [roles, currentPage, pageSize]);
+
+  const totalPages = Math.ceil(roles.length / pageSize);
+
+  // List view
   if (!isEditMode) {
-    const columns = [
-      {
-        title: t('role.name'),
-        dataIndex: 'name',
-        key: 'name',
-        width: 200,
-        render: (text: string, record: Role) => (
-          <div>
-            <div style={{ fontWeight: 500 }}>{text}</div>
-            <div style={{ fontSize: 12, color: '#666' }}>{record.id}</div>
-          </div>
-        )
-      },
-      {
-        title: t('common.description'),
-        dataIndex: 'description',
-        key: 'description',
-        width: 200,
-        ellipsis: true
-      },
-      {
-        title: t('role.modules'),
-        key: 'modules',
-        render: (_: any, record: Role) => getModuleChips(record)
-      },
-      {
-        title: t('role.users'),
-        dataIndex: 'usageCount',
-        key: 'usageCount',
-        width: 100,
-        align: 'center' as const,
-        render: (count: number, record: Role) => (
-          <Button
-            type="link"
-            onClick={() => handleViewUsers(record.id)}
-            disabled={count === 0}
-            style={{ padding: 0 }}
-          >
-            {count}
-          </Button>
-        )
-      },
-      {
-        title: t('common.status'),
-        dataIndex: 'status',
-        key: 'status',
-        width: 100,
-        align: 'center' as const,
-        render: (status: string) => (
-          <Tag color={status === 'ACTIVE' ? 'green' : 'default'}>
-            {status === 'ACTIVE' ? t('common.active') : t('common.deprecated')}
-          </Tag>
-        )
-      },
-      {
-        title: t('role.lastModified'),
-        key: 'lastModified',
-        width: 150,
-        render: (_: any, record: Role) => (
-          <div>
-            <div>{new Date(record.updatedAt).toLocaleDateString(locale === 'zh-CN' ? 'zh-CN' : 'en-US')}</div>
-            <div style={{ fontSize: 12, color: '#666' }}>{t('role.modifiedBy')} {getUsernameByAccountId(record.modifiedBy)}</div>
-          </div>
-        )
-      },
-      {
-        title: t('common.actions'),
-        key: 'actions',
-        width: 280,
-        render: (_: any, record: Role) => {
-          return (
-            <Space>
-              <Button type="link" icon={<EditOutlined />} onClick={() => handleEdit(record)}>
-                {t('common.edit')}
-              </Button>
-              <Button type="link" icon={<CopyOutlined />} onClick={() => handleDuplicate(record)}>
-                {t('role.duplicate')}
-              </Button>
-              <Popconfirm
-                title="确定要删除这个角色吗？"
-                onConfirm={() => handleDelete(record.id)}
-                okText="确定"
-                cancelText="取消"
-                disabled={record.usageCount > 0}
-              >
-                <Tooltip 
-                  title={record.usageCount > 0 ? `该角色正在被 ${record.usageCount} 个用户使用，无法删除` : ''}
-                  placement="top"
-                >
-                  <Button 
-                    type="link" 
-                    danger 
-                    icon={<DeleteOutlined />}
-                    disabled={record.usageCount > 0}
-                  >
-                    {t('common.delete')}
-                  </Button>
-                </Tooltip>
-              </Popconfirm>
-            </Space>
-          );
-        }
-      }
-    ];
-
     return (
-      <div>
-        {/* 标题和操作按钮 */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-          <h1 style={{ margin: 0, fontSize: 24 }}>{t('role.title')}</h1>
-          <Space>
-            <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
-              {t('role.create')}
+      <TooltipProvider>
+        <div>
+          {/* Header */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-lg)' }}>
+            <h1 style={{ margin: 0, fontSize: 'var(--text-2xl)', fontWeight: 'var(--font-bold)', color: 'var(--text-primary)' }}>
+              {t('role.title')}
+            </h1>
+            <Button onClick={handleCreate}>
+              <Plus size={16} /> {t('role.create')}
             </Button>
-          </Space>
+          </div>
+
+          {/* Filters */}
+          <Card style={{ marginBottom: 'var(--space-md)' }}>
+            <CardContent style={{ padding: 'var(--space-md)' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 2fr auto', gap: 'var(--space-md)', alignItems: 'center' }}>
+                <Select value={filters.module} onValueChange={(value) => setFilters({ ...filters, module: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={t('role.module')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">{t('filter.allModules')}</SelectItem>
+                    {MODULES.map(m => (
+                      <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={filters.status} onValueChange={(value) => setFilters({ ...filters, status: value })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ACTIVE">{t('common.active')}</SelectItem>
+                    <SelectItem value="DEPRECATED">{t('common.deprecated')}</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Input
+                  placeholder={t('filter.searchPlaceholder')}
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                />
+                <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
+                  <Button variant="outline" onClick={() => { setFilters({ module: 'ALL', status: 'ACTIVE' }); setSearchText(''); }}>
+                    {t('common.reset')}
+                  </Button>
+                  <Button onClick={loadRoles}>
+                    <Search size={16} /> {t('common.search')}
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Table */}
+          {loading ? (
+            <Card><CardContent><div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>{[...Array(5)].map((_, i) => <Skeleton key={i} style={{ height: 48 }} />)}</div></CardContent></Card>
+          ) : roles.length === 0 ? (
+            <Card><CardContent><Empty variant="roles" title={t('common.noData')} action={{ label: t('role.create'), onClick: handleCreate }} /></CardContent></Card>
+          ) : (
+            <>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{t('role.name')}</TableHead>
+                    <TableHead>{t('common.description')}</TableHead>
+                    <TableHead>{t('role.modules')}</TableHead>
+                    <TableHead style={{ textAlign: 'center' }}>{t('role.users')}</TableHead>
+                    <TableHead style={{ textAlign: 'center' }}>{t('common.status')}</TableHead>
+                    <TableHead>{t('role.lastModified')}</TableHead>
+                    <TableHead style={{ width: 80, textAlign: 'center' }}>{t('common.actions')}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paginatedRoles.map(role => (
+                    <TableRow key={role.id}>
+                      <TableCell>
+                        <div style={{ fontWeight: 'var(--font-medium)', color: 'var(--text-primary)' }}>{role.name}</div>
+                        <div className="text-xs text-secondary">{role.id}</div>
+                      </TableCell>
+                      <TableCell style={{ maxWidth: 200 }}>
+                        <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {role.description || '-'}
+                        </span>
+                      </TableCell>
+                      <TableCell>{getModuleBadges(role)}</TableCell>
+                      <TableCell style={{ textAlign: 'center' }}>
+                        <Button variant="link" size="sm" onClick={() => handleViewUsers(role.id)} disabled={role.usageCount === 0}>
+                          {role.usageCount}
+                        </Button>
+                      </TableCell>
+                      <TableCell style={{ textAlign: 'center' }}>
+                        <Badge variant={role.status === 'ACTIVE' ? 'success' : 'secondary'}>
+                          {role.status === 'ACTIVE' ? t('common.active') : t('common.deprecated')}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div style={{ color: 'var(--text-primary)' }}>{new Date(role.updatedAt).toLocaleDateString(locale === 'zh-CN' ? 'zh-CN' : 'en-US')}</div>
+                        <div className="text-xs text-secondary">{t('role.modifiedBy')} {getUsernameByAccountId(role.modifiedBy)}</div>
+                      </TableCell>
+                      <TableCell style={{ textAlign: 'center' }}>
+                        <DropdownMenu modal={false}>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon"><MoreHorizontal size={18} /></Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleEdit(role)}>
+                              <Pencil size={14} style={{ marginRight: 8 }} />{t('common.edit')}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleDuplicate(role)}>
+                              <Copy size={14} style={{ marginRight: 8 }} />{t('role.duplicate')}
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem danger disabled={role.usageCount > 0} onClick={() => { setRoleToDelete(role); setDeleteDialogVisible(true); }}>
+                              <Trash2 size={14} style={{ marginRight: 8 }} />{t('common.delete')}
+                              {role.usageCount > 0 && <span className="text-xs" style={{ marginLeft: 4 }}>({t('role.inUseWarning', { count: role.usageCount.toString() })})</span>}
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              {totalPages > 1 && (
+                <div style={{ marginTop: 'var(--space-md)' }}>
+                  <Pagination currentPage={currentPage} totalPages={totalPages} totalItems={roles.length} pageSize={pageSize} onPageChange={setCurrentPage} />
+                </div>
+              )}
+            </>
+          )}
+
+          {/* User List Dialog */}
+          <Dialog open={userListVisible} onOpenChange={setUserListVisible}>
+            <DialogContent className="ui-dialog-content--lg">
+              <DialogHeader><DialogTitle>{t('role.usersWithRole')}</DialogTitle></DialogHeader>
+              {loadingUsers ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>{[...Array(3)].map((_, i) => <Skeleton key={i} style={{ height: 40 }} />)}</div>
+              ) : usersWithRole.length === 0 ? (
+                <Empty variant="accounts" title={t('role.noUsersWithRole')} />
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>{t('account.username')}</TableHead>
+                      <TableHead>{t('account.email')}</TableHead>
+                      <TableHead>{t('account.accountType')}</TableHead>
+                      <TableHead>{t('common.status')}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {usersWithRole.map(user => (
+                      <TableRow key={user.id}>
+                        <TableCell>{user.username}</TableCell>
+                        <TableCell>{user.email}</TableCell>
+                        <TableCell>
+                          <Badge variant={user.accountType === 'MAIN' ? 'destructive' : user.accountType === 'CUSTOMER' ? 'info' : 'success'}>
+                            {t(`account.type${user.accountType.charAt(0) + user.accountType.slice(1).toLowerCase()}`)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={user.status === 'ACTIVE' ? 'success' : 'secondary'}>
+                            {t(`account.status${user.status.charAt(0) + user.status.slice(1).toLowerCase()}`)}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setUserListVisible(false)}>{t('common.close')}</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* Delete Dialog */}
+          <Dialog open={deleteDialogVisible} onOpenChange={setDeleteDialogVisible}>
+            <DialogContent className="ui-dialog-content--sm">
+              <DialogHeader>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
+                  <AlertTriangle size={20} style={{ color: 'var(--danger)' }} />
+                  <DialogTitle>{t('common.confirm')}</DialogTitle>
+                </div>
+                <DialogDescription>
+                  {roleToDelete && t('role.deleteConfirm', { name: roleToDelete.name })}
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setDeleteDialogVisible(false)}>{t('common.cancel')}</Button>
+                <Button variant="destructive" onClick={handleDelete}>{t('common.delete')}</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
-
-        {/* 过滤器和搜索 */}
-        <Card style={{ marginBottom: 16 }}>
-          <Row gutter={16} align="middle">
-            <Col span={6}>
-              <Select
-                style={{ width: '100%' }}
-                value={filters.module}
-                onChange={(value) => setFilters({ ...filters, module: value })}
-                placeholder={t('role.module')}
-              >
-                <Option value="ALL">{t('filter.allModules')}</Option>
-                {MODULES.map(m => (
-                  <Option key={m.value} value={m.value}>{m.label}</Option>
-                ))}
-              </Select>
-            </Col>
-            <Col span={6}>
-              <Select
-                style={{ width: '100%' }}
-                value={filters.status}
-                onChange={(value) => setFilters({ ...filters, status: value })}
-                placeholder={t('common.status')}
-              >
-                <Option value="ACTIVE">{t('common.active')}</Option>
-                <Option value="DEPRECATED">{t('common.deprecated')}</Option>
-              </Select>
-            </Col>
-            <Col span={8}>
-              <Input
-                placeholder={t('filter.searchPlaceholder')}
-                value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
-                onPressEnter={loadRoles}
-              />
-            </Col>
-            <Col span={4}>
-              <Space>
-                <Button onClick={() => {
-                  setFilters({ module: 'ALL', status: 'ACTIVE' });
-                  setSearchText('');
-                  loadRoles();
-                }}>
-                  {t('common.reset')}
-                </Button>
-                <Button type="primary" onClick={loadRoles}>{t('common.search')}</Button>
-              </Space>
-            </Col>
-          </Row>
-        </Card>
-
-        {/* 表格 */}
-        <Table
-          columns={columns}
-          dataSource={roles}
-          loading={loading}
-          rowKey="id"
-          scroll={{ x: 'max-content' }}
-          pagination={{
-            showTotal: (total, range) => t('pagination.showing', { start: String(range[0]), end: String(range[1]), total: String(total) }),
-            pageSize: 10,
-            showSizeChanger: true
-          }}
-        />
-
-        {/* 用户列表Modal */}
-        <Modal
-          title="使用该角色的用户列表"
-          open={userListVisible}
-          onCancel={handleCloseUserList}
-          footer={[
-            <Button key="close" onClick={handleCloseUserList}>
-              关闭
-            </Button>
-          ]}
-          width={800}
-        >
-          <Table
-            dataSource={usersWithRole}
-            loading={loadingUsers}
-            rowKey="id"
-            pagination={{ pageSize: 10 }}
-            columns={[
-              {
-                title: '用户名',
-                dataIndex: 'username',
-                key: 'username'
-              },
-              {
-                title: '邮箱',
-                dataIndex: 'email',
-                key: 'email'
-              },
-              {
-                title: '手机号',
-                dataIndex: 'phone',
-                key: 'phone',
-                render: (phone: string) => phone || '-'
-              },
-              {
-                title: '账号类型',
-                dataIndex: 'accountType',
-                key: 'accountType',
-                render: (type: string) => {
-                  const typeMap: Record<string, { text: string; color: string }> = {
-                    MAIN: { text: '主账号', color: 'red' },
-                    CUSTOMER: { text: '客户子账号', color: 'blue' },
-                    PARTNER: { text: 'Partner账号', color: 'green' }
-                  };
-                  const info = typeMap[type] || { text: type, color: 'default' };
-                  return <Tag color={info.color}>{info.text}</Tag>;
-                }
-              },
-              {
-                title: '状态',
-                dataIndex: 'status',
-                key: 'status',
-                render: (status: string) => {
-                  const statusMap: Record<string, { text: string; color: string }> = {
-                    ACTIVE: { text: '启用', color: 'green' },
-                    INACTIVE: { text: '禁用', color: 'default' },
-                    SUSPENDED: { text: '暂停', color: 'orange' }
-                  };
-                  const info = statusMap[status] || { text: status, color: 'default' };
-                  return <Tag color={info.color}>{info.text}</Tag>;
-                }
-              }
-            ]}
-          />
-        </Modal>
-      </div>
+      </TooltipProvider>
     );
   }
 
-  // 编辑/创建页
+  // Edit/Create view - Two column layout
   return (
-    <div>
-      {/* 标题和操作按钮 */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <div>
-          <h1 style={{ margin: 0, fontSize: 24 }}>{editingRole ? t('role.editTitle') : t('role.createTitle')}</h1>
-          <p style={{ margin: '8px 0 0', color: '#666' }}>{t('role.subtitle')}</p>
+    <TooltipProvider>
+      <div style={{ height: 'calc(100vh - 180px)', display: 'flex', flexDirection: 'column' }}>
+        {/* Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-lg)', flexShrink: 0 }}>
+          <div>
+            <h1 style={{ margin: 0, fontSize: 'var(--text-2xl)', fontWeight: 'var(--font-bold)', color: 'var(--text-primary)' }}>
+              {editingRole ? t('role.editTitle') : t('role.createTitle')}
+            </h1>
+            <p className="text-secondary" style={{ margin: 'var(--space-sm) 0 0' }}>{t('role.subtitle')}</p>
+          </div>
+          <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
+            <Button variant="outline" onClick={handleCancel}>{t('common.cancel')}</Button>
+            <Button onClick={handleSave}>{editingRole ? t('role.saveChanges') : t('role.create')}</Button>
+          </div>
         </div>
-        <Space>
-          <Button onClick={handleCancel}>{t('common.cancel')}</Button>
-          <Button type="primary" onClick={handleSave}>
-            {editingRole ? t('role.saveChanges') : t('role.create')}
-          </Button>
-        </Space>
-      </div>
 
-      <Form form={form} layout="vertical">
-        {/* Role Details */}
-        <Card title={t('role.roleDetails')} style={{ marginBottom: 24 }}>
-          <Row gutter={24}>
-            <Col span={12}>
-              <Form.Item
-                name="name"
-                label={
-                  <>
-                    {t('role.name')} <span style={{ color: 'red' }}>*</span>
-                  </>
-                }
-                rules={[{ required: true, message: t('role.nameRequired') }]}
-                tooltip={t('role.nameTooltip')}
-              >
-                <Input placeholder={t('role.namePlaceholder')} />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                label={
-                  <>
-                    {t('role.id')} <span style={{ color: 'red' }}>*</span>
-                  </>
-                }
-                tooltip={t('role.idTooltip')}
-              >
+        {/* Two Column Layout */}
+        <Card style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+            {/* Left Column: Basic Role Information */}
+            <div style={{ 
+              width: 320, 
+              borderRight: '1px solid var(--border-color)', 
+              padding: 'var(--space-lg)', 
+              overflowY: 'auto',
+              flexShrink: 0,
+              backgroundColor: 'var(--bg-primary)',
+            }}>
+              <h3 style={{ 
+                margin: '0 0 var(--space-lg) 0', 
+                fontSize: 'var(--text-base)', 
+                fontWeight: 'var(--font-semibold)',
+                color: 'var(--text-primary)',
+              }}>
+                {t('role.roleDetails')}
+              </h3>
+
+              {/* Role Name */}
+              <div style={{ marginBottom: 'var(--space-md)' }}>
+                <Label required>{t('role.name')}</Label>
+                <Input
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder={t('role.namePlaceholder')}
+                  error={!!formErrors.name}
+                />
+                {formErrors.name && <span className="text-sm" style={{ color: 'var(--danger)' }}>{formErrors.name}</span>}
+              </div>
+
+              {/* Role ID */}
+              <div style={{ marginBottom: 'var(--space-md)' }}>
+                <Label>{t('role.id')}</Label>
                 <Input value={editingRole?.id || t('role.idAuto')} disabled />
-              </Form.Item>
-            </Col>
-          </Row>
+              </div>
 
-          <Form.Item
-            name="description"
-            label={t('common.description')}
-          >
-            <TextArea
-              rows={4}
-              placeholder={t('role.descriptionPlaceholder')}
-            />
-          </Form.Item>
+              {/* Description */}
+              <div style={{ marginBottom: 'var(--space-md)' }}>
+                <Label>{t('common.description')}</Label>
+                <Textarea
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  placeholder={t('role.descriptionPlaceholder')}
+                  style={{ minHeight: 100 }}
+                />
+              </div>
 
-          <Form.Item
-            name="status"
-            label={
-              <>
-                {t('common.status')} <span style={{ color: 'red' }}>*</span>
-              </>
-            }
-            rules={[{ required: true, message: t('role.statusRequired') }]}
-          >
-            <Radio.Group>
-              <Space>
-                <Radio value="ACTIVE">
-                  <div>
-                    <div style={{ fontWeight: 500 }}>{t('role.statusActive')}</div>
-                    <div style={{ fontSize: 12, color: '#666' }}>{t('role.statusActiveDesc')}</div>
-                  </div>
-                </Radio>
-                <Radio value="DEPRECATED">
-                  <div>
-                    <div style={{ fontWeight: 500 }}>{t('role.statusDeprecated')}</div>
-                    <div style={{ fontSize: 12, color: '#666' }}>{t('role.statusDeprecatedDesc')}</div>
-                  </div>
-                </Radio>
-              </Space>
-            </Radio.Group>
-          </Form.Item>
-        </Card>
-
-        {/* Permission Configuration */}
-        <Card
-          title={t('role.permissions')}
-          extra={
-            <Space>
-              <Button onClick={handleSelectAll}>{t('common.selectAll')}</Button>
-              <Button onClick={handleClearAll}>{t('common.clearAll')}</Button>
-            </Space>
-          }
-        >
-          <Collapse defaultActiveKey={MODULES.map(m => m.value)}>
-            {MODULES.map(module => {
-              const pages = MODULE_PAGES[module.value] || [];
-              return (
-                <Panel 
-                  header={
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span>{module.label}</span>
-                      <Button 
-                        type="link" 
-                        size="small" 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleSelectModule(module.value);
-                        }}
-                        style={{ padding: 0, height: 'auto' }}
-                      >
-                        全选
-                      </Button>
-                      <Button 
-                        type="link" 
-                        size="small" 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleClearModule(module.value);
-                        }}
-                        style={{ padding: 0, height: 'auto' }}
-                      >
-                        清空
-                      </Button>
-                    </div>
-                  } 
-                  key={module.value}
+              {/* Status */}
+              <div>
+                <Label required>{t('common.status')}</Label>
+                <RadioGroup
+                  value={formData.status}
+                  onValueChange={(value) => setFormData({ ...formData, status: value as 'ACTIVE' | 'DEPRECATED' })}
+                  style={{ marginTop: 'var(--space-sm)' }}
                 >
-                  {/* 获取该模块下所有页面支持的所有操作 */}
-                  {(() => {
-                    const allOperationsInModule = new Set<string>();
-                    pages.forEach(page => {
-                      page.operations.forEach(op => allOperationsInModule.add(op));
-                    });
-                    const operationsList = Array.from(allOperationsInModule);
-                    
-                    return (
-                      <Table
-                        dataSource={pages}
-                        rowKey="code"
-                        pagination={false}
-                        columns={[
-                          {
-                            title: t('role.feature'),
-                            dataIndex: 'name',
-                            key: 'name',
-                            fixed: 'left',
-                            width: 450,
-                            render: (text: string, record: any) => {
-                              // 去掉括号中的中文
-                              const displayName = text.replace(/（[^）]*）/g, '').trim();
-                              return (
-                                <Space size="middle">
-                                  <span>
-                                    {displayName}
-                                  </span>
-                                  {record.tooltip && (
-                                    <Tooltip title={record.tooltip}>
-                                      <InfoCircleOutlined style={{ color: '#999' }} />
-                                    </Tooltip>
-                                  )}
-                                  <Button
-                                    type="link"
-                                    size="small"
-                                    onClick={() => handleSelectPage(module.value, record.code)}
-                                    style={{ padding: 0, height: 'auto', fontSize: 12 }}
-                                  >
-                                    全选
-                                  </Button>
-                                  <Button
-                                    type="link"
-                                    size="small"
-                                    onClick={() => handleClearPage(module.value, record.code)}
-                                    style={{ padding: 0, height: 'auto', fontSize: 12 }}
-                                  >
-                                    清空
-                                  </Button>
-                                </Space>
-                              );
-                            }
-                          },
-                          {
-                            title: '操作',
-                            key: 'operations',
-                            render: (_: any, record: any) => {
-                              return (
-                                <div style={{ padding: '8px 0' }}>
-                                  <Space wrap size="large">
-                                    {/* 只显示该功能支持的操作 */}
-                                    {record.operations.map((opValue: string) => {
-                                      const op = ALL_OPERATIONS.find(o => o.value === opValue);
-                                      const checked = selectedPermissions[module.value]?.[record.code]?.includes(opValue) || false;
-                                      return (
-                                        <Checkbox
-                                          key={opValue}
-                                          checked={checked}
-                                          onChange={(e) => handlePermissionChange(module.value, record.code, opValue, e.target.checked)}
-                                        >
-                                          {op?.label || opValue}
-                                        </Checkbox>
-                                      );
-                                    })}
-                                  </Space>
-                                </div>
-                              );
-                            }
-                          }
-                        ]}
-                        scroll={{ x: 'max-content' }}
-                      />
-                    );
-                  })()}
-                </Panel>
-              );
-            })}
-          </Collapse>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)', marginBottom: 'var(--space-sm)' }}>
+                    <RadioGroupItem value="ACTIVE" id="status-active" />
+                    <label htmlFor="status-active" style={{ cursor: 'pointer', color: 'var(--text-primary)' }}>
+                      {t('role.statusActive')}
+                    </label>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
+                    <RadioGroupItem value="DEPRECATED" id="status-deprecated" />
+                    <label htmlFor="status-deprecated" style={{ cursor: 'pointer', color: 'var(--text-primary)' }}>
+                      {t('role.statusDeprecated')}
+                    </label>
+                  </div>
+                </RadioGroup>
+              </div>
+            </div>
+
+            {/* Right Column: Permissions Tree */}
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+              {/* Permissions Header */}
+              <div style={{ 
+                padding: 'var(--space-md) var(--space-lg)', 
+                borderBottom: '1px solid var(--border-color)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                backgroundColor: 'var(--bg-primary)',
+                flexShrink: 0,
+              }}>
+                <h3 style={{ 
+                  margin: 0, 
+                  fontSize: 'var(--text-base)', 
+                  fontWeight: 'var(--font-semibold)',
+                  color: 'var(--text-primary)',
+                }}>
+                  {t('role.permissions')}
+                </h3>
+                <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
+                  <DropdownMenu modal={false}>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm"><Zap size={14} /> {t('role.templates')}</Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuLabel>{t('role.templates')}</DropdownMenuLabel>
+                      <DropdownMenuItem onClick={() => applyTemplate('fullAccess')}>🔓 {t('role.templateFullAccess')}</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => applyTemplate('readOnly')}>👁️ {t('role.templateReadOnly')}</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => applyTemplate('dataEditor')}>✏️ {t('role.templateDataEditor')}</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => applyTemplate('manager')}>👔 {t('role.templateManager')}</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => applyTemplate('exporter')}>📊 {t('role.templateExporter')}</DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem danger onClick={handleClearAll}>
+                        <Trash2 size={14} style={{ marginRight: 8 }} />{t('common.clearAll')}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  <Button variant="outline" size="sm" onClick={handleSelectAll}>{t('common.selectAll')}</Button>
+                  <Button variant="outline" size="sm" onClick={handleClearAll}>{t('common.clearAll')}</Button>
+                </div>
+              </div>
+
+              {/* Permissions Tree Content */}
+              <div style={{ flex: 1, overflowY: 'auto', padding: 'var(--space-lg)' }}>
+                <PermissionsTree
+                  modules={MODULES}
+                  modulePages={MODULE_PAGES}
+                  selectedPermissions={selectedPermissions}
+                  onPermissionChange={handlePermissionChange}
+                  onSelectModule={handleSelectModule}
+                  onClearModule={handleClearModule}
+                />
+              </div>
+            </div>
+          </div>
         </Card>
-      </Form>
-    </div>
+
+        {/* Unsaved Changes Dialog */}
+        <Dialog open={showUnsavedModal} onOpenChange={setShowUnsavedModal}>
+          <DialogContent className="ui-dialog-content--sm">
+            <DialogHeader>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
+                <AlertTriangle size={20} style={{ color: 'var(--warning)' }} />
+                <DialogTitle>{t('role.unsavedChanges')}</DialogTitle>
+              </div>
+              <DialogDescription>{t('role.unsavedChangesMessage')}</DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowUnsavedModal(false)}>{t('role.stayOnPage')}</Button>
+              <Button variant="destructive" onClick={handleConfirmLeave}>{t('role.leavePage')}</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </TooltipProvider>
   );
 };
 

@@ -1,160 +1,277 @@
 import React, { useState } from 'react';
-import { Layout, Menu, Avatar, Dropdown, Button, Space } from 'antd';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  UserOutlined,
-  TeamOutlined,
-  SafetyOutlined,
-  MenuOutlined,
-  LogoutOutlined,
-  UnorderedListOutlined,
-  GlobalOutlined,
-  FileTextOutlined
-} from '@ant-design/icons';
+  User, Users, Shield, Menu, LogOut, List, Globe, FileText, Sun, Moon, ChevronDown, ChevronRight
+} from 'lucide-react';
+import { Button } from '../ui/button';
+import { Avatar, AvatarFallback } from '../ui/avatar';
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger 
+} from '../ui/dropdown-menu';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLocale } from '../../contexts/LocaleContext';
-import type { MenuProps } from 'antd';
-
-const { Header, Sider, Content } = Layout;
+import { useTheme } from '../../contexts/ThemeContext';
+import Breadcrumb from './Breadcrumb';
 
 interface MainLayoutProps {
   children: React.ReactNode;
 }
 
+interface NavItem {
+  key: string;
+  icon: React.ReactNode;
+  label: string;
+  path?: string;
+  children?: NavItem[];
+}
+
 const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const [collapsed, setCollapsed] = useState(false);
-  const [openKeys, setOpenKeys] = useState<string[]>(['account-management']);
+  const [expandedMenus, setExpandedMenus] = useState<string[]>(['account-management']);
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuth();
   const { locale, setLocale, t } = useLocale();
+  const { theme, toggleTheme } = useTheme();
 
-  // 根据当前路径自动展开对应的父菜单
+  // Auto-expand parent menu based on current path
   React.useEffect(() => {
     if (['/accounts', '/roles', '/permissions', '/audit-logs'].includes(location.pathname)) {
-      setOpenKeys(['account-management']);
+      if (!expandedMenus.includes('account-management')) {
+        setExpandedMenus([...expandedMenus, 'account-management']);
+      }
     }
   }, [location.pathname]);
 
-  const menuItems: MenuProps['items'] = [
+  const navItems: NavItem[] = [
     {
       key: 'account-management',
-      icon: <TeamOutlined />,
+      icon: <Users className="w-4 h-4" />,
       label: t('nav.accessControl'),
       children: [
         {
           key: '/accounts',
-          icon: <TeamOutlined />,
-          label: t('nav.accountManagement')
+          icon: <Users className="w-4 h-4" />,
+          label: t('nav.accountManagement'),
+          path: '/accounts'
         },
         {
           key: '/roles',
-          icon: <SafetyOutlined />,
-          label: t('nav.roleManagement')
+          icon: <Shield className="w-4 h-4" />,
+          label: t('nav.roleManagement'),
+          path: '/roles'
         },
         {
           key: '/permissions',
-          icon: <UnorderedListOutlined />,
-          label: t('nav.permissionView')
+          icon: <List className="w-4 h-4" />,
+          label: t('nav.permissionView'),
+          path: '/permissions'
         },
         {
           key: '/audit-logs',
-          icon: <FileTextOutlined />,
-          label: t('nav.auditLog')
+          icon: <FileText className="w-4 h-4" />,
+          label: t('nav.auditLog'),
+          path: '/audit-logs'
         }
       ]
     }
   ];
 
-  const localeMenuItems: MenuProps['items'] = [
-    {
-      key: 'zh-CN',
-      label: '中文',
-      onClick: () => setLocale('zh-CN')
-    },
-    {
-      key: 'en-US',
-      label: 'English',
-      onClick: () => setLocale('en-US')
-    }
-  ];
+  const toggleMenu = (key: string) => {
+    setExpandedMenus(prev => 
+      prev.includes(key) 
+        ? prev.filter(k => k !== key)
+        : [...prev, key]
+    );
+  };
 
-  const userMenuItems: MenuProps['items'] = [
-    {
-      key: 'logout',
-      icon: <LogoutOutlined />,
-      label: locale === 'zh-CN' ? '退出登录' : 'Logout',
-      onClick: () => {
-        logout();
-        navigate('/login');
-      }
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
+  const isDark = theme === 'dark';
+
+  const renderNavItem = (item: NavItem, depth = 0) => {
+    const isExpanded = expandedMenus.includes(item.key);
+    const isActive = item.path ? location.pathname === item.path : false;
+    const hasChildren = item.children && item.children.length > 0;
+
+    if (hasChildren) {
+      return (
+        <div key={item.key}>
+          <button
+            onClick={() => toggleMenu(item.key)}
+            className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors
+              ${collapsed ? 'justify-center' : 'justify-between'}
+              hover:bg-white/10 text-white/80 hover:text-white`}
+          >
+            <div className="flex items-center gap-3">
+              {item.icon}
+              {!collapsed && <span className="text-sm font-medium">{item.label}</span>}
+            </div>
+            {!collapsed && (
+              isExpanded 
+                ? <ChevronDown className="w-4 h-4" /> 
+                : <ChevronRight className="w-4 h-4" />
+            )}
+          </button>
+          {isExpanded && !collapsed && (
+            <div className="ml-4 border-l border-white/20">
+              {item.children!.map(child => renderNavItem(child, depth + 1))}
+            </div>
+          )}
+        </div>
+      );
     }
-  ];
+
+    return (
+      <TooltipProvider key={item.key}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={() => item.path && navigate(item.path)}
+              className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors
+                ${collapsed ? 'justify-center' : ''}
+                ${isActive 
+                  ? 'bg-white/20 text-white font-medium' 
+                  : 'text-white/70 hover:bg-white/10 hover:text-white'}`}
+            >
+              {item.icon}
+              {!collapsed && <span>{item.label}</span>}
+            </button>
+          </TooltipTrigger>
+          {collapsed && <TooltipContent side="right">{item.label}</TooltipContent>}
+        </Tooltip>
+      </TooltipProvider>
+    );
+  };
 
   return (
-    <Layout style={{ minHeight: '100vh' }}>
-      <Sider trigger={null} collapsible collapsed={collapsed}>
-        <div style={{ 
-          height: 64, 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center',
-          color: '#fff',
-          fontSize: 18,
-          fontWeight: 'bold'
-        }}>
+    <div className="min-h-screen flex">
+      {/* Sidebar */}
+      <aside 
+        className={`${collapsed ? 'w-16' : 'w-60'} flex-shrink-0 transition-all duration-300 flex flex-col`}
+        style={{ 
+          background: isDark ? 'var(--bg-tertiary)' : 'var(--primary)',
+        }}
+      >
+        {/* Logo */}
+        <div 
+          className={`h-16 flex items-center justify-center font-bold text-lg ${collapsed ? 'px-2' : 'px-4'}`}
+          style={{ color: '#FFFFFF' }}
+        >
           {collapsed ? 'CP' : 'Client Portal'}
         </div>
-        <Menu
-          theme="dark"
-          mode="inline"
-          selectedKeys={[location.pathname]}
-          openKeys={openKeys}
-          onOpenChange={setOpenKeys}
-          items={menuItems}
-          onClick={({ key }) => {
-            // 只处理子菜单的点击，父菜单点击不导航
-            if (key !== 'account-management') {
-              navigate(key);
-            }
+        
+        {/* Navigation */}
+        <nav className="flex-1 py-2">
+          {navItems.map(item => renderNavItem(item))}
+        </nav>
+      </aside>
+
+      {/* Main content */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Header */}
+        <header 
+          className="h-16 flex items-center justify-between px-4 border-b"
+          style={{ 
+            background: 'var(--bg-primary)',
+            borderColor: 'var(--border-color)',
           }}
-        />
-      </Sider>
-      <Layout>
-        <Header style={{ 
-          padding: '0 24px', 
-          background: '#fff',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
+        >
           <Button
-            type="text"
-            icon={<MenuOutlined />}
+            variant="ghost"
+            size="icon"
             onClick={() => setCollapsed(!collapsed)}
-            style={{ fontSize: 16, width: 64, height: 64 }}
-          />
-          <Space>
-            <Dropdown menu={{ items: localeMenuItems }} placement="bottomRight">
-              <Button type="text" icon={<GlobalOutlined />}>
-                {locale === 'zh-CN' ? '中文' : 'English'}
-              </Button>
-            </Dropdown>
-            <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
-              <div style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Avatar icon={<UserOutlined />} />
-                <span>{user?.username}</span>
-              </div>
-            </Dropdown>
-          </Space>
-        </Header>
-        <Content style={{ margin: '24px 16px', padding: 24, background: '#fff', minHeight: 280 }}>
-          {children}
-        </Content>
-      </Layout>
-    </Layout>
+            className="text-foreground"
+          >
+            <Menu className="w-5 h-5" />
+          </Button>
+          
+          <div className="flex items-center gap-2">
+            {/* Theme Toggle */}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={toggleTheme}
+                    className="text-foreground"
+                  >
+                    {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            
+            {/* Language Selector */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="text-foreground gap-2">
+                  <Globe className="w-4 h-4" />
+                  {locale === 'zh-CN' ? '中文' : 'English'}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setLocale('zh-CN')}>
+                  中文
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setLocale('en-US')}>
+                  English
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            
+            {/* User Menu */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="flex items-center gap-2 px-2 py-1 rounded-md hover:bg-muted transition-colors">
+                  <Avatar className="w-8 h-8">
+                    <AvatarFallback className="bg-primary text-primary-foreground">
+                      <User className="w-4 h-4" />
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="font-medium text-foreground">{user?.username}</span>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleLogout} className="text-danger">
+                  <LogOut className="w-4 h-4 mr-2" />
+                  {locale === 'zh-CN' ? '退出登录' : 'Logout'}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </header>
+        
+        {/* Page Content */}
+        <main 
+          className="flex-1 p-4 md:p-6 overflow-auto"
+          style={{ background: 'var(--bg-secondary)' }}
+        >
+          <div 
+            className="rounded-xl p-6 min-h-full"
+            style={{ 
+              background: 'var(--bg-primary)',
+              boxShadow: 'var(--shadow-sm)',
+            }}
+          >
+            <Breadcrumb />
+            {children}
+          </div>
+        </main>
+      </div>
+    </div>
   );
 };
 
 export default MainLayout;
-

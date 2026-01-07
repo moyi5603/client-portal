@@ -1,21 +1,22 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
-  Card, Select, Table, Tag, Space, Radio, Tooltip, Avatar, Input, 
-  Button, Row, Col, Typography, Divider 
-} from 'antd';
-import { 
-  UserOutlined, EyeOutlined, PlusOutlined, EditOutlined, 
-  DeleteOutlined, CheckCircleOutlined, DownloadOutlined,
-  ReloadOutlined, InfoCircleOutlined
-} from '@ant-design/icons';
+  Eye, Plus, Edit2, Trash2, Download, 
+  RefreshCw, CheckCircle, Info, ArrowLeftRight, X, User
+} from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Badge } from '../components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { Switch } from '../components/ui/switch';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../components/ui/tooltip';
+import { Avatar, AvatarFallback } from '../components/ui/avatar';
+import { Separator } from '../components/ui/separator';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
+import { Pagination } from '../components/ui/pagination';
 import api from '../utils/api';
 import { useLocale } from '../contexts/LocaleContext';
-import { useNavigate } from 'react-router-dom';
-import type { ColumnsType } from 'antd/es/table';
-
-const { Option } = Select;
-const { Title, Text } = Typography;
-const { Search } = Input;
 
 interface Role {
   id: string;
@@ -39,67 +40,77 @@ interface Account {
   roles: string[];
 }
 
-// 模块配置（包含颜色和显示名称）- 与角色管理保持一致
-const MODULE_CONFIG: Record<string, { name: string; color: string }> = {
-  'DASHBOARDS': { name: 'Dashboards', color: '#722ed1' },
-  'PURCHASE_MANAGEMENT': { name: 'Purchase Management', color: '#fa8c16' },
-  'SALES_ORDER': { name: 'Sales Order', color: '#52c41a' },
-  'WORK_ORDER': { name: 'Work Order', color: '#eb2f96' },
-  'INBOUND': { name: 'Inbound', color: '#f5222d' },
-  'INVENTORY': { name: 'Inventory', color: '#1890ff' },
-  'OUTBOUND': { name: 'Outbound', color: '#722ed1' },
-  'RETURNS': { name: 'Returns', color: '#fa8c16' },
-  'YARD_MANAGEMENT': { name: 'Yard Management', color: '#52c41a' },
-  'SUPPLY_CHAIN': { name: 'Supply Chain Mgmt', color: '#eb2f96' },
-  'FINANCE': { name: 'Finance', color: '#f5222d' },
-  'SYSTEM_MANAGEMENT': { name: 'System Management', color: '#1890ff' },
-  'PERMISSION_MANAGEMENT': { name: 'Permission Management', color: '#722ed1' }
+// Module configuration with brand-compliant colors using CSS variables
+const MODULE_CONFIG: Record<string, { name: string; colorToken: 'primary' | 'accent' | 'success' | 'warning' | 'danger' | 'info' }> = {
+  'DASHBOARDS': { name: 'Dashboards', colorToken: 'primary' },
+  'PURCHASE_MANAGEMENT': { name: 'Purchase Management', colorToken: 'accent' },
+  'SALES_ORDER': { name: 'Sales Order', colorToken: 'success' },
+  'WORK_ORDER': { name: 'Work Order', colorToken: 'primary' },
+  'INBOUND': { name: 'Inbound', colorToken: 'danger' },
+  'INVENTORY': { name: 'Inventory', colorToken: 'primary' },
+  'OUTBOUND': { name: 'Outbound', colorToken: 'primary' },
+  'RETURNS': { name: 'Returns', colorToken: 'warning' },
+  'YARD_MANAGEMENT': { name: 'Yard Management', colorToken: 'success' },
+  'SUPPLY_CHAIN': { name: 'Supply Chain Mgmt', colorToken: 'primary' },
+  'FINANCE': { name: 'Finance', colorToken: 'accent' },
+  'SYSTEM_MANAGEMENT': { name: 'System Management', colorToken: 'info' },
+  'PERMISSION_MANAGEMENT': { name: 'Permission Management', colorToken: 'primary' }
 };
 
-// 操作图标映射（基于角色管理中的功能配置）
-const OPERATION_ICONS: Record<string, { icon: React.ReactNode; color: string }> = {
-  'VIEW': { icon: <EyeOutlined />, color: '#52c41a' },
-  'CREATE': { icon: <PlusOutlined />, color: '#52c41a' },
-  'EDIT': { icon: <EditOutlined />, color: '#722ed1' },
-  'DELETE': { icon: <DeleteOutlined />, color: '#f5222d' },
-  'EXPORT': { icon: <DownloadOutlined />, color: '#1890ff' },
-  'IMPORT': { icon: <ReloadOutlined />, color: '#1890ff' },
-  'CANCEL': { icon: <DeleteOutlined />, color: '#faad14' },
-  // 将所有 download、print 相关操作都映射为导出
-  'PRINT_PACKING_SLIP': { icon: <DownloadOutlined />, color: '#1890ff' },
-  'DOWNLOAD_PDF': { icon: <DownloadOutlined />, color: '#1890ff' },
-  'DOWNLOAD_TEMPLATE': { icon: <DownloadOutlined />, color: '#1890ff' },
-  'DOWNLOAD': { icon: <DownloadOutlined />, color: '#1890ff' },
-  // 将 inventory、attachment、setting、reload 相关操作归纳为编辑
-  'HOLD_INVENTORY': { icon: <EditOutlined />, color: '#722ed1' },
-  'RELEASE_INVENTORY': { icon: <EditOutlined />, color: '#722ed1' },
-  'ADD_ATTACHMENT': { icon: <EditOutlined />, color: '#722ed1' },
-  'SET_ALERT': { icon: <EditOutlined />, color: '#722ed1' },
-  'SET_DEFAULT': { icon: <EditOutlined />, color: '#722ed1' },
-  'RELOAD': { icon: <EditOutlined />, color: '#722ed1' },
-  // 将所有 import 相关操作都映射为导入
-  'IMPORT_RMA': { icon: <ReloadOutlined />, color: '#1890ff' },
-  'BATCH_IMPORT': { icon: <ReloadOutlined />, color: '#1890ff' },
-  'RESET_FIELDS': { icon: <ReloadOutlined />, color: '#faad14' },
-  'PAY': { icon: <CheckCircleOutlined />, color: '#52c41a' },
-  // 将 invoice detail 归纳为查看
-  'INVOICE_DETAIL': { icon: <EyeOutlined />, color: '#52c41a' }
+// Operation icons with colorblind-friendly design
+type OperationVariant = 'success' | 'warning' | 'danger' | 'default';
+const OPERATION_ICONS: Record<string, { icon: React.ReactNode; variant: OperationVariant; shape: string }> = {
+  'VIEW': { icon: <Eye className="w-3 h-3" />, variant: 'success', shape: 'circle' },
+  'CREATE': { icon: <Plus className="w-3 h-3" />, variant: 'success', shape: 'circle' },
+  'EDIT': { icon: <Edit2 className="w-3 h-3" />, variant: 'default', shape: 'square' },
+  'DELETE': { icon: <Trash2 className="w-3 h-3" />, variant: 'danger', shape: 'diamond' },
+  'EXPORT': { icon: <Download className="w-3 h-3" />, variant: 'default', shape: 'triangle' },
+  'IMPORT': { icon: <RefreshCw className="w-3 h-3" />, variant: 'default', shape: 'triangle' },
+  'CANCEL': { icon: <Trash2 className="w-3 h-3" />, variant: 'warning', shape: 'diamond' },
+  'PRINT_PACKING_SLIP': { icon: <Download className="w-3 h-3" />, variant: 'default', shape: 'triangle' },
+  'DOWNLOAD_PDF': { icon: <Download className="w-3 h-3" />, variant: 'default', shape: 'triangle' },
+  'DOWNLOAD_TEMPLATE': { icon: <Download className="w-3 h-3" />, variant: 'default', shape: 'triangle' },
+  'DOWNLOAD': { icon: <Download className="w-3 h-3" />, variant: 'default', shape: 'triangle' },
+  'HOLD_INVENTORY': { icon: <Edit2 className="w-3 h-3" />, variant: 'default', shape: 'square' },
+  'RELEASE_INVENTORY': { icon: <Edit2 className="w-3 h-3" />, variant: 'default', shape: 'square' },
+  'ADD_ATTACHMENT': { icon: <Edit2 className="w-3 h-3" />, variant: 'default', shape: 'square' },
+  'SET_ALERT': { icon: <Edit2 className="w-3 h-3" />, variant: 'default', shape: 'square' },
+  'SET_DEFAULT': { icon: <Edit2 className="w-3 h-3" />, variant: 'default', shape: 'square' },
+  'RELOAD': { icon: <Edit2 className="w-3 h-3" />, variant: 'default', shape: 'square' },
+  'IMPORT_RMA': { icon: <RefreshCw className="w-3 h-3" />, variant: 'default', shape: 'triangle' },
+  'BATCH_IMPORT': { icon: <RefreshCw className="w-3 h-3" />, variant: 'default', shape: 'triangle' },
+  'RESET_FIELDS': { icon: <RefreshCw className="w-3 h-3" />, variant: 'warning', shape: 'diamond' },
+  'PAY': { icon: <CheckCircle className="w-3 h-3" />, variant: 'success', shape: 'circle' },
+  'INVOICE_DETAIL': { icon: <Eye className="w-3 h-3" />, variant: 'success', shape: 'circle' }
 };
 
 const PermissionView: React.FC = () => {
-  const { t, locale } = useLocale();
-  const navigate = useNavigate();
+  const { t } = useLocale();
   const [viewMode, setViewMode] = useState<'matrix' | 'list'>('matrix');
   const [roles, setRoles] = useState<Role[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(false);
   
-  // 过滤器状态
+  // Filter states
   const [filters, setFilters] = useState({
     module: 'ALL',
-    permissionType: 'ALL_MENUS' // 'ALL_MENUS' | 'ALL_RULES'
+    permissionType: 'ALL_MENUS',
+    operation: 'ALL'
   });
   const [roleNameFilter, setRoleNameFilter] = useState('');
+  
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  
+  // Available operations for filter
+  const AVAILABLE_OPERATIONS = [
+    'VIEW', 'CREATE', 'EDIT', 'DELETE', 'EXPORT', 'IMPORT', 'CANCEL', 'PAY'
+  ];
+  
+  // Role comparison state
+  const [comparisonMode, setComparisonMode] = useState(false);
+  const [selectedRolesForComparison, setSelectedRolesForComparison] = useState<string[]>([]);
 
   useEffect(() => {
     loadData();
@@ -108,37 +119,30 @@ const PermissionView: React.FC = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      // 加载角色列表
       const rolesResponse = await api.get('/roles', {
         params: { page: 1, pageSize: 1000 }
       });
       if (rolesResponse.data.success) {
         setRoles(rolesResponse.data.data.items || []);
-        console.log('Loaded roles:', rolesResponse.data.data.items?.length || 0);
       }
 
-      // 加载账号列表
       const accountsResponse = await api.get('/accounts', {
         params: { page: 1, pageSize: 1000 }
       });
       if (accountsResponse.data.success) {
         setAccounts(accountsResponse.data.data.items || []);
-        console.log('Loaded accounts:', accountsResponse.data.data.items?.length || 0);
-        console.log('Accounts data:', accountsResponse.data.data.items);
       }
     } catch (error) {
-      console.error('加载数据失败', error);
+      console.error('Failed to load data', error);
     } finally {
       setLoading(false);
     }
   };
 
-  // 获取拥有某个角色的账号列表
   const getAccountsWithRole = (roleId: string): Account[] => {
     return accounts.filter(acc => acc.roles.includes(roleId));
   };
 
-  // 获取角色在某个模块下的所有权限
   const getModulePermissions = (role: Role, module: string): string[] => {
     const permissions = role.permissions.filter(p => p.module === module);
     const operations = new Set<string>();
@@ -148,14 +152,10 @@ const PermissionView: React.FC = () => {
     return Array.from(operations);
   };
 
-  // 过滤后的角色列表
   const filteredRoles = useMemo(() => {
     let result = roles;
-
-    // 角色状态过滤 - 只显示活跃角色
     result = result.filter(r => r.status === 'ACTIVE');
 
-    // 角色名称过滤
     if (roleNameFilter) {
       const lowerRoleFilter = roleNameFilter.toLowerCase();
       result = result.filter(r =>
@@ -163,20 +163,22 @@ const PermissionView: React.FC = () => {
       );
     }
 
-    // 模块过滤
     if (filters.module !== 'ALL') {
       result = result.filter(r => 
         r.permissions.some(p => p.module === filters.module)
       );
     }
 
-    // 只显示有权限的角色
-    result = result.filter(r => r.permissions.length > 0);
+    if (filters.operation !== 'ALL') {
+      result = result.filter(r =>
+        r.permissions.some(p => p.operations.includes(filters.operation))
+      );
+    }
 
+    result = result.filter(r => r.permissions.length > 0);
     return result;
   }, [roles, filters, roleNameFilter]);
 
-  // 获取所有模块列表
   const allModules = useMemo(() => {
     const moduleSet = new Set<string>();
     filteredRoles.forEach(role => {
@@ -185,294 +187,64 @@ const PermissionView: React.FC = () => {
     return Array.from(moduleSet).sort();
   }, [filteredRoles]);
 
-  // Matrix视图：以角色为行，一级菜单（模块）为列
-  const matrixColumns: ColumnsType<any> = useMemo(() => {
-    const cols: ColumnsType<any> = [
-      {
-        title: t('role.name'),
-        dataIndex: 'roleName',
-        key: 'roleName',
-        fixed: 'left',
-        width: 220,
-        render: (text: string, record: any) => (
-          <div>
-            <div style={{ fontWeight: 500 }}>{text}</div>
-          </div>
-        )
-      }
-    ];
+  // Consolidate operations helper
+  const consolidateOperations = (permissions: string[]): string[] => {
+    const exportOperations = ['EXPORT', 'PRINT_PACKING_SLIP', 'DOWNLOAD_PDF', 'DOWNLOAD_TEMPLATE', 'DOWNLOAD'];
+    const hasExport = permissions.some(op => exportOperations.includes(op));
+    
+    const editOperations = ['EDIT', 'HOLD_INVENTORY', 'RELEASE_INVENTORY', 'ADD_ATTACHMENT', 'SET_ALERT', 'SET_DEFAULT', 'RELOAD'];
+    const hasEdit = permissions.some(op => editOperations.includes(op));
+    
+    const importOperations = ['IMPORT', 'IMPORT_RMA', 'BATCH_IMPORT'];
+    const hasImport = permissions.some(op => importOperations.includes(op));
+    
+    const viewOperations = ['VIEW', 'INVOICE_DETAIL'];
+    const hasView = permissions.some(op => viewOperations.includes(op));
+    
+    const otherOperations = permissions.filter(op => 
+      !exportOperations.includes(op) && !editOperations.includes(op) && 
+      !importOperations.includes(op) && !viewOperations.includes(op)
+    );
+    
+    const displayOperations = [...otherOperations];
+    if (hasView) displayOperations.push('VIEW');
+    if (hasEdit) displayOperations.push('EDIT');
+    if (hasExport) displayOperations.push('EXPORT');
+    if (hasImport) displayOperations.push('IMPORT');
+    
+    return displayOperations;
+  };
 
-    // 添加一级菜单（模块）列
-    allModules.forEach(module => {
-      const config = MODULE_CONFIG[module] || { name: module, color: '#666' };
-      cols.push({
-        title: (
-          <div style={{ textAlign: 'center' }}>
-            <div>{config.name}</div>
-          </div>
-        ),
-        key: `module-${module}`,
-        align: 'center' as const,
-        width: 150,
-        render: (_: any, record: any) => {
-          const permissions = record[`module-${module}`] || [];
-          if (permissions.length === 0) {
-            return <span style={{ color: '#999' }}>-</span>;
-          }
-          
-          // 合并导出相关操作
-          const exportOperations = ['EXPORT', 'PRINT_PACKING_SLIP', 'DOWNLOAD_PDF', 'DOWNLOAD_TEMPLATE', 'DOWNLOAD'];
-          const hasExport = permissions.some((op: string) => exportOperations.includes(op));
-          
-          // 合并编辑相关操作（包括 inventory、attachment、setting、reload 操作）
-          const editOperations = ['EDIT', 'HOLD_INVENTORY', 'RELEASE_INVENTORY', 'ADD_ATTACHMENT', 'SET_ALERT', 'SET_DEFAULT', 'RELOAD'];
-          const hasEdit = permissions.some((op: string) => editOperations.includes(op));
-          
-          // 合并导入相关操作
-          const importOperations = ['IMPORT', 'IMPORT_RMA', 'BATCH_IMPORT'];
-          const hasImport = permissions.some((op: string) => importOperations.includes(op));
-          
-          // 合并查看相关操作（包括 invoice detail）
-          const viewOperations = ['VIEW', 'INVOICE_DETAIL'];
-          const hasView = permissions.some((op: string) => viewOperations.includes(op));
-          
-          const otherOperations = permissions.filter((op: string) => 
-            !exportOperations.includes(op) && !editOperations.includes(op) && !importOperations.includes(op) && !viewOperations.includes(op)
-          );
-          
-          const displayOperations = [...otherOperations];
-          if (hasView) {
-            displayOperations.push('VIEW');
-          }
-          if (hasEdit) {
-            displayOperations.push('EDIT');
-          }
-          if (hasExport) {
-            displayOperations.push('EXPORT');
-          }
-          if (hasImport) {
-            displayOperations.push('IMPORT');
-          }
-          
-          return (
-            <Space size={4} wrap>
-              {displayOperations.map((op: string) => {
-                const opConfig = OPERATION_ICONS[op];
-                if (!opConfig) return null;
-                return (
-                  <Tooltip key={op} title={t(`operation.${op}`) || op}>
-                    <span style={{ color: opConfig.color, fontSize: 16 }}>
-                      {opConfig.icon}
-                    </span>
-                  </Tooltip>
-                );
-              })}
-            </Space>
-          );
-        }
-      });
-    });
-
-    // 添加用户列（每行最后缩略展示拥有该角色的用户）
-    cols.push({
-      title: t('role.users'),
-      key: 'users',
-      width: 250,
-      fixed: 'right' as const,
-      render: (_: any, record: any) => {
-        const users = record.users || [];
-        if (users.length === 0) {
-          return <span style={{ color: '#999' }}>-</span>;
-        }
-        const userNames = users.map((u: Account) => u.username).join(', ');
-        return (
-          <div>
-            <div style={{ marginBottom: 4 }}>
-              <Space wrap>
-                {users.slice(0, 3).map((user: Account) => (
-                  <Tooltip key={user.id} title={user.username}>
-                    <Avatar size="small" icon={<UserOutlined />} />
-                  </Tooltip>
-                ))}
-                {users.length > 3 && (
-                  <Tooltip title={users.slice(3).map((u: Account) => u.username).join(', ')}>
-                    <Tag>+{users.length - 3}</Tag>
-                  </Tooltip>
-                )}
-              </Space>
-            </div>
-            <div style={{ fontSize: 12, color: '#666' }}>
-              <span style={{ fontWeight: 500 }}>{users.length}</span> {t('role.users')}: {userNames}
-            </div>
-          </div>
-        );
-      }
-    });
-
-    return cols;
-  }, [allModules, t]);
-
+  // Matrix data
   const matrixData = useMemo(() => {
     return filteredRoles.map(role => {
-      const row: any = {
+      const row: Record<string, any> = {
         key: role.id,
         roleName: role.name,
         users: getAccountsWithRole(role.id)
       };
 
-      // 为每个一级菜单（模块）设置权限
       allModules.forEach(module => {
         row[`module-${module}`] = getModulePermissions(role, module);
       });
 
       return row;
     });
-  }, [filteredRoles, allModules]);
+  }, [filteredRoles, allModules, accounts]);
 
-  // List视图：以角色+权限为行
-  const listColumns: ColumnsType<any> = [
-    {
-      title: t('role.name'),
-      dataIndex: 'roleName',
-      key: 'roleName',
-      width: 200,
-      fixed: 'left' as const,
-      render: (text: string, record: any) => (
-        <div>
-          <div style={{ fontWeight: 500 }}>{text}</div>
-        </div>
-      )
-    },
-    {
-      title: t('role.module'),
-      dataIndex: 'parentMenuName',
-      key: 'parentMenuName',
-      width: 180,
-      render: (text: string, record: any) => {
-        const config = MODULE_CONFIG[record.module] || { name: text, color: '#666' };
-        return (
-          <span>{text}</span>
-        );
-      }
-    },
-    {
-      title: t('role.feature'),
-      dataIndex: 'menuName',
-      key: 'menuName',
-      width: 180
-    },
-    {
-      title: t('role.permissions'),
-      dataIndex: 'permissions',
-      key: 'permissions',
-      width: 300,
-      render: (permissions: string[]) => {
-        if (!permissions || permissions.length === 0) {
-          return <Tag color="default">-</Tag>;
-        }
-        
-        // 合并导出相关操作
-        const exportOperations = ['EXPORT', 'PRINT_PACKING_SLIP', 'DOWNLOAD_PDF', 'DOWNLOAD_TEMPLATE', 'DOWNLOAD'];
-        const hasExport = permissions.some(op => exportOperations.includes(op));
-        
-        // 合并编辑相关操作（包括 inventory、attachment、setting、reload 操作）
-        const editOperations = ['EDIT', 'HOLD_INVENTORY', 'RELEASE_INVENTORY', 'ADD_ATTACHMENT', 'SET_ALERT', 'SET_DEFAULT', 'RELOAD'];
-        const hasEdit = permissions.some(op => editOperations.includes(op));
-        
-        // 合并导入相关操作
-        const importOperations = ['IMPORT', 'IMPORT_RMA', 'BATCH_IMPORT'];
-        const hasImport = permissions.some(op => importOperations.includes(op));
-        
-        // 合并查看相关操作（包括 invoice detail）
-        const viewOperations = ['VIEW', 'INVOICE_DETAIL'];
-        const hasView = permissions.some(op => viewOperations.includes(op));
-        
-        const otherOperations = permissions.filter(op => 
-          !exportOperations.includes(op) && !editOperations.includes(op) && !importOperations.includes(op) && !viewOperations.includes(op)
-        );
-        
-        const displayOperations = [...otherOperations];
-        if (hasView) {
-          displayOperations.push('VIEW');
-        }
-        if (hasEdit) {
-          displayOperations.push('EDIT');
-        }
-        if (hasExport) {
-          displayOperations.push('EXPORT');
-        }
-        if (hasImport) {
-          displayOperations.push('IMPORT');
-        }
-        
-        return (
-          <Space wrap>
-            {displayOperations.map(op => {
-              const opConfig = OPERATION_ICONS[op];
-              if (!opConfig) return null;
-              return (
-                <Tag 
-                  key={op} 
-                  color={opConfig.color === '#52c41a' ? 'success' : 
-                         opConfig.color === '#722ed1' ? 'purple' :
-                         opConfig.color === '#f5222d' ? 'error' :
-                         opConfig.color === '#faad14' ? 'warning' : 'processing'}
-                  icon={opConfig.icon}
-                >
-                  {opConfig.color === '#52c41a' && op === 'VIEW' ? '' : 
-                   opConfig.color === '#52c41a' && op === 'CREATE' ? '+ ' : ''}
-                  {t(`operation.${op}`) || op}
-                </Tag>
-              );
-            })}
-          </Space>
-        );
-      }
-    },
-    {
-      title: t('nav.users'),
-      dataIndex: 'users',
-      key: 'users',
-      width: 250,
-      render: (users: Account[]) => {
-        if (!users || users.length === 0) {
-          return <span style={{ color: '#999' }}>-</span>;
-        }
-        const userNames = users.map(u => u.username).join(', ');
-        return (
-          <div>
-            <div style={{ marginBottom: 4 }}>
-              <Space wrap>
-                {users.slice(0, 3).map((user: Account) => (
-                  <Tooltip key={user.id} title={user.username}>
-                    <Avatar size="small" icon={<UserOutlined />} />
-                  </Tooltip>
-                ))}
-                {users.length > 3 && (
-                  <Tooltip title={users.slice(3).map(u => u.username).join(', ')}>
-                    <Tag>+{users.length - 3}</Tag>
-                  </Tooltip>
-                )}
-              </Space>
-            </div>
-            <div style={{ fontSize: 12, color: '#666' }}>
-              <span style={{ fontWeight: 500 }}>{users.length}</span> {t('role.users')}: {userNames}
-            </div>
-          </div>
-        );
-      }
-    }
-  ];
+  // Paginated matrix data
+  const paginatedMatrixData = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    const end = start + pageSize;
+    return matrixData.slice(start, end);
+  }, [matrixData, currentPage, pageSize]);
 
+  // List data
   const listData = useMemo(() => {
     const data: any[] = [];
-    
-    // 以角色名+二级菜单（页面）维度展示
-    // 对于列表视图，我们需要使用所有活跃角色，然后在权限级别进行模块过滤
     const activeRoles = roles.filter(r => r.status === 'ACTIVE' && r.permissions.length > 0);
     
     activeRoles.forEach(role => {
-      // 应用角色名称过滤
       let shouldIncludeRole = true;
       if (roleNameFilter) {
         const lowerRoleFilter = roleNameFilter.toLowerCase();
@@ -481,17 +253,16 @@ const PermissionView: React.FC = () => {
       
       if (shouldIncludeRole) {
         role.permissions.forEach(perm => {
-          // 应用模块过滤 - 在权限级别进行过滤
           if (filters.module === 'ALL' || perm.module === filters.module) {
-            const moduleConfig = MODULE_CONFIG[perm.module] || { name: perm.module, color: '#666' };
+            const moduleConfig = MODULE_CONFIG[perm.module] || { name: perm.module, colorToken: 'info' as const };
             data.push({
               key: `${role.id}-${perm.module}-${perm.pageCode}`,
               roleName: role.name,
               module: perm.module,
-              parentMenuName: moduleConfig.name, // 一级菜单名（模块）
-              menuName: perm.page, // 二级菜单名（页面）
-              permissions: perm.operations, // 所拥有权限
-              users: getAccountsWithRole(role.id) // 拥有该角色的账号
+              parentMenuName: moduleConfig.name,
+              menuName: perm.page,
+              permissions: perm.operations,
+              users: getAccountsWithRole(role.id)
             });
           }
         });
@@ -499,163 +270,637 @@ const PermissionView: React.FC = () => {
     });
 
     return data;
-  }, [roles, filters.module, roleNameFilter]);
+  }, [roles, filters.module, roleNameFilter, accounts]);
+
+  // Paginated list data
+  const paginatedListData = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    const end = start + pageSize;
+    return listData.slice(start, end);
+  }, [listData, currentPage, pageSize]);
 
   const handleReset = () => {
     setFilters({
       module: 'ALL',
-      permissionType: 'ALL_MENUS'
+      permissionType: 'ALL_MENUS',
+      operation: 'ALL'
     });
     setRoleNameFilter('');
     setViewMode('matrix');
+    setComparisonMode(false);
+    setSelectedRolesForComparison([]);
+    setCurrentPage(1);
   };
 
-  return (
-    <div>
-      {/* 标题 */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
-        <div>
-          <Title level={2} style={{ margin: 0 }}>
-            {t('permission.title')}
-          </Title>
+  // Get permissions for a role as a Set of strings
+  const getRolePermissionSet = (roleId: string): Set<string> => {
+    const role = roles.find(r => r.id === roleId);
+    if (!role) return new Set();
+    
+    const permSet = new Set<string>();
+    role.permissions.forEach(perm => {
+      perm.operations.forEach(op => {
+        permSet.add(`${perm.module}:${perm.pageCode}:${op}`);
+      });
+    });
+    return permSet;
+  };
+
+  // Comparison data for the comparison view
+  const comparisonData = useMemo(() => {
+    if (selectedRolesForComparison.length < 2) return [];
+    
+    const roleSets = selectedRolesForComparison.map(id => ({
+      id,
+      role: roles.find(r => r.id === id),
+      permissions: getRolePermissionSet(id)
+    }));
+
+    const allComparisonModules = new Set<string>();
+    const modulePages: Record<string, Set<string>> = {};
+    
+    roleSets.forEach(({ role }) => {
+      if (role) {
+        role.permissions.forEach(perm => {
+          allComparisonModules.add(perm.module);
+          if (!modulePages[perm.module]) {
+            modulePages[perm.module] = new Set();
+          }
+          modulePages[perm.module].add(perm.pageCode);
+        });
+      }
+    });
+
+    const data: any[] = [];
+    Array.from(allComparisonModules).sort().forEach(module => {
+      const pages = Array.from(modulePages[module] || []);
+      pages.forEach(pageCode => {
+        const row: any = {
+          key: `${module}-${pageCode}`,
+          module,
+          moduleName: MODULE_CONFIG[module]?.name || module,
+          pageCode,
+        };
+
+        const allOps = new Set<string>();
+        roleSets.forEach(({ role }) => {
+          const perm = role?.permissions.find(p => p.module === module && p.pageCode === pageCode);
+          perm?.operations.forEach(op => allOps.add(op));
+        });
+
+        row.operations = Array.from(allOps);
+        
+        roleSets.forEach(({ id, role }) => {
+          const perm = role?.permissions.find(p => p.module === module && p.pageCode === pageCode);
+          row[`role_${id}`] = perm?.operations || [];
+        });
+
+        data.push(row);
+      });
+    });
+
+    return data;
+  }, [selectedRolesForComparison, roles]);
+
+  // Render operation badge
+  const renderOperationBadge = (op: string, isUnique?: boolean) => {
+    const opConfig = OPERATION_ICONS[op];
+    if (!opConfig) return <Badge key={op} variant="default">{op}</Badge>;
+    
+    return (
+      <TooltipProvider key={op}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span>
+              <Badge 
+                variant={isUnique ? 'warning' : opConfig.variant}
+                className={`inline-flex items-center gap-1 ${isUnique ? 'border-dashed' : ''}`}
+              >
+                {opConfig.icon}
+                <span className="text-xs">{t(`operation.${op}`) || op}</span>
+              </Badge>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>{t(`operation.${op}`) || op}</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  };
+
+  // Render operation icon only (for matrix view)
+  const renderOperationIcon = (op: string) => {
+    const opConfig = OPERATION_ICONS[op];
+    if (!opConfig) return null;
+    
+    const colorClass = {
+      'success': 'text-emerald-500',
+      'warning': 'text-amber-500',
+      'danger': 'text-red-500',
+      'default': 'text-primary'
+    }[opConfig.variant];
+    
+    return (
+      <TooltipProvider key={op}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className={`${colorClass} text-base`}>
+              {opConfig.icon}
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>{t(`operation.${op}`) || op}</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  };
+
+  // Render users cell
+  const renderUsersCell = (users: Account[]) => {
+    if (!users || users.length === 0) {
+      return <span className="text-muted">-</span>;
+    }
+    const userNames = users.map(u => u.username).join(', ');
+    return (
+      <div>
+        <div className="flex items-center gap-1 mb-1">
+          {users.slice(0, 3).map((user) => (
+            <TooltipProvider key={user.id}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span>
+                    <Avatar className="w-6 h-6">
+                      <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+                        <User className="w-3 h-3" />
+                      </AvatarFallback>
+                    </Avatar>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>{user.username}</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          ))}
+          {users.length > 3 && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span>
+                    <Badge variant="default">+{users.length - 3}</Badge>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>{users.slice(3).map(u => u.username).join(', ')}</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+        </div>
+        <div className="text-xs text-muted">
+          <span className="font-medium">{users.length}</span> {t('role.users')}: {userNames}
         </div>
       </div>
+    );
+  };
 
-      {/* 过滤器和搜索 */}
-      <Card style={{ marginBottom: 16 }}>
-        <Row gutter={16} align="middle">
-          <Col span={6}>
-            <div style={{ marginBottom: 8 }}>{t('role.module')}</div>
-            <Select
-              style={{ width: '100%' }}
-              value={filters.module}
-              onChange={(value) => setFilters({ ...filters, module: value })}
-            >
-              <Option value="ALL">{t('filter.allModules')}</Option>
-              {Object.keys(MODULE_CONFIG).map(module => (
-                <Option key={module} value={module}>
-                  {MODULE_CONFIG[module].name}
-                </Option>
-              ))}
-            </Select>
-          </Col>
-          <Col span={6}>
-            <div style={{ marginBottom: 8 }}>{t('permission.roleName')}</div>
-            <Input
-              placeholder={t('permission.searchRoleName')}
-              value={roleNameFilter}
-              onChange={(e) => setRoleNameFilter(e.target.value)}
-              allowClear
-            />
-          </Col>
-          <Col span={12}>
-            <div style={{ marginBottom: 8 }}>&nbsp;</div>
-            <Space>
-              <Button onClick={handleReset}>{t('common.reset')}</Button>
-              <Button type="primary">{t('common.search')}</Button>
-            </Space>
-          </Col>
-        </Row>
+  const currentData = viewMode === 'matrix' ? matrixData : listData;
+  const totalPages = Math.ceil(currentData.length / pageSize);
+
+  return (
+    <div className="space-y-6">
+      {/* Title */}
+      <div className="flex justify-between items-start">
+        <h2 className="text-2xl font-bold text-primary">
+          {t('permission.title')}
+        </h2>
+      </div>
+
+      {/* Filters */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+            <div className="space-y-2">
+              <Label>{t('role.module')}</Label>
+              <Select
+                value={filters.module}
+                onValueChange={(value) => {
+                  setFilters({ ...filters, module: value });
+                  setCurrentPage(1);
+                }}
+                disabled={comparisonMode}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">{t('filter.allModules')}</SelectItem>
+                  {Object.keys(MODULE_CONFIG).map(module => (
+                    <SelectItem key={module} value={module}>
+                      {MODULE_CONFIG[module].name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label>{t('permission.operation') || 'Operation'}</Label>
+              <Select
+                value={filters.operation}
+                onValueChange={(value) => {
+                  setFilters({ ...filters, operation: value });
+                  setCurrentPage(1);
+                }}
+                disabled={comparisonMode}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">{t('common.all')}</SelectItem>
+                  {AVAILABLE_OPERATIONS.map(op => (
+                    <SelectItem key={op} value={op}>
+                      {t(`operation.${op}`) || op}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label>{t('permission.roleName')}</Label>
+              <Input
+                placeholder={t('permission.searchRoleName')}
+                value={roleNameFilter}
+                onChange={(e) => {
+                  setRoleNameFilter(e.target.value);
+                  setCurrentPage(1);
+                }}
+                disabled={comparisonMode}
+              />
+            </div>
+            
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={handleReset}>
+                {t('common.reset')}
+              </Button>
+              <Button disabled={comparisonMode}>
+                {t('common.search')}
+              </Button>
+            </div>
+          </div>
+
+          {/* Role Comparison Mode */}
+          <Separator className="my-6" />
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+            <div className="md:col-span-3 flex items-center gap-3">
+              <ArrowLeftRight className="w-4 h-4" />
+              <span className="font-medium">{t('permission.compareRoles')}</span>
+              <Switch 
+                checked={comparisonMode} 
+                onCheckedChange={(checked) => {
+                  setComparisonMode(checked);
+                  if (!checked) {
+                    setSelectedRolesForComparison([]);
+                  }
+                }} 
+              />
+            </div>
+            {comparisonMode && (
+              <>
+                <div className="md:col-span-7">
+                  <Select
+                    value={selectedRolesForComparison.join(',')}
+                    onValueChange={(value) => {
+                      const currentValues = selectedRolesForComparison;
+                      if (currentValues.includes(value)) {
+                        setSelectedRolesForComparison(currentValues.filter(v => v !== value));
+                      } else if (currentValues.length < 3) {
+                        setSelectedRolesForComparison([...currentValues, value]);
+                      }
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={t('permission.selectRolesToCompare')}>
+                        {selectedRolesForComparison.length > 0 
+                          ? selectedRolesForComparison.map(id => roles.find(r => r.id === id)?.name).join(', ')
+                          : t('permission.selectRolesToCompare')
+                        }
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {roles.filter(r => r.status === 'ACTIVE' && r.permissions.length > 0).map(role => (
+                        <SelectItem key={role.id} value={role.id}>
+                          <div className="flex items-center gap-2">
+                            {selectedRolesForComparison.includes(role.id) && (
+                              <CheckCircle className="w-3 h-3 text-success" />
+                            )}
+                            {role.name}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {selectedRolesForComparison.length > 0 && (
+                  <div className="md:col-span-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setSelectedRolesForComparison([])}
+                    >
+                      <X className="w-4 h-4 mr-1" />
+                      {t('permission.clearComparison')}
+                    </Button>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </CardContent>
       </Card>
 
-      {/* 权限图例 */}
-      <Card style={{ marginBottom: 16 }}>
-        <Space direction="vertical" size="small" style={{ width: '100%' }}>
-          <div style={{ fontWeight: 500, marginBottom: 8 }}>
-            <InfoCircleOutlined style={{ marginRight: 8 }} />
+      {/* Permission Legend */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex items-center gap-2 mb-3 text-primary font-medium">
+            <Info className="w-4 h-4" />
             {t('permission.permissionLegend')}
           </div>
-          <Space wrap>
-            {(() => {
-              // 定义唯一的操作类型，相关操作归纳合并
-              const uniqueOperations = [
-                { key: 'VIEW', icon: <EyeOutlined />, color: '#52c41a', label: t('operation.VIEW') },
-                { key: 'CREATE', icon: <PlusOutlined />, color: '#52c41a', label: t('operation.CREATE') },
-                { key: 'EDIT', icon: <EditOutlined />, color: '#722ed1', label: t('operation.EDIT') },
-                { key: 'DELETE', icon: <DeleteOutlined />, color: '#f5222d', label: t('operation.DELETE') },
-                { key: 'EXPORT', icon: <DownloadOutlined />, color: '#1890ff', label: t('operation.EXPORT') },
-                { key: 'IMPORT', icon: <ReloadOutlined />, color: '#1890ff', label: t('operation.IMPORT') },
-                { key: 'CANCEL', icon: <DeleteOutlined />, color: '#faad14', label: t('operation.CANCEL') },
-                { key: 'PAY', icon: <CheckCircleOutlined />, color: '#52c41a', label: t('operation.PAY') }
-              ];
-
-              return uniqueOperations.map(config => (
-                <Tag 
-                  key={config.key}
-                  color={config.color === '#52c41a' ? 'success' : 
-                         config.color === '#722ed1' ? 'purple' :
-                         config.color === '#f5222d' ? 'error' :
-                         config.color === '#faad14' ? 'warning' : 'processing'}
-                  icon={config.icon}
-                >
-                  {config.label}
-                </Tag>
-              ));
-            })()}
-          </Space>
-        </Space>
+          <div className="flex flex-wrap gap-2">
+            {[
+              { key: 'VIEW', icon: <Eye className="w-3 h-3" />, variant: 'success' as const, label: t('operation.VIEW') },
+              { key: 'CREATE', icon: <Plus className="w-3 h-3" />, variant: 'success' as const, label: t('operation.CREATE') },
+              { key: 'EDIT', icon: <Edit2 className="w-3 h-3" />, variant: 'default' as const, label: t('operation.EDIT') },
+              { key: 'DELETE', icon: <Trash2 className="w-3 h-3" />, variant: 'danger' as const, label: t('operation.DELETE') },
+              { key: 'EXPORT', icon: <Download className="w-3 h-3" />, variant: 'default' as const, label: t('operation.EXPORT') },
+              { key: 'IMPORT', icon: <RefreshCw className="w-3 h-3" />, variant: 'default' as const, label: t('operation.IMPORT') },
+              { key: 'CANCEL', icon: <Trash2 className="w-3 h-3" />, variant: 'warning' as const, label: t('operation.CANCEL') },
+              { key: 'PAY', icon: <CheckCircle className="w-3 h-3" />, variant: 'success' as const, label: t('operation.PAY') }
+            ].map(config => (
+              <Badge 
+                key={config.key}
+                variant={config.variant}
+                className="inline-flex items-center gap-1"
+              >
+                {config.icon}
+                {config.label}
+              </Badge>
+            ))}
+          </div>
+        </CardContent>
       </Card>
 
-      {/* 视图切换和表格 */}
-      <Card>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <Title level={4} style={{ margin: 0 }}>
-            {viewMode === 'matrix' ? t('permission.matrixView') : t('permission.listView')}
-          </Title>
-          <Space>
-            <Radio.Group 
-              value={viewMode} 
-              onChange={(e) => {
-                setViewMode(e.target.value);
-                // 同步更新权限类型过滤器
-                if (e.target.value === 'matrix') {
-                  setFilters({ ...filters, permissionType: 'ALL_MENUS' });
-                } else {
-                  setFilters({ ...filters, permissionType: 'ALL_RULES' });
-                }
-              }}
-            >
-              <Radio.Button value="matrix">{t('permission.matrixView')}</Radio.Button>
-              <Radio.Button value="list">{t('permission.listView')}</Radio.Button>
-            </Radio.Group>
-          </Space>
-        </div>
+      {/* Comparison View */}
+      {comparisonMode && selectedRolesForComparison.length >= 2 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>{t('permission.comparisonView')}</CardTitle>
+            <p className="text-sm text-muted">
+              {selectedRolesForComparison.map(id => roles.find(r => r.id === id)?.name).join(' vs ')}
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="flex gap-6 p-3 bg-muted rounded-lg mb-4">
+              <div className="flex items-center gap-2">
+                <Badge variant="warning" className="border-dashed">Example</Badge>
+                <span className="text-sm text-muted">{t('permission.onlyInRole')}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant="success">Example</Badge>
+                <span className="text-sm text-muted">{t('permission.inBothRoles')}</span>
+              </div>
+            </div>
+            <div className="rounded-md border overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="sticky left-0 bg-background">{t('role.module')}</TableHead>
+                    <TableHead>{t('role.feature')}</TableHead>
+                    {selectedRolesForComparison.map(roleId => {
+                      const role = roles.find(r => r.id === roleId);
+                      return <TableHead key={roleId}>{role?.name || roleId}</TableHead>;
+                    })}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={2 + selectedRolesForComparison.length} className="text-center py-8">
+                        {t('common.loading')}
+                      </TableCell>
+                    </TableRow>
+                  ) : comparisonData.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={2 + selectedRolesForComparison.length} className="text-center py-8 text-muted">
+                        {t('common.noData')}
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    comparisonData.map(row => (
+                      <TableRow key={row.key}>
+                        <TableCell className="font-medium sticky left-0 bg-background">{row.moduleName}</TableCell>
+                        <TableCell>{row.pageCode}</TableCell>
+                        {selectedRolesForComparison.map(roleId => {
+                          const roleOps = row[`role_${roleId}`] || [];
+                          if (roleOps.length === 0) {
+                            return <TableCell key={roleId}><span className="text-muted">-</span></TableCell>;
+                          }
+                          return (
+                            <TableCell key={roleId}>
+                              <div className="flex flex-wrap gap-1">
+                                {roleOps.map((op: string) => {
+                                  const otherRolesHaveOp = selectedRolesForComparison
+                                    .filter(id => id !== roleId)
+                                    .some(id => (row[`role_${id}`] || []).includes(op));
+                                  const isUnique = !otherRolesHaveOp;
+                                  return renderOperationBadge(op, isUnique);
+                                })}
+                              </div>
+                            </TableCell>
+                          );
+                        })}
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
-        {viewMode === 'matrix' ? (
-          <Table
-            columns={matrixColumns}
-            dataSource={matrixData}
-            loading={loading}
-            scroll={{ x: 'max-content' }}
-            pagination={{
-              pageSize: 10,
-              showSizeChanger: true,
-              showTotal: (total, range) => 
-                t('permission.showingRoles', { 
-                  start: range[0].toString(), 
-                  end: range[1].toString(), 
-                  total: total.toString() 
-                })
-            }}
-          />
-        ) : (
-          <Table
-            columns={listColumns}
-            dataSource={listData}
-            loading={loading}
-            scroll={{ x: 'max-content' }}
-            pagination={{
-              pageSize: 20,
-              showSizeChanger: true,
-              showTotal: (total, range) => 
-                t('permission.showingPermissions', { 
-                  start: range[0].toString(), 
-                  end: range[1].toString(), 
-                  total: total.toString() 
-                })
-            }}
-          />
-        )}
+      {/* View Toggle and Table */}
+      <Card className={comparisonMode && selectedRolesForComparison.length >= 2 ? 'hidden' : ''}>
+        <CardHeader>
+          <div className="flex justify-between items-center">
+            <CardTitle>
+              {viewMode === 'matrix' ? t('permission.matrixView') : t('permission.listView')}
+            </CardTitle>
+            <div className="flex border rounded-lg overflow-hidden">
+              <Button 
+                variant={viewMode === 'matrix' ? 'default' : 'ghost'}
+                size="sm"
+                className="rounded-none"
+                onClick={() => {
+                  setViewMode('matrix');
+                  setFilters({ ...filters, permissionType: 'ALL_MENUS' });
+                  setCurrentPage(1);
+                }}
+              >
+                {t('permission.matrixView')}
+              </Button>
+              <Button 
+                variant={viewMode === 'list' ? 'default' : 'ghost'}
+                size="sm"
+                className="rounded-none"
+                onClick={() => {
+                  setViewMode('list');
+                  setFilters({ ...filters, permissionType: 'ALL_RULES' });
+                  setCurrentPage(1);
+                }}
+              >
+                {t('permission.listView')}
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {viewMode === 'matrix' ? (
+            <>
+              <div className="rounded-md border overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="sticky left-0 bg-background min-w-[200px]">{t('role.name')}</TableHead>
+                      {allModules.map(module => {
+                        const config = MODULE_CONFIG[module] || { name: module };
+                        return (
+                          <TableHead key={module} className="text-center min-w-[120px]">
+                            {config.name}
+                          </TableHead>
+                        );
+                      })}
+                      <TableHead className="min-w-[200px]">{t('role.users')}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {loading ? (
+                      <TableRow>
+                        <TableCell colSpan={allModules.length + 2} className="text-center py-8">
+                          {t('common.loading')}
+                        </TableCell>
+                      </TableRow>
+                    ) : paginatedMatrixData.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={allModules.length + 2} className="text-center py-8 text-muted">
+                          {t('common.noData')}
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      paginatedMatrixData.map(row => (
+                        <TableRow key={row.key}>
+                          <TableCell className="font-medium sticky left-0 bg-background">
+                            {row.roleName}
+                          </TableCell>
+                          {allModules.map(module => {
+                            const permissions = row[`module-${module}`] || [];
+                            if (permissions.length === 0) {
+                              return <TableCell key={module} className="text-center"><span className="text-muted">-</span></TableCell>;
+                            }
+                            const displayOperations = consolidateOperations(permissions);
+                            return (
+                              <TableCell key={module} className="text-center">
+                                <div className="flex justify-center gap-1 flex-wrap">
+                                  {displayOperations.map(op => renderOperationIcon(op))}
+                                </div>
+                              </TableCell>
+                            );
+                          })}
+                          <TableCell>{renderUsersCell(row.users)}</TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+              <div className="mt-4 flex justify-between items-center">
+                <div className="text-sm text-muted">
+                  {t('permission.showingRoles', { 
+                    start: ((currentPage - 1) * pageSize + 1).toString(), 
+                    end: Math.min(currentPage * pageSize, matrixData.length).toString(), 
+                    total: matrixData.length.toString() 
+                  })}
+                </div>
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={setCurrentPage}
+                />
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="rounded-md border overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="sticky left-0 bg-background">{t('role.name')}</TableHead>
+                      <TableHead>{t('role.module')}</TableHead>
+                      <TableHead>{t('role.feature')}</TableHead>
+                      <TableHead>{t('role.permissions')}</TableHead>
+                      <TableHead>{t('nav.users')}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {loading ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center py-8">
+                          {t('common.loading')}
+                        </TableCell>
+                      </TableRow>
+                    ) : paginatedListData.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center py-8 text-muted">
+                          {t('common.noData')}
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      paginatedListData.map(row => (
+                        <TableRow key={row.key}>
+                          <TableCell className="font-medium sticky left-0 bg-background">
+                            {row.roleName}
+                          </TableCell>
+                          <TableCell>{row.parentMenuName}</TableCell>
+                          <TableCell>{row.menuName}</TableCell>
+                          <TableCell>
+                            {(!row.permissions || row.permissions.length === 0) ? (
+                              <Badge variant="default">-</Badge>
+                            ) : (
+                              <div className="flex flex-wrap gap-1">
+                                {consolidateOperations(row.permissions).map(op => renderOperationBadge(op))}
+                              </div>
+                            )}
+                          </TableCell>
+                          <TableCell>{renderUsersCell(row.users)}</TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+              <div className="mt-4 flex justify-between items-center">
+                <div className="text-sm text-muted">
+                  {t('permission.showingPermissions', { 
+                    start: ((currentPage - 1) * pageSize + 1).toString(), 
+                    end: Math.min(currentPage * pageSize, listData.length).toString(), 
+                    total: listData.length.toString() 
+                  })}
+                </div>
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={Math.ceil(listData.length / pageSize)}
+                  onPageChange={setCurrentPage}
+                />
+              </div>
+            </>
+          )}
+        </CardContent>
       </Card>
     </div>
   );

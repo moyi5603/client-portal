@@ -1,30 +1,37 @@
-import React, { useState, useEffect } from 'react';
-import {
-  Card,
-  Table,
-  DatePicker,
-  Select,
-  Input,
-  Button,
-  Space,
-  Tag,
-  Row,
-  Col,
-  Typography
-} from 'antd';
-import {
-  ReloadOutlined
-} from '@ant-design/icons';
+import React, { useState, useEffect, useMemo } from 'react';
+import { toast } from 'sonner';
+import { RefreshCw, Download, Calendar, Search } from 'lucide-react';
 import api from '../utils/api';
 import { useLocale } from '../contexts/LocaleContext';
-import type { ColumnsType } from 'antd/es/table';
+import {
+  Button,
+  Input,
+  Card,
+  CardContent,
+  Badge,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Label,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  Empty,
+  Skeleton,
+  Pagination,
+  DateRangePicker,
+} from '../components/ui';
 import dayjs from 'dayjs';
-import type { Dayjs } from 'dayjs';
 import 'dayjs/locale/zh-cn';
-
-const { RangePicker } = DatePicker;
-const { Option } = Select;
-const { Title } = Typography;
 
 interface AuditLog {
   id: string;
@@ -37,46 +44,104 @@ interface AuditLog {
   actionType: string;
   targetType: string;
   targetId: string;
-  targetName: string; // 操作对象名称（用户名或角色名）
-  description: string; // 操作描述
+  targetName: string;
+  description: string;
   tenantId: string;
 }
 
 const AuditLogPage: React.FC = () => {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
-  // 操作类型映射
-  const ACTION_TYPE_MAP: Record<string, { label: string; color: string }> = {
-    'ACCOUNT_CREATED': { label: t('actionType.ACCOUNT_CREATED'), color: 'green' },
-    'ACCOUNT_UPDATED': { label: t('actionType.ACCOUNT_UPDATED'), color: 'blue' },
-    'ACCOUNT_DELETED': { label: t('actionType.ACCOUNT_DELETED'), color: 'red' },
-    'ROLE_CREATED': { label: t('actionType.ROLE_CREATED'), color: 'green' },
-    'ROLE_UPDATED': { label: t('actionType.ROLE_UPDATED'), color: 'blue' },
-    'ROLE_COPIED': { label: t('role.copySuccess'), color: 'cyan' },
-    'ROLE_DELETED': { label: t('actionType.ROLE_DELETED'), color: 'red' }
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 20;
+
+  // Action type mapping
+  const ACTION_TYPE_MAP: Record<string, { label: string; variant: 'success' | 'info' | 'destructive' | 'secondary' | 'warning' }> = {
+    'ACCOUNT_CREATED': { label: t('actionType.ACCOUNT_CREATED'), variant: 'success' },
+    'ACCOUNT_UPDATED': { label: t('actionType.ACCOUNT_UPDATED'), variant: 'info' },
+    'ACCOUNT_DELETED': { label: t('actionType.ACCOUNT_DELETED'), variant: 'destructive' },
+    'ROLE_CREATED': { label: t('actionType.ROLE_CREATED'), variant: 'success' },
+    'ROLE_UPDATED': { label: t('actionType.ROLE_UPDATED'), variant: 'info' },
+    'ROLE_COPIED': { label: t('actionType.ROLE_COPIED'), variant: 'secondary' },
+    'ROLE_DELETED': { label: t('actionType.ROLE_DELETED'), variant: 'destructive' }
   };
 
-  // 目标类型映射
-  const TARGET_TYPE_MAP: Record<string, { label: string; color: string }> = {
-    'ACCOUNT': { label: t('targetType.ACCOUNT'), color: 'blue' },
-    'ROLE': { label: t('targetType.ROLE'), color: 'purple' }
+  // Target type mapping
+  const TARGET_TYPE_MAP: Record<string, { label: string; variant: 'info' | 'default' }> = {
+    'ACCOUNT': { label: t('targetType.ACCOUNT'), variant: 'info' },
+    'ROLE': { label: t('targetType.ROLE'), variant: 'default' }
   };
 
-  // 过滤器状态
-  const [filters, setFilters] = useState({
-    dateRange: null as [Dayjs, Dayjs] | null,
-    actionType: 'ALL',
-    targetType: 'ALL',
-    actorName: '',
-    targetName: ''
-  });
+  // LocalStorage key for filter persistence
+  const FILTER_STORAGE_KEY = 'auditLog_filters';
 
-  // 设置dayjs locale
+  // Load saved filters from localStorage
+  const loadSavedFilters = () => {
+    try {
+      const saved = localStorage.getItem(FILTER_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return {
+          dateRange: parsed.dateRange 
+            ? { from: new Date(parsed.dateRange.from), to: new Date(parsed.dateRange.to) }
+            : undefined,
+          actionType: parsed.actionType || 'ALL',
+          targetType: parsed.targetType || 'ALL',
+          actorName: parsed.actorName || '',
+          targetName: parsed.targetName || ''
+        };
+      }
+    } catch (e) {
+      console.warn('Failed to load saved filters');
+    }
+    return {
+      dateRange: undefined as { from?: Date; to?: Date } | undefined,
+      actionType: 'ALL',
+      targetType: 'ALL',
+      actorName: '',
+      targetName: ''
+    };
+  };
+
+  // Filter state with persistence
+  const [filters, setFilters] = useState(loadSavedFilters);
+
+  // Save filters to localStorage when they change
   useEffect(() => {
-    dayjs.locale('zh-cn');
-  }, []);
+    try {
+      const toSave = {
+        dateRange: filters.dateRange 
+          ? { from: filters.dateRange.from?.toISOString(), to: filters.dateRange.to?.toISOString() }
+          : null,
+        actionType: filters.actionType,
+        targetType: filters.targetType,
+        actorName: filters.actorName,
+        targetName: filters.targetName
+      };
+      localStorage.setItem(FILTER_STORAGE_KEY, JSON.stringify(toSave));
+    } catch (e) {
+      console.warn('Failed to save filters');
+    }
+  }, [filters]);
+
+  // Date preset handlers
+  const handleDatePreset = (preset: 'today' | 'last7Days' | 'last30Days' | 'thisMonth') => {
+    const presetDates = {
+      today: { from: dayjs().startOf('day').toDate(), to: dayjs().endOf('day').toDate() },
+      last7Days: { from: dayjs().subtract(7, 'day').startOf('day').toDate(), to: dayjs().endOf('day').toDate() },
+      last30Days: { from: dayjs().subtract(30, 'day').startOf('day').toDate(), to: dayjs().endOf('day').toDate() },
+      thisMonth: { from: dayjs().startOf('month').toDate(), to: dayjs().endOf('day').toDate() },
+    };
+    setFilters({ ...filters, dateRange: presetDates[preset] });
+  };
+
+  useEffect(() => {
+    dayjs.locale(locale === 'zh-CN' ? 'zh-cn' : 'en');
+  }, [locale]);
 
   useEffect(() => {
     loadLogs();
@@ -90,9 +155,9 @@ const AuditLogPage: React.FC = () => {
         pageSize: 1000
       };
 
-      if (filters.dateRange && filters.dateRange[0] && filters.dateRange[1]) {
-        params.startDate = filters.dateRange[0].startOf('day').toISOString();
-        params.endDate = filters.dateRange[1].endOf('day').toISOString();
+      if (filters.dateRange?.from && filters.dateRange?.to) {
+        params.startDate = dayjs(filters.dateRange.from).startOf('day').toISOString();
+        params.endDate = dayjs(filters.dateRange.to).endOf('day').toISOString();
       }
 
       if (filters.actionType !== 'ALL') {
@@ -114,6 +179,7 @@ const AuditLogPage: React.FC = () => {
       const response = await api.get('/audit-logs', { params });
       if (response.data.success) {
         setLogs(response.data.data.items || []);
+        setCurrentPage(1);
       }
     } catch (error) {
       console.error(t('auditLog.loadFailed'), error);
@@ -122,190 +188,306 @@ const AuditLogPage: React.FC = () => {
     }
   };
 
+  const handleExportCSV = () => {
+    setExporting(true);
+    try {
+      const headers = [
+        t('auditLog.timestamp'),
+        t('auditLog.actor'),
+        t('auditLog.actionType'),
+        t('auditLog.targetType'),
+        t('auditLog.targetId'),
+        t('common.description')
+      ];
+
+      const rows = logs.map(log => [
+        dayjs(log.timestamp).format('YYYY-MM-DD HH:mm:ss'),
+        log.actor.username,
+        ACTION_TYPE_MAP[log.actionType]?.label || log.actionType,
+        TARGET_TYPE_MAP[log.targetType]?.label || log.targetType,
+        log.targetName,
+        log.description.replace(/"/g, '""')
+      ]);
+
+      const csvContent = [
+        headers.join(','),
+        ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+      ].join('\n');
+
+      const BOM = '\uFEFF';
+      const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      
+      link.setAttribute('href', url);
+      link.setAttribute('download', `audit-log-${dayjs().format('YYYY-MM-DD-HHmmss')}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast.success(t('auditLog.exportSuccess'));
+    } catch (error) {
+      toast.error(t('auditLog.exportFailed'));
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const handleReset = () => {
-    setFilters({
-      dateRange: null,
+    const defaultFilters = {
+      dateRange: undefined as { from?: Date; to?: Date } | undefined,
       actionType: 'ALL',
       targetType: 'ALL',
       actorName: '',
       targetName: ''
-    });
+    };
+    setFilters(defaultFilters);
+    localStorage.removeItem(FILTER_STORAGE_KEY);
   };
 
-  const columns: ColumnsType<AuditLog> = [
-    {
-      title: t('auditLog.timestamp'),
-      dataIndex: 'timestamp',
-      key: 'timestamp',
-      width: 160,
-      render: (text: string) => {
-        return dayjs(text).format('YYYY-MM-DD HH:mm:ss');
-      }
-    },
-    {
-      title: t('auditLog.actor'),
-      key: 'actor',
-      width: 120,
-      render: (_: any, record: AuditLog) => (
-        <div>
-          <div style={{ fontWeight: 500 }}>{record.actor.username}</div>
-        </div>
-      )
-    },
-    {
-      title: t('auditLog.actionType'),
-      dataIndex: 'actionType',
-      key: 'actionType',
-      width: 100,
-      render: (actionType: string) => {
-        const config = ACTION_TYPE_MAP[actionType] || { label: actionType, color: 'default' };
-        return <Tag color={config.color}>{config.label}</Tag>;
-      }
-    },
-    {
-      title: t('auditLog.targetType'),
-      key: 'target',
-      width: 180,
-      render: (_: any, record: AuditLog) => {
-        const typeConfig = TARGET_TYPE_MAP[record.targetType] || { label: record.targetType, color: 'default' };
-        return (
-          <div>
-            <div style={{ fontWeight: 500 }}>{record.targetName}</div>
-            <div style={{ fontSize: 12, color: '#666' }}>
-              <Tag color={typeConfig.color}>{typeConfig.label}</Tag>
-              {record.targetId}
-            </div>
-          </div>
-        );
-      }
-    },
-    {
-      title: t('common.description'),
-      dataIndex: 'description',
-      key: 'description',
-      render: (text: string) => (
-        <div style={{ 
-          wordBreak: 'break-all', 
-          whiteSpace: 'pre-wrap',
-          lineHeight: '1.4'
-        }}>
-          {text}
-        </div>
-      )
-    }
-  ];
+  // Pagination
+  const paginatedLogs = useMemo(() => {
+    const startIndex = (currentPage - 1) * pageSize;
+    return logs.slice(startIndex, startIndex + pageSize);
+  }, [logs, currentPage, pageSize]);
+
+  const totalPages = Math.ceil(logs.length / pageSize);
 
   return (
     <div>
-      {/* 标题和操作 */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
+      {/* Header */}
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'flex-start', 
+        marginBottom: 'var(--space-lg)' 
+      }}>
         <div>
-          <Title level={2} style={{ margin: 0 }}>
+          <h2 style={{ 
+            margin: 0,
+            fontSize: 'var(--text-2xl)',
+            fontWeight: 'var(--font-bold)',
+            color: 'var(--text-primary)',
+          }}>
             {t('auditLog.title')}
-          </Title>
+          </h2>
+          <p style={{ 
+            margin: 'var(--space-xs) 0 0', 
+            color: 'var(--text-secondary)',
+            fontSize: 'var(--text-sm)'
+          }}>
+            {t('auditLog.subtitle')}
+          </p>
         </div>
-        <Space>
-          <Button icon={<ReloadOutlined />} onClick={loadLogs}>
-            {t('auditLog.refresh')}
+        <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
+          <Button 
+            variant="outline"
+            onClick={handleExportCSV}
+            disabled={exporting || logs.length === 0}
+          >
+            <Download size={16} /> {t('auditLog.export')}
           </Button>
-        </Space>
+          <Button variant="outline" onClick={loadLogs}>
+            <RefreshCw size={16} /> {t('auditLog.refresh')}
+          </Button>
+        </div>
       </div>
 
-      {/* 过滤器 */}
-      <Card style={{ marginBottom: 16 }}>
-        <Row gutter={16}>
-          <Col span={6}>
-            <div style={{ marginBottom: 8 }}>{t('auditLog.dateRange')}</div>
-            <RangePicker
-              style={{ width: '100%' }}
-              value={filters.dateRange}
-              onChange={(dates) => setFilters({ ...filters, dateRange: dates as [Dayjs, Dayjs] | null })}
-            />
-          </Col>
-          <Col span={6}>
-            <div style={{ marginBottom: 8 }}>{t('auditLog.actionType')}</div>
-            <Select
-              style={{ width: '100%' }}
-              value={filters.actionType}
-              onChange={(value) => setFilters({ ...filters, actionType: value })}
-            >
-              <Option value="ALL">{t('common.all')}</Option>
-              {Object.keys(ACTION_TYPE_MAP).map(action => (
-                <Option key={action} value={action}>
-                  {ACTION_TYPE_MAP[action].label}
-                </Option>
-              ))}
-            </Select>
-          </Col>
-          <Col span={6}>
-            <div style={{ marginBottom: 8 }}>{t('auditLog.targetType')}</div>
-            <Select
-              style={{ width: '100%' }}
-              value={filters.targetType}
-              onChange={(value) => setFilters({ ...filters, targetType: value })}
-            >
-              <Option value="ALL">{t('common.all')}</Option>
-              {Object.keys(TARGET_TYPE_MAP).map(target => (
-                <Option key={target} value={target}>
-                  {TARGET_TYPE_MAP[target].label}
-                </Option>
-              ))}
-            </Select>
-          </Col>
-          <Col span={6}>
-            <div style={{ marginBottom: 8 }}>{t('auditLog.actor')}</div>
-            <Input
-              placeholder={t('auditLog.searchActorId')}
-              value={filters.actorName}
-              onChange={(e) => setFilters({ ...filters, actorName: e.target.value })}
-              allowClear
-            />
-          </Col>
-        </Row>
-        <Row gutter={16} style={{ marginTop: 16 }}>
-          <Col span={6}>
-            <div style={{ marginBottom: 8 }}>{t('auditLog.targetId')}</div>
-            <Input
-              placeholder={t('auditLog.searchTargetId')}
-              value={filters.targetName}
-              onChange={(e) => setFilters({ ...filters, targetName: e.target.value })}
-              allowClear
-            />
-          </Col>
-          <Col span={18}>
-            <Space>
-              <Button onClick={handleReset}>{t('auditLog.reset')}</Button>
-              <Button type="primary" onClick={loadLogs}>
-                {t('auditLog.applyFilters')}
-              </Button>
-            </Space>
-          </Col>
-        </Row>
+      {/* Filters */}
+      <Card style={{ marginBottom: 'var(--space-md)' }}>
+        <CardContent style={{ padding: 'var(--space-md)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(280px, 1.5fr) 1fr 1fr 1fr 1fr', gap: 'var(--space-md)' }}>
+            <div>
+              <Label>{t('auditLog.dateRange')}</Label>
+              <div style={{ display: 'flex', gap: 'var(--space-xs)', marginTop: 'var(--space-xs)' }}>
+                <DateRangePicker
+                  dateRange={filters.dateRange}
+                  onDateRangeChange={(range) => setFilters({ ...filters, dateRange: range })}
+                  placeholder={t('auditLog.selectDateRange')}
+                />
+                <DropdownMenu modal={false}>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="icon">
+                      <Calendar size={16} />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => handleDatePreset('today')}>
+                      {t('auditLog.today')}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleDatePreset('last7Days')}>
+                      {t('auditLog.last7Days')}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleDatePreset('last30Days')}>
+                      {t('auditLog.last30Days')}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleDatePreset('thisMonth')}>
+                      {t('auditLog.thisMonth')}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </div>
+            <div>
+              <Label>{t('auditLog.actionType')}</Label>
+              <Select
+                value={filters.actionType}
+                onValueChange={(value) => setFilters({ ...filters, actionType: value })}
+              >
+                <SelectTrigger style={{ marginTop: 'var(--space-xs)' }}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">{t('common.all')}</SelectItem>
+                  {Object.keys(ACTION_TYPE_MAP).map(action => (
+                    <SelectItem key={action} value={action}>
+                      {ACTION_TYPE_MAP[action].label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>{t('auditLog.targetType')}</Label>
+              <Select
+                value={filters.targetType}
+                onValueChange={(value) => setFilters({ ...filters, targetType: value })}
+              >
+                <SelectTrigger style={{ marginTop: 'var(--space-xs)' }}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">{t('common.all')}</SelectItem>
+                  {Object.keys(TARGET_TYPE_MAP).map(target => (
+                    <SelectItem key={target} value={target}>
+                      {TARGET_TYPE_MAP[target].label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>{t('auditLog.actor')}</Label>
+              <Input
+                style={{ marginTop: 'var(--space-xs)' }}
+                placeholder={t('auditLog.searchActorId')}
+                value={filters.actorName}
+                onChange={(e) => setFilters({ ...filters, actorName: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>{t('auditLog.targetId')}</Label>
+              <Input
+                style={{ marginTop: 'var(--space-xs)' }}
+                placeholder={t('auditLog.searchTargetId')}
+                value={filters.targetName}
+                onChange={(e) => setFilters({ ...filters, targetName: e.target.value })}
+              />
+            </div>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-sm)', marginTop: 'var(--space-md)' }}>
+            <Button variant="outline" onClick={handleReset}>{t('auditLog.reset')}</Button>
+            <Button onClick={loadLogs}>
+              <Search size={16} /> {t('auditLog.applyFilters')}
+            </Button>
+          </div>
+        </CardContent>
       </Card>
 
-      {/* 日志表格 */}
-      <Card>
-        <Table
-          columns={columns}
-          dataSource={logs}
-          loading={loading}
-          rowKey="id"
-          scroll={{ x: 'max-content' }}
-          pagination={{
-            pageSize: 20,
-            showSizeChanger: true,
-            showTotal: (total, range) =>
-              t('pagination.showing', { 
-                start: range[0].toString(), 
-                end: range[1].toString(), 
-                total: total.toString() 
-              }).replace('角色', '记录')
-          }}
-        />
-      </Card>
+      {/* Table */}
+      {loading ? (
+        <Card>
+          <CardContent>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+              {[...Array(5)].map((_, i) => (
+                <Skeleton key={i} style={{ height: 48 }} />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      ) : logs.length === 0 ? (
+        <Card>
+          <CardContent>
+            <Empty 
+              variant="audit"
+              title={t('common.noData')}
+              description={t('auditLog.noLogsDescription') || 'No audit logs found for the selected filters.'}
+            />
+          </CardContent>
+        </Card>
+      ) : (
+        <>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead style={{ width: 170 }}>{t('auditLog.timestamp')}</TableHead>
+                <TableHead style={{ width: 130 }}>{t('auditLog.actor')}</TableHead>
+                <TableHead style={{ width: 150 }}>{t('auditLog.actionType')}</TableHead>
+                <TableHead style={{ width: 200 }}>{t('auditLog.targetType')}</TableHead>
+                <TableHead>{t('common.description')}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {paginatedLogs.map((log) => {
+                const actionConfig = ACTION_TYPE_MAP[log.actionType] || { label: log.actionType, variant: 'secondary' as const };
+                const targetConfig = TARGET_TYPE_MAP[log.targetType] || { label: log.targetType, variant: 'secondary' as const };
+                
+                return (
+                  <TableRow key={log.id}>
+                    <TableCell>
+                      {dayjs(log.timestamp).format('YYYY-MM-DD HH:mm:ss')}
+                    </TableCell>
+                    <TableCell>
+                      <span style={{ fontWeight: 'var(--font-medium)', color: 'var(--text-primary)' }}>
+                        {log.actor.username}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={actionConfig.variant}>{actionConfig.label}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div>
+                        <div style={{ fontWeight: 'var(--font-medium)', color: 'var(--text-primary)' }}>
+                          {log.targetName}
+                        </div>
+                        <Badge variant={targetConfig.variant} style={{ marginTop: 'var(--space-xs)' }}>
+                          {targetConfig.label}
+                        </Badge>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div style={{ 
+                        wordBreak: 'break-all', 
+                        whiteSpace: 'pre-wrap',
+                        lineHeight: '1.4',
+                        color: 'var(--text-regular)',
+                      }}>
+                        {log.description}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+          
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div style={{ marginTop: 'var(--space-md)' }}>
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={logs.length}
+                pageSize={pageSize}
+                onPageChange={setCurrentPage}
+              />
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 };
 
 export default AuditLogPage;
-

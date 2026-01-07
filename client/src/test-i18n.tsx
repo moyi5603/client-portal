@@ -1,32 +1,32 @@
 import React from 'react';
-import { Button, Space } from 'antd';
+import { Button } from './components/ui/button';
 import { useLocale } from './contexts/LocaleContext';
 
 const TestI18n: React.FC = () => {
   const { locale, setLocale, t } = useLocale();
 
   return (
-    <div style={{ padding: 20 }}>
+    <div className="p-5">
       <h2>国际化测试 / Internationalization Test</h2>
       
-      <div style={{ marginBottom: 20 }}>
+      <div className="mb-5">
         <strong>当前语言 / Current Language: {locale}</strong>
       </div>
       
-      <Space style={{ marginBottom: 20 }}>
+      <div className="flex gap-2 mb-5">
         <Button 
-          type={locale === 'zh-CN' ? 'primary' : 'default'}
+          variant={locale === 'zh-CN' ? 'default' : 'outline'}
           onClick={() => setLocale('zh-CN')}
         >
           中文
         </Button>
         <Button 
-          type={locale === 'en-US' ? 'primary' : 'default'}
+          variant={locale === 'en-US' ? 'default' : 'outline'}
           onClick={() => setLocale('en-US')}
         >
           English
         </Button>
-      </Space>
+      </div>
 
       <div>
         <h3>翻译测试 / Translation Test:</h3>

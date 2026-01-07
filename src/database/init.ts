@@ -15,6 +15,7 @@ export const initTestData = () => {
     status: AccountStatus.ACTIVE,
     tenantId: 'admin',
     roles: [],
+    lastLoginAt: new Date().toISOString(), // Set to current date/time
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   };

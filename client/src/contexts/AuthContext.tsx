@@ -1,6 +1,6 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { message } from 'antd';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import api from '../utils/api';
+import { toast } from '../components/ui/use-toast';
 
 interface User {
   id: string;
@@ -26,13 +26,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     if (token) {
-      // 验证token有效性
+      // Verify token validity
       api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      // 可以添加验证token的API调用
     }
   }, [token]);
 
-  const login = async (username: string, password: string, tenantId: string): Promise<boolean> => {
+  const login = useCallback(async (username: string, password: string, tenantId: string): Promise<boolean> => {
     try {
       const response = await api.post('/auth/login', { username, password, tenantId });
       if (response.data.success) {
@@ -41,28 +40,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(account);
         localStorage.setItem('token', newToken);
         api.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
-        message.success('登录成功');
+        toast({
+          title: 'Success',
+          description: 'Login successful',
+          variant: 'success',
+        });
         return true;
       }
       return false;
     } catch (error: any) {
-      console.error('登录错误:', error);
-      const errorMessage = error.response?.data?.error || error.message || '登录失败，请检查后端服务是否启动';
-      message.error(errorMessage);
+      console.error('Login error:', error);
+      const errorMessage = error.response?.data?.error || error.message || 'Login failed, please check if the backend service is running';
+      toast({
+        title: 'Login Failed',
+        description: errorMessage,
+        variant: 'destructive',
+      });
       if (error.code === 'ECONNREFUSED' || error.message?.includes('Network Error')) {
-        message.error('无法连接到后端服务，请确保后端服务已启动在 http://localhost:3001');
+        toast({
+          title: 'Connection Error',
+          description: 'Cannot connect to backend service. Please ensure it is running on http://localhost:3001',
+          variant: 'destructive',
+        });
       }
       return false;
     }
-  };
+  }, []);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     setToken(null);
     setUser(null);
     localStorage.removeItem('token');
     delete api.defaults.headers.common['Authorization'];
-    message.success('已退出登录');
-  };
+    toast({
+      title: 'Logged Out',
+      description: 'You have been logged out successfully',
+      variant: 'success',
+    });
+  }, []);
 
   return (
     <AuthContext.Provider
@@ -86,4 +101,3 @@ export const useAuth = () => {
   }
   return context;
 };
-
