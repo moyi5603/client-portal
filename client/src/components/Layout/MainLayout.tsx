@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  User, Users, Shield, Menu, LogOut, List, Globe, FileText, Sun, Moon, ChevronDown, ChevronRight
+  User, Users, Shield, Menu, LogOut, List, Globe, FileText, Sun, Moon, ChevronDown, ChevronRight, Edit, Code
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Avatar, AvatarFallback } from '../ui/avatar';
@@ -44,6 +44,10 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       if (!expandedMenus.includes('account-management')) {
         setExpandedMenus([...expandedMenus, 'account-management']);
       }
+    } else if (['/editor', '/code-editor', '/page-designer'].includes(location.pathname)) {
+      if (!expandedMenus.includes('editor')) {
+        setExpandedMenus([...expandedMenus, 'editor']);
+      }
     }
   }, [location.pathname]);
 
@@ -76,6 +80,31 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           icon: <FileText className="w-4 h-4" />,
           label: t('nav.auditLog'),
           path: '/audit-logs'
+        }
+      ]
+    },
+    {
+      key: 'editor',
+      icon: <Edit className="w-4 h-4" />,
+      label: '编辑器',
+      children: [
+        {
+          key: '/editor',
+          icon: <FileText className="w-4 h-4" />,
+          label: '文本编辑器',
+          path: '/editor'
+        },
+        {
+          key: '/code-editor',
+          icon: <Code className="w-4 h-4" />,
+          label: '代码编辑器',
+          path: '/code-editor'
+        },
+        {
+          key: '/page-designer',
+          icon: <Edit className="w-4 h-4" />,
+          label: '页面设计器',
+          path: '/page-designer'
         }
       ]
     }

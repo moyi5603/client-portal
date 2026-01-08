@@ -7,6 +7,8 @@ import RoleManagement from './pages/RoleManagement';
 import MenuManagement from './pages/MenuManagement';
 import PermissionView from './pages/PermissionView';
 import AuditLog from './pages/AuditLog';
+import SimpleEditor from './pages/SimpleEditor';
+import SimpleCodeEditor from './pages/SimpleCodeEditor';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { LocaleProvider } from './contexts/LocaleContext';
 import { ThemeProvider } from './contexts/ThemeContext';
@@ -35,6 +37,8 @@ const AppRoutes: React.FC = () => {
                 <Route path="/menus" element={<MenuManagement />} />
                 <Route path="/permissions" element={<PermissionView />} />
                 <Route path="/audit-logs" element={<AuditLog />} />
+                <Route path="/editor" element={<SimpleEditor />} />
+                <Route path="/code-editor" element={<SimpleCodeEditor />} />
               </Routes>
             </MainLayout>
           </ProtectedRoute>
