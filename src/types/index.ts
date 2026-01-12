@@ -169,6 +169,7 @@ export interface Role {
   permissions: Permission[];       // 权限列表（模块→页面→操作）
   // 元数据
   usageCount: number;
+  isSystemRole?: boolean;         // 是否为系统预设角色（超级管理员等）
   createdAt: string;
   updatedAt: string;
   createdBy?: string;

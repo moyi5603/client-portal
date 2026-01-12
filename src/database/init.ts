@@ -21,6 +21,382 @@ export const initTestData = () => {
   };
   db.createAccount(mainAccount, 'admin123');
 
+  // 创建超级管理员角色（预设角色，拥有所有权限但禁用操作）
+  const superAdminRole: Role = {
+    id: 'ROLE-000', // 使用特殊ID标识超级管理员
+    name: 'Super Administrator',
+    description: 'Super administrator with all permissions (actions disabled)',
+    status: RoleStatus.ACTIVE,
+    permissions: [
+      // DASHBOARDS
+      {
+        module: Module.DASHBOARDS,
+        page: 'KPI',
+        pageCode: 'kpi',
+        operations: [Operation.VIEW]
+      },
+      // PURCHASE_MANAGEMENT
+      {
+        module: Module.PURCHASE_MANAGEMENT,
+        page: 'Projects',
+        pageCode: 'projects',
+        operations: [Operation.VIEW, Operation.CREATE, Operation.EXPORT]
+      },
+      {
+        module: Module.PURCHASE_MANAGEMENT,
+        page: 'Purchase Request',
+        pageCode: 'purchase-request',
+        operations: [Operation.VIEW, Operation.CREATE, Operation.EXPORT]
+      },
+      {
+        module: Module.PURCHASE_MANAGEMENT,
+        page: 'Purchase Order',
+        pageCode: 'purchase-order',
+        operations: [Operation.VIEW]
+      },
+      // SALES_ORDER
+      {
+        module: Module.SALES_ORDER,
+        page: 'Wholesale Orders',
+        pageCode: 'wholesale-orders',
+        operations: [Operation.VIEW]
+      },
+      {
+        module: Module.SALES_ORDER,
+        page: 'Retail Orders',
+        pageCode: 'retail-orders',
+        operations: [Operation.VIEW]
+      },
+      // WORK_ORDER
+      {
+        module: Module.WORK_ORDER,
+        page: 'Work Orders',
+        pageCode: 'work-orders',
+        operations: [Operation.VIEW]
+      },
+      // INBOUND
+      {
+        module: Module.INBOUND,
+        page: 'Inquiry',
+        pageCode: 'inquiry',
+        operations: [Operation.VIEW, Operation.EDIT, Operation.EXPORT, Operation.CANCEL]
+      },
+      {
+        module: Module.INBOUND,
+        page: 'Schedule Summary',
+        pageCode: 'schedule-summary',
+        operations: [Operation.VIEW]
+      },
+      {
+        module: Module.INBOUND,
+        page: 'Received Summary',
+        pageCode: 'received-summary',
+        operations: [Operation.VIEW]
+      },
+      {
+        module: Module.INBOUND,
+        page: 'Receipt Entry',
+        pageCode: 'receipt-entry',
+        operations: [Operation.CREATE]
+      },
+      {
+        module: Module.INBOUND,
+        page: 'Put Away Report',
+        pageCode: 'put-away-report',
+        operations: [Operation.VIEW, Operation.EXPORT]
+      },
+      {
+        module: Module.INBOUND,
+        page: 'Make Appointment',
+        pageCode: 'make-appointment',
+        operations: [Operation.CREATE]
+      },
+      {
+        module: Module.INBOUND,
+        page: 'Appointment List',
+        pageCode: 'appointment-list',
+        operations: [Operation.VIEW, Operation.CREATE, Operation.EDIT, Operation.CANCEL]
+      },
+      // INVENTORY
+      {
+        module: Module.INVENTORY,
+        page: 'SN Look Up',
+        pageCode: 'sn-look-up',
+        operations: [Operation.VIEW, Operation.EXPORT]
+      },
+      {
+        module: Module.INVENTORY,
+        page: 'Inventory Activity',
+        pageCode: 'inventory-activity',
+        operations: [Operation.VIEW, Operation.EXPORT]
+      },
+      {
+        module: Module.INVENTORY,
+        page: 'Inventory Adjustment',
+        pageCode: 'inventory-adjustment',
+        operations: [Operation.VIEW, Operation.EXPORT]
+      },
+      {
+        module: Module.INVENTORY,
+        page: 'Inventory Status',
+        pageCode: 'inventory-status',
+        operations: [Operation.VIEW, Operation.EXPORT]
+      },
+      {
+        module: Module.INVENTORY,
+        page: 'Item Master',
+        pageCode: 'item-master',
+        operations: [Operation.VIEW, Operation.EXPORT]
+      },
+      {
+        module: Module.INVENTORY,
+        page: 'Current Onhand Inventory Aging Report',
+        pageCode: 'current-onhand',
+        operations: [Operation.VIEW, Operation.EXPORT]
+      },
+      {
+        module: Module.INVENTORY,
+        page: 'Historical Inventory Aging Report',
+        pageCode: 'historical-inventory-aging',
+        operations: [Operation.VIEW, Operation.EXPORT]
+      },
+      {
+        module: Module.INVENTORY,
+        page: 'Warehouse Projects',
+        pageCode: 'warehouse-projects',
+        operations: [Operation.VIEW, Operation.EXPORT]
+      },
+      // OUTBOUND
+      {
+        module: Module.OUTBOUND,
+        page: 'Inquiry',
+        pageCode: 'inquiry',
+        operations: [Operation.VIEW, Operation.EXPORT]
+      },
+      {
+        module: Module.OUTBOUND,
+        page: 'Schedule Summary',
+        pageCode: 'schedule-summary',
+        operations: [Operation.VIEW]
+      },
+      {
+        module: Module.OUTBOUND,
+        page: 'Shipped Summary',
+        pageCode: 'shipped-summary',
+        operations: [Operation.VIEW]
+      },
+      {
+        module: Module.OUTBOUND,
+        page: 'Order Carrier Update',
+        pageCode: 'order-carrier-update',
+        operations: [Operation.VIEW]
+      },
+      {
+        module: Module.OUTBOUND,
+        page: 'Order Entry',
+        pageCode: 'order-entry',
+        operations: [Operation.CREATE]
+      },
+      {
+        module: Module.OUTBOUND,
+        page: 'Small Parcel Tracking Status',
+        pageCode: 'small-parcel-tracking',
+        operations: [Operation.VIEW]
+      },
+      {
+        module: Module.OUTBOUND,
+        page: 'Freight Quote',
+        pageCode: 'freight-quote',
+        operations: [Operation.VIEW, Operation.CREATE]
+      },
+      // RETURNS
+      {
+        module: Module.RETURNS,
+        page: 'RMA',
+        pageCode: 'rma',
+        operations: [Operation.VIEW, Operation.EXPORT]
+      },
+      {
+        module: Module.RETURNS,
+        page: 'Traveler ID',
+        pageCode: 'traveler-id',
+        operations: [Operation.VIEW]
+      },
+      {
+        module: Module.RETURNS,
+        page: 'Return Report',
+        pageCode: 'return-report',
+        operations: [Operation.VIEW, Operation.EXPORT]
+      },
+      {
+        module: Module.RETURNS,
+        page: 'Restock Report',
+        pageCode: 'restock-report',
+        operations: [Operation.VIEW, Operation.EXPORT]
+      },
+      {
+        module: Module.RETURNS,
+        page: 'Adjustment Report',
+        pageCode: 'adjustment-report',
+        operations: [Operation.VIEW, Operation.EXPORT]
+      },
+      {
+        module: Module.RETURNS,
+        page: 'Scrap Report',
+        pageCode: 'scrap-report',
+        operations: [Operation.VIEW, Operation.EXPORT]
+      },
+      {
+        module: Module.RETURNS,
+        page: 'Service Claim Report',
+        pageCode: 'service-claim-report',
+        operations: [Operation.VIEW, Operation.EXPORT]
+      },
+      // YARD_MANAGEMENT
+      {
+        module: Module.YARD_MANAGEMENT,
+        page: 'Equipment History Report',
+        pageCode: 'equipment-history-report',
+        operations: [Operation.VIEW, Operation.EXPORT]
+      },
+      {
+        module: Module.YARD_MANAGEMENT,
+        page: 'Equipment Report',
+        pageCode: 'equipment-report',
+        operations: [Operation.VIEW, Operation.EXPORT]
+      },
+      {
+        module: Module.YARD_MANAGEMENT,
+        page: 'Yard Status Report',
+        pageCode: 'yard-status-report',
+        operations: [Operation.VIEW, Operation.EXPORT]
+      },
+      {
+        module: Module.YARD_MANAGEMENT,
+        page: 'Yard Check Report',
+        pageCode: 'yard-check-report',
+        operations: [Operation.VIEW, Operation.EXPORT]
+      },
+      // SUPPLY_CHAIN
+      {
+        module: Module.SUPPLY_CHAIN,
+        page: 'Damaged Box Detection',
+        pageCode: 'damaged-box-detection',
+        operations: [Operation.VIEW, Operation.EDIT]
+      },
+      {
+        module: Module.SUPPLY_CHAIN,
+        page: 'Routing Report',
+        pageCode: 'routing-report',
+        operations: [Operation.VIEW]
+      },
+      {
+        module: Module.SUPPLY_CHAIN,
+        page: 'Walmart Shipments',
+        pageCode: 'walmart-shipments',
+        operations: [Operation.VIEW]
+      },
+      {
+        module: Module.SUPPLY_CHAIN,
+        page: 'Target Shipments',
+        pageCode: 'target-shipments',
+        operations: [Operation.VIEW]
+      },
+      {
+        module: Module.SUPPLY_CHAIN,
+        page: 'Shipments',
+        pageCode: 'shipments',
+        operations: [Operation.VIEW, Operation.CREATE]
+      },
+      {
+        module: Module.SUPPLY_CHAIN,
+        page: 'Tracking',
+        pageCode: 'tracking',
+        operations: [Operation.VIEW, Operation.EXPORT]
+      },
+      {
+        module: Module.SUPPLY_CHAIN,
+        page: 'Automated Order Entry',
+        pageCode: 'automated-order-entry',
+        operations: [Operation.CREATE]
+      },
+      // FINANCE
+      {
+        module: Module.FINANCE,
+        page: 'Invoice',
+        pageCode: 'invoice',
+        operations: [Operation.VIEW, Operation.EXPORT]
+      },
+      {
+        module: Module.FINANCE,
+        page: 'Card and Balance',
+        pageCode: 'card-and-balance',
+        operations: [Operation.VIEW, Operation.CREATE]
+      },
+      {
+        module: Module.FINANCE,
+        page: 'History',
+        pageCode: 'history',
+        operations: [Operation.VIEW, Operation.EXPORT]
+      },
+      {
+        module: Module.FINANCE,
+        page: 'Cost Calculator',
+        pageCode: 'cost-calculator',
+        operations: [Operation.VIEW]
+      },
+      {
+        module: Module.FINANCE,
+        page: 'Claim',
+        pageCode: 'claim',
+        operations: [Operation.VIEW, Operation.CREATE, Operation.EDIT, Operation.EXPORT]
+      },
+      // SYSTEM_MANAGEMENT
+      {
+        module: Module.SYSTEM_MANAGEMENT,
+        page: 'Address Book',
+        pageCode: 'address-book',
+        operations: [Operation.VIEW, Operation.CREATE, Operation.EDIT, Operation.DELETE, Operation.EXPORT]
+      },
+      {
+        module: Module.SYSTEM_MANAGEMENT,
+        page: 'Settings',
+        pageCode: 'settings',
+        operations: [Operation.VIEW, Operation.CREATE, Operation.EDIT]
+      },
+      // PERMISSION_MANAGEMENT - 注意：超级管理员在权限管理模块中禁用操作
+      {
+        module: Module.PERMISSION_MANAGEMENT,
+        page: 'Account Management',
+        pageCode: 'account-management',
+        operations: [Operation.VIEW] // 只有查看权限，禁用操作
+      },
+      {
+        module: Module.PERMISSION_MANAGEMENT,
+        page: 'Role Management',
+        pageCode: 'role-management',
+        operations: [Operation.VIEW] // 只有查看权限，禁用操作
+      },
+      {
+        module: Module.PERMISSION_MANAGEMENT,
+        page: 'Permission View',
+        pageCode: 'permission-view',
+        operations: [Operation.VIEW]
+      },
+      {
+        module: Module.PERMISSION_MANAGEMENT,
+        page: 'Audit Log',
+        pageCode: 'audit-log',
+        operations: [Operation.VIEW, Operation.EXPORT]
+      }
+    ],
+    usageCount: 0,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    isSystemRole: true // 标记为系统预设角色
+  };
+  db.createRole(superAdminRole);
+
   // 创建示例角色（使用新的权限结构）
   const systemAdminRole: Role = {
     id: 'ROLE-001',
@@ -257,8 +633,8 @@ export const initTestData = () => {
   };
   db.createAccount(user7, 'user123');
 
-  // 更新主账号，分配系统管理员角色
-  db.updateAccount(mainAccount.id, { roles: ['ROLE-001'] });
+  // 更新主账号，分配超级管理员角色
+  db.updateAccount(mainAccount.id, { roles: ['ROLE-000'] });
 
   // 创建模拟操作记录数据
   const mockActor1: any = {
@@ -443,7 +819,7 @@ export const initTestData = () => {
   );
 
   console.log('Test data initialization completed');
-  console.log('Main account: admin / admin123');
+  console.log('Main account: admin / admin123 (ONLY Super Administrator role)');
   console.log('User account 1: john.smith / user123 (roles: System Administrator, Customer Administrator)');
   console.log('User account 2: jane.doe / user123 (roles: Customer Service Representative)');
   console.log('User account 3: mike.johnson / user123 (roles: Customer Administrator)');
@@ -452,7 +828,11 @@ export const initTestData = () => {
   console.log('User account 6: lisa.garcia / user123 (roles: Customer Administrator, Customer Service Representative)');
   console.log('User account 7: robert.davis / user123 (roles: Customer Service Representative)');
   console.log('Tenant ID: admin');
-  console.log('Sample roles created: System Administrator, Customer Administrator, Customer Service Representative');
+  console.log('Sample roles created:');
+  console.log('  - Super Administrator (ROLE-000): Preset role with all permissions, actions disabled for permission management');
+  console.log('  - System Administrator (ROLE-001): Full system access with all permissions');
+  console.log('  - Customer Administrator (ROLE-002): Manage customer users and roles');
+  console.log('  - Customer Service Representative (ROLE-003): Handle customer inquiries and support');
   console.log('Created 5 mock audit log entries:');
   console.log('  1. Role created: System Administrator (1 hour ago)');
   console.log('  2. Account updated: john.smith modified email and roles (45 minutes ago)');
@@ -460,5 +840,6 @@ export const initTestData = () => {
   console.log('  4. Role updated: Customer Administrator modified description and permissions (20 minutes ago)');
   console.log('  5. Role copied: Customer Administrator -> Customer Administrator (Copy) (10 minutes ago)');
   console.log('Total: 1 main account + 7 sub-accounts = 8 accounts');
+  console.log('✅ Main account (admin) assigned ONLY Super Administrator role (ROLE-000)');
 };
 

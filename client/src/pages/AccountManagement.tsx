@@ -489,10 +489,6 @@ const AccountManagement: React.FC = () => {
   };
 
   const getRoleBadges = (account: Account) => {
-    if (account.accountType === 'MAIN') {
-      return <Badge variant="default">{t('account.allPermissions')}</Badge>;
-    }
-    
     if (!account.roles || account.roles.length === 0) {
       return <span className="text-secondary">{t('account.noRoles')}</span>;
     }
@@ -501,9 +497,16 @@ const AccountManagement: React.FC = () => {
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-xs)' }}>
         {account.roles.slice(0, 2).map((roleId: string) => {
           const role = roles.find(r => r.id === roleId);
+          let displayName = role ? role.name : roleId;
+          
+          // 特殊处理：超级管理员角色显示为"超级管理"
+          if (roleId === 'ROLE-000' || (role && role.name === 'Super Administrator')) {
+            displayName = t('role.superAdmin');
+          }
+          
           return (
             <Badge key={roleId} variant="default">
-              {role ? role.name : roleId}
+              {displayName}
             </Badge>
           );
         })}

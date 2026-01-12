@@ -147,6 +147,14 @@ router.put('/:id', requireAccountType('MAIN'), async (req: AuthRequest, res) => 
       } as ApiResponse);
     }
 
+    // 检查是否为系统预设角色
+    if (role.isSystemRole) {
+      return res.status(403).json({
+        success: false,
+        error: '系统预设角色不允许编辑'
+      } as ApiResponse);
+    }
+
     const { name, description, status, permissions } = req.body;
     const previousValue = { ...role };
 
@@ -258,6 +266,14 @@ router.delete('/:id', requireAccountType('MAIN'), async (req: AuthRequest, res) 
       return res.status(404).json({
         success: false,
         error: '角色不存在'
+      } as ApiResponse);
+    }
+
+    // 检查是否为系统预设角色
+    if (role.isSystemRole) {
+      return res.status(403).json({
+        success: false,
+        error: '系统预设角色不允许删除'
       } as ApiResponse);
     }
 

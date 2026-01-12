@@ -73,6 +73,7 @@ interface Role {
   status: 'ACTIVE' | 'DEPRECATED';
   permissions: Permission[];
   usageCount: number;
+  isSystemRole?: boolean; // 是否为系统预设角色
   createdAt: string;
   updatedAt: string;
   modifiedBy?: string;
@@ -743,7 +744,14 @@ const RoleManagement: React.FC = () => {
                   {paginatedRoles.map(role => (
                     <TableRow key={role.id}>
                       <TableCell>
-                        <div style={{ fontWeight: 'var(--font-medium)', color: 'var(--text-primary)' }}>{role.name}</div>
+                        <div style={{ fontWeight: 'var(--font-medium)', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 'var(--space-xs)' }}>
+                          {role.name}
+                          {role.isSystemRole && (
+                            <Badge variant="outline" style={{ fontSize: '10px', padding: '2px 6px' }}>
+                              {t('role.systemRole')}
+                            </Badge>
+                          )}
+                        </div>
                         <div className="text-xs text-secondary">{role.id}</div>
                       </TableCell>
                       <TableCell style={{ maxWidth: 200 }}>
@@ -772,16 +780,18 @@ const RoleManagement: React.FC = () => {
                             <Button variant="ghost" size="icon"><MoreHorizontal size={18} /></Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleEdit(role)}>
+                            <DropdownMenuItem onClick={() => handleEdit(role)} disabled={role.isSystemRole}>
                               <Pencil size={14} style={{ marginRight: 8 }} />{t('common.edit')}
+                              {role.isSystemRole && <span className="text-xs" style={{ marginLeft: 4 }}>({t('role.systemRoleReadOnly')})</span>}
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handleDuplicate(role)}>
                               <Copy size={14} style={{ marginRight: 8 }} />{t('role.duplicate')}
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem danger disabled={role.usageCount > 0} onClick={() => { setRoleToDelete(role); setDeleteDialogVisible(true); }}>
+                            <DropdownMenuItem danger disabled={role.usageCount > 0 || role.isSystemRole} onClick={() => { setRoleToDelete(role); setDeleteDialogVisible(true); }}>
                               <Trash2 size={14} style={{ marginRight: 8 }} />{t('common.delete')}
                               {role.usageCount > 0 && <span className="text-xs" style={{ marginLeft: 4 }}>({t('role.inUseWarning', { count: role.usageCount.toString() })})</span>}
+                              {role.isSystemRole && <span className="text-xs" style={{ marginLeft: 4 }}>({t('role.systemRoleProtected')})</span>}
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>

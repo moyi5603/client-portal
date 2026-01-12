@@ -234,6 +234,10 @@ const translations: Record<Locale, Record<string, string>> = {
     'role.unsavedChangesMessage': '您有未保存的更改。确定要离开吗？',
     'role.stayOnPage': '留在页面',
     'role.leavePage': '离开页面',
+    'role.systemRole': '系统角色',
+    'role.systemRoleReadOnly': '系统角色只读',
+    'role.systemRoleProtected': '系统角色受保护',
+    'role.superAdmin': '超级管理',
     
     // Filters
     'filter.allModules': '所有模块',
@@ -705,6 +709,10 @@ const translations: Record<Locale, Record<string, string>> = {
     'role.unsavedChangesMessage': 'You have unsaved changes. Are you sure you want to leave?',
     'role.stayOnPage': 'Stay on Page',
     'role.leavePage': 'Leave Page',
+    'role.systemRole': 'System Role',
+    'role.systemRoleReadOnly': 'System role is read-only',
+    'role.systemRoleProtected': 'System role is protected',
+    'role.superAdmin': 'Super Admin',
     
     // Filters
     'filter.allModules': 'All Modules',
