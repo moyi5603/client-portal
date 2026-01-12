@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
-import { RefreshCw, Download, Calendar, Search } from 'lucide-react';
+import { Download, Calendar, Search } from 'lucide-react';
 import api from '../utils/api';
 import { useLocale } from '../contexts/LocaleContext';
 import {
@@ -287,9 +287,6 @@ const AuditLogPage: React.FC = () => {
             disabled={exporting || logs.length === 0}
           >
             <Download size={16} /> {t('auditLog.export')}
-          </Button>
-          <Button variant="outline" onClick={loadLogs}>
-            <RefreshCw size={16} /> {t('auditLog.refresh')}
           </Button>
         </div>
       </div>
