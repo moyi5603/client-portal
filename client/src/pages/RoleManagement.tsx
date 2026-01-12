@@ -175,7 +175,11 @@ const RoleManagement: React.FC = () => {
     { value: 'SET_ALERT', label: t('operation.SET_ALERT') },
     { value: 'SET_DEFAULT', label: t('operation.SET_DEFAULT') },
     { value: 'IMPORT', label: t('operation.IMPORT') },
-    { value: 'RESET_FIELDS', label: t('operation.RESET_FIELDS') }
+    { value: 'RESET_FIELDS', label: t('operation.RESET_FIELDS') },
+    { value: 'RESET_PASSWORD', label: t('operation.RESET_PASSWORD') },
+    { value: 'BULK_STATUS_CHANGE', label: t('operation.BULK_STATUS_CHANGE') },
+    { value: 'BULK_DELETE', label: t('operation.BULK_DELETE') },
+    { value: 'COPY', label: t('operation.COPY') }
   ];
 
   const MODULE_PAGES: Record<string, Array<{ code: string; name: string; operations: string[]; tooltip?: string }>> = {
@@ -254,10 +258,26 @@ const RoleManagement: React.FC = () => {
       { code: 'settings', name: 'Settings', operations: ['VIEW', 'CREATE', 'EDIT'] }
     ],
     PERMISSION_MANAGEMENT: [
-      { code: 'account-management', name: 'Account Management', operations: ['VIEW', 'CREATE', 'EDIT', 'DELETE'] },
-      { code: 'role-management', name: 'Role Management', operations: ['VIEW', 'CREATE', 'EDIT', 'DELETE'] },
-      { code: 'permission-view', name: 'Permission View', operations: ['VIEW'] },
-      { code: 'audit-log', name: 'Audit Log', operations: ['VIEW', 'EXPORT'] }
+      { 
+        code: 'account-management', 
+        name: 'Account Management', 
+        operations: ['VIEW', 'CREATE', 'EDIT', 'DELETE', 'EXPORT', 'RESET_PASSWORD', 'BULK_STATUS_CHANGE', 'BULK_DELETE'] 
+      },
+      { 
+        code: 'role-management', 
+        name: 'Role Management', 
+        operations: ['VIEW', 'CREATE', 'EDIT', 'DELETE', 'COPY'] 
+      },
+      { 
+        code: 'permission-view', 
+        name: 'Permission View', 
+        operations: ['VIEW'] 
+      },
+      { 
+        code: 'audit-log', 
+        name: 'Audit Log', 
+        operations: ['VIEW', 'EXPORT'] 
+      }
     ]
   };
 

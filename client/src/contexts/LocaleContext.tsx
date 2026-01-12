@@ -278,6 +278,10 @@ const translations: Record<Locale, Record<string, string>> = {
     'operation.SET_ALERT': '设置提醒',
     'operation.SET_DEFAULT': '设为默认',
     'operation.IMPORT': '导入',
+    'operation.RESET_PASSWORD': '重置密码',
+    'operation.BULK_STATUS_CHANGE': '批量修改状态',
+    'operation.BULK_DELETE': '批量删除',
+    'operation.COPY': '复制',
     
     // Page Features
     'page.dashboard-view': '仪表板视图',
@@ -391,6 +395,7 @@ const translations: Record<Locale, Record<string, string>> = {
     'account.resetPassword': '重置密码',
     'account.resetPasswordConfirm': '确定要重置账号「{name}」的密码吗？',
     'account.resetPasswordSuccess': '密码重置成功',
+    'account.resetPasswordEmailSent': '密码重置邮件已发送，请查收邮箱',
     'account.passwordStrength': '密码强度',
     'account.passwordWeak': '弱',
     'account.passwordMedium': '中等',
@@ -744,6 +749,10 @@ const translations: Record<Locale, Record<string, string>> = {
     'operation.SET_ALERT': 'Set Alert',
     'operation.SET_DEFAULT': 'Set Default',
     'operation.IMPORT': 'Import',
+    'operation.RESET_PASSWORD': 'Reset Password',
+    'operation.BULK_STATUS_CHANGE': 'Bulk Status Change',
+    'operation.BULK_DELETE': 'Bulk Delete',
+    'operation.COPY': 'Copy',
     
     // Page Features
     'page.dashboard-view': 'Dashboard View',
@@ -855,8 +864,9 @@ const translations: Record<Locale, Record<string, string>> = {
     'account.createdAt': 'Created At',
     'account.neverLoggedIn': 'Never logged in',
     'account.resetPassword': 'Reset Password',
-    'account.resetPasswordConfirm': 'Are you sure you want to reset password for account "{name}"?',
-    'account.resetPasswordSuccess': 'Password reset successful',
+    'account.resetPasswordConfirm': 'Are you sure you want to reset the password for account "{name}"?',
+    'account.resetPasswordSuccess': 'Password has been reset successfully',
+    'account.resetPasswordEmailSent': 'Password reset instructions have been sent to the user\'s email address. Please check your inbox.',
     'account.passwordStrength': 'Password Strength',
     'account.passwordWeak': 'Weak',
     'account.passwordMedium': 'Medium',

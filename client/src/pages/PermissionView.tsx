@@ -58,12 +58,12 @@ const MODULE_CONFIG: Record<string, { name: string; colorToken: 'primary' | 'acc
 };
 
 // Operation icons with colorblind-friendly design
-type OperationVariant = 'success' | 'warning' | 'danger' | 'default';
+type OperationVariant = 'success' | 'warning' | 'destructive' | 'default';
 const OPERATION_ICONS: Record<string, { icon: React.ReactNode; variant: OperationVariant; shape: string }> = {
   'VIEW': { icon: <Eye className="w-3 h-3" />, variant: 'success', shape: 'circle' },
   'CREATE': { icon: <Plus className="w-3 h-3" />, variant: 'success', shape: 'circle' },
   'EDIT': { icon: <Edit2 className="w-3 h-3" />, variant: 'default', shape: 'square' },
-  'DELETE': { icon: <Trash2 className="w-3 h-3" />, variant: 'danger', shape: 'diamond' },
+  'DELETE': { icon: <Trash2 className="w-3 h-3" />, variant: 'destructive', shape: 'diamond' },
   'EXPORT': { icon: <Download className="w-3 h-3" />, variant: 'default', shape: 'triangle' },
   'IMPORT': { icon: <RefreshCw className="w-3 h-3" />, variant: 'default', shape: 'triangle' },
   'CANCEL': { icon: <Trash2 className="w-3 h-3" />, variant: 'warning', shape: 'diamond' },
@@ -81,7 +81,11 @@ const OPERATION_ICONS: Record<string, { icon: React.ReactNode; variant: Operatio
   'BATCH_IMPORT': { icon: <RefreshCw className="w-3 h-3" />, variant: 'default', shape: 'triangle' },
   'RESET_FIELDS': { icon: <RefreshCw className="w-3 h-3" />, variant: 'warning', shape: 'diamond' },
   'PAY': { icon: <CheckCircle className="w-3 h-3" />, variant: 'success', shape: 'circle' },
-  'INVOICE_DETAIL': { icon: <Eye className="w-3 h-3" />, variant: 'success', shape: 'circle' }
+  'INVOICE_DETAIL': { icon: <Eye className="w-3 h-3" />, variant: 'success', shape: 'circle' },
+  'RESET_PASSWORD': { icon: <RefreshCw className="w-3 h-3" />, variant: 'warning', shape: 'diamond' },
+  'BULK_STATUS_CHANGE': { icon: <Edit2 className="w-3 h-3" />, variant: 'default', shape: 'square' },
+  'BULK_DELETE': { icon: <Trash2 className="w-3 h-3" />, variant: 'destructive', shape: 'diamond' },
+  'COPY': { icon: <RefreshCw className="w-3 h-3" />, variant: 'default', shape: 'triangle' }
 };
 
 const PermissionView: React.FC = () => {
@@ -105,7 +109,8 @@ const PermissionView: React.FC = () => {
   
   // Available operations for filter
   const AVAILABLE_OPERATIONS = [
-    'VIEW', 'CREATE', 'EDIT', 'DELETE', 'EXPORT', 'IMPORT', 'CANCEL', 'PAY'
+    'VIEW', 'CREATE', 'EDIT', 'DELETE', 'EXPORT', 'IMPORT', 'CANCEL', 'PAY',
+    'RESET_PASSWORD', 'BULK_STATUS_CHANGE', 'BULK_DELETE', 'COPY'
   ];
   
   // Role comparison state
@@ -395,7 +400,7 @@ const PermissionView: React.FC = () => {
     const colorClass = {
       'success': 'text-emerald-500',
       'warning': 'text-amber-500',
-      'danger': 'text-red-500',
+      'destructive': 'text-red-500',
       'default': 'text-primary'
     }[opConfig.variant];
     
@@ -627,11 +632,13 @@ const PermissionView: React.FC = () => {
               { key: 'VIEW', icon: <Eye className="w-3 h-3" />, variant: 'success' as const, label: t('operation.VIEW') },
               { key: 'CREATE', icon: <Plus className="w-3 h-3" />, variant: 'success' as const, label: t('operation.CREATE') },
               { key: 'EDIT', icon: <Edit2 className="w-3 h-3" />, variant: 'default' as const, label: t('operation.EDIT') },
-              { key: 'DELETE', icon: <Trash2 className="w-3 h-3" />, variant: 'danger' as const, label: t('operation.DELETE') },
+              { key: 'DELETE', icon: <Trash2 className="w-3 h-3" />, variant: 'destructive' as const, label: t('operation.DELETE') },
               { key: 'EXPORT', icon: <Download className="w-3 h-3" />, variant: 'default' as const, label: t('operation.EXPORT') },
               { key: 'IMPORT', icon: <RefreshCw className="w-3 h-3" />, variant: 'default' as const, label: t('operation.IMPORT') },
               { key: 'CANCEL', icon: <Trash2 className="w-3 h-3" />, variant: 'warning' as const, label: t('operation.CANCEL') },
-              { key: 'PAY', icon: <CheckCircle className="w-3 h-3" />, variant: 'success' as const, label: t('operation.PAY') }
+              { key: 'PAY', icon: <CheckCircle className="w-3 h-3" />, variant: 'success' as const, label: t('operation.PAY') },
+              { key: 'RESET_PASSWORD', icon: <RefreshCw className="w-3 h-3" />, variant: 'warning' as const, label: t('operation.RESET_PASSWORD') },
+              { key: 'COPY', icon: <RefreshCw className="w-3 h-3" />, variant: 'default' as const, label: t('operation.COPY') }
             ].map(config => (
               <Badge 
                 key={config.key}

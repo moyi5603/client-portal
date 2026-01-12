@@ -1,0 +1,106 @@
+.page-designer-layout {
+  height: 100vh;
+  background: #f0f2f5;
+}
+
+.page-designer-content {
+  padding: 16px;
+  height: 100%;
+}
+
+.page-designer-content .ant-row {
+  height: 100%;
+}
+
+.chat-column,
+.preview-column {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 响应式设计 */
+@media (max-width: 992px) {
+  .page-designer-content {
+    padding: 8px;
+  }
+  
+  .chat-column {
+    margin-bottom: 16px;
+    height: 50vh;
+  }
+  
+  .preview-column {
+    height: 50vh;
+  }
+}
+
+@media (max-width: 768px) {
+  .page-designer-content {
+    padding: 4px;
+  }
+  
+  .chat-column,
+  .preview-column {
+    height: 45vh;
+  }
+}
+
+/* 分割线样式 */
+.page-designer-divider {
+  margin: 0;
+  height: 100%;
+  border-left: 1px solid #f0f0f0;
+}
+
+/* 全屏模式 */
+.page-designer-fullscreen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  background: #fff;
+}
+
+.page-designer-fullscreen .page-designer-content {
+  height: 100vh;
+  padding: 0;
+}
+
+/* 加载状态 */
+.page-designer-loading {
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f0f2f5;
+}
+
+/* 错误状态 */
+.page-designer-error {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #f0f2f5;
+  color: #ff4d4f;
+}
+
+.page-designer-error .anticon {
+  font-size: 64px;
+  margin-bottom: 24px;
+}
+
+.page-designer-error h3 {
+  color: #ff4d4f;
+  margin-bottom: 16px;
+}
+
+.page-designer-error p {
+  color: #666;
+  text-align: center;
+  max-width: 400px;
+}

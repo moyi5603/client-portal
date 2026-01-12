@@ -13,6 +13,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { LocaleProvider } from './contexts/LocaleContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { Toaster } from './components/ui/toaster';
+import { Toaster as SonnerToaster } from 'sonner';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated } = useAuth();
@@ -54,6 +55,7 @@ const AppContent: React.FC = () => {
       <AuthProvider>
         <AppRoutes />
         <Toaster />
+        <SonnerToaster position="top-right" richColors />
       </AuthProvider>
     </BrowserRouter>
   );

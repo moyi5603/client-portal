@@ -20,6 +20,24 @@ import {
   Bell,
   Star,
   RotateCcw,
+  KeyRound,
+  Users,
+  Copy,
+  UserX,
+  ListChecks,
+  Layers,
+  ToggleLeft,
+  ToggleRight,
+  UserMinus,
+  Settings2,
+  Sliders,
+  UsersX,
+  X,
+  MinusCircle,
+  ListX,
+  Archive,
+  PackageMinus,
+  FolderMinus,
 } from 'lucide-react';
 import { Checkbox } from './ui/checkbox';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
@@ -49,6 +67,10 @@ const OPERATION_ICONS: Record<string, React.ReactNode> = {
   SET_ALERT: <Bell size={16} />,
   SET_DEFAULT: <Star size={16} />,
   RESET_FIELDS: <RotateCcw size={16} />,
+  RESET_PASSWORD: <KeyRound size={16} />,
+  BULK_STATUS_CHANGE: <Settings2 size={16} />,
+  BULK_DELETE: <ListX size={16} />,
+  COPY: <Copy size={16} />,
 };
 
 interface ModulePage {
