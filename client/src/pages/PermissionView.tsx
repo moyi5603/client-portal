@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Eye, Plus, Edit2, Trash2, Download, 
-  RefreshCw, CheckCircle, Info, ArrowLeftRight, X, User
+  RefreshCw, CheckCircle, Info, ArrowLeftRight, X, UserCircle
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -41,6 +41,23 @@ interface Account {
 }
 
 // Module configuration with brand-compliant colors using CSS variables
+// Order matches the MODULES array in RoleManagement.tsx
+const MODULE_ORDER = [
+  'DASHBOARDS',
+  'PURCHASE_MANAGEMENT', 
+  'SALES_ORDER',
+  'WORK_ORDER',
+  'INBOUND',
+  'INVENTORY',
+  'OUTBOUND',
+  'RETURNS',
+  'YARD_MANAGEMENT',
+  'SUPPLY_CHAIN',
+  'FINANCE',
+  'SYSTEM_MANAGEMENT',
+  'PERMISSION_MANAGEMENT'
+];
+
 const MODULE_CONFIG: Record<string, { name: string; colorToken: 'primary' | 'accent' | 'success' | 'warning' | 'danger' | 'info' }> = {
   'DASHBOARDS': { name: 'Dashboards', colorToken: 'primary' },
   'PURCHASE_MANAGEMENT': { name: 'Purchase Management', colorToken: 'accent' },
@@ -189,7 +206,8 @@ const PermissionView: React.FC = () => {
     filteredRoles.forEach(role => {
       role.permissions.forEach(p => moduleSet.add(p.module));
     });
-    return Array.from(moduleSet).sort();
+    // Sort by MODULE_ORDER instead of alphabetically
+    return MODULE_ORDER.filter(module => moduleSet.has(module));
   }, [filteredRoles]);
 
   // Consolidate operations helper
@@ -337,7 +355,7 @@ const PermissionView: React.FC = () => {
     });
 
     const data: any[] = [];
-    Array.from(allComparisonModules).sort().forEach(module => {
+    MODULE_ORDER.filter(module => allComparisonModules.has(module)).forEach(module => {
       const pages = Array.from(modulePages[module] || []);
       pages.forEach(pageCode => {
         const row: any = {
@@ -433,8 +451,8 @@ const PermissionView: React.FC = () => {
                 <TooltipTrigger asChild>
                   <span>
                     <Avatar className="w-6 h-6">
-                      <AvatarFallback className="bg-primary text-primary-foreground text-xs">
-                        <User className="w-3 h-3" />
+                      <AvatarFallback className="bg-blue-100 text-blue-600 text-xs border border-blue-200">
+                        <UserCircle className="w-4 h-4" />
                       </AvatarFallback>
                     </Avatar>
                   </span>
@@ -494,7 +512,7 @@ const PermissionView: React.FC = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="ALL">{t('filter.allModules')}</SelectItem>
-                  {Object.keys(MODULE_CONFIG).map(module => (
+                  {MODULE_ORDER.map(module => (
                     <SelectItem key={module} value={module}>
                       {MODULE_CONFIG[module].name}
                     </SelectItem>
