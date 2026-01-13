@@ -1163,7 +1163,7 @@ const AccountManagement: React.FC = () => {
                 <DropdownMenu open={facilitySelectOpen} onOpenChange={setFacilitySelectOpen}>
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" style={{ width: '100%', justifyContent: 'space-between' }}>
-                      {t('account.selectFacilitiesPlaceholder')}
+                      Select Facilities
                       <ChevronDown size={16} />
                     </Button>
                   </DropdownMenuTrigger>
