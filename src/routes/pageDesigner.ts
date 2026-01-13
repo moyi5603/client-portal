@@ -2,7 +2,7 @@ import express from 'express';
 import conversationAgent from '../services/conversationAgent';
 import pageGenerator from '../services/pageGenerator';
 import apiDiscoveryService from '../services/apiDiscoveryService';
-import { authenticateToken } from '../middleware/auth';
+import { authenticate } from '../middleware/auth';
 
 const router = express.Router();
 
@@ -16,10 +16,10 @@ const router = express.Router();
  * @permissions user
  * @category page-designer
  */
-router.post('/chat', authenticateToken, async (req, res) => {
+router.post('/chat', authenticate, async (req, res) => {
   try {
     const { message, sessionId } = req.body;
-    const userId = req.user.id;
+    const userId = req.user?.accountId || 'default-user';
 
     if (!message) {
       return res.status(400).json({
@@ -52,10 +52,10 @@ router.post('/chat', authenticateToken, async (req, res) => {
  * @permissions user
  * @category page-designer
  */
-router.get('/conversation/:sessionId', authenticateToken, async (req, res) => {
+router.get('/conversation/:sessionId', authenticate, async (req, res) => {
   try {
     const { sessionId } = req.params;
-    const userId = req.user.id;
+    const userId = req.user?.accountId || 'default-user';
 
     const history = conversationAgent.getConversationHistory(userId, sessionId);
 
@@ -81,10 +81,10 @@ router.get('/conversation/:sessionId', authenticateToken, async (req, res) => {
  * @permissions user
  * @category page-designer
  */
-router.post('/generate', authenticateToken, async (req, res) => {
+router.post('/generate', authenticate, async (req, res) => {
   try {
     const config = req.body;
-    const userId = req.user.id;
+    const userId = req.user?.accountId || 'default-user';
 
     // 验证配置
     if (!config.type || !config.entity) {
@@ -123,7 +123,7 @@ router.post('/generate', authenticateToken, async (req, res) => {
  * @permissions user
  * @category page-designer
  */
-router.get('/apis', authenticateToken, async (req, res) => {
+router.get('/apis', authenticate, async (req, res) => {
   try {
     const { search, category } = req.query;
     
@@ -161,7 +161,7 @@ router.get('/apis', authenticateToken, async (req, res) => {
  * @permissions user
  * @category page-designer
  */
-router.get('/templates', authenticateToken, async (req, res) => {
+router.get('/templates', authenticate, async (req, res) => {
   try {
     const templates = [
       {
@@ -216,7 +216,7 @@ router.get('/templates', authenticateToken, async (req, res) => {
  * @permissions user
  * @category page-designer
  */
-router.post('/preview', authenticateToken, async (req, res) => {
+router.post('/preview', authenticate, async (req, res) => {
   try {
     const config = req.body;
 
@@ -249,10 +249,10 @@ router.post('/preview', authenticateToken, async (req, res) => {
  * @permissions user
  * @category page-designer
  */
-router.delete('/conversation/:sessionId', authenticateToken, async (req, res) => {
+router.delete('/conversation/:sessionId', authenticate, async (req, res) => {
   try {
     const { sessionId } = req.params;
-    const userId = req.user.id;
+    const userId = req.user?.accountId || 'default-user';
 
     conversationAgent.clearContext(userId, sessionId);
 

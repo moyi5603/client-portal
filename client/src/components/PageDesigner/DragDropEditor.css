@@ -1,0 +1,382 @@
+.drag-drop-editor {
+  display: flex;
+  height: 100vh;
+  background: #f5f5f5;
+}
+
+/* 组件库面板 */
+.component-library {
+  width: 250px;
+  background: white;
+  border-right: 1px solid #e8e8e8;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.component-library h3 {
+  margin: 0 0 16px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #262626;
+}
+
+.draggable-component {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  margin-bottom: 8px;
+  background: #fafafa;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  cursor: grab;
+  transition: all 0.2s;
+}
+
+.draggable-component:hover {
+  background: #e6f7ff;
+  border-color: #1890ff;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.draggable-component.dragging {
+  opacity: 0.5;
+  cursor: grabbing;
+}
+
+.draggable-component span {
+  font-size: 14px;
+  color: #595959;
+}
+
+/* 画布区域 */
+.canvas-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: white;
+}
+
+.canvas-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-bottom: 1px solid #e8e8e8;
+  background: #fafafa;
+}
+
+.drop-canvas {
+  flex: 1;
+  position: relative;
+  background: 
+    linear-gradient(90deg, #f0f0f0 1px, transparent 1px),
+    linear-gradient(#f0f0f0 1px, transparent 1px);
+  background-size: 20px 20px;
+  overflow: auto;
+  min-height: 600px;
+}
+
+.empty-canvas {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  color: #8c8c8c;
+  font-size: 16px;
+}
+
+/* 画布组件 */
+.canvas-component {
+  border: 2px solid transparent;
+  border-radius: 4px;
+  background: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  cursor: move;
+  transition: all 0.2s;
+}
+
+.canvas-component:hover {
+  border-color: #1890ff;
+  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.2);
+}
+
+.canvas-component.selected {
+  border-color: #1890ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}
+
+.canvas-component.dragging {
+  opacity: 0.8;
+  transform: rotate(5deg);
+  z-index: 1000;
+}
+
+.component-content {
+  width: 100%;
+  height: 100%;
+  padding: 8px;
+  overflow: hidden;
+}
+
+.component-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #8c8c8c;
+  text-align: center;
+}
+
+.component-preview p {
+  margin: 8px 0 0 0;
+  font-size: 12px;
+}
+
+/* 组件控制按钮 */
+.component-controls {
+  position: absolute;
+  top: -32px;
+  right: 0;
+  display: flex;
+  gap: 4px;
+  background: white;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  padding: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.canvas-component.selected .component-controls {
+  opacity: 1;
+}
+
+/* 调整大小手柄 */
+.resize-handles {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+}
+
+.resize-handle {
+  position: absolute;
+  background: #1890ff;
+  border: 1px solid white;
+  border-radius: 2px;
+  pointer-events: auto;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.canvas-component.selected .resize-handle {
+  opacity: 1;
+}
+
+.resize-handle-se {
+  bottom: -4px;
+  right: -4px;
+  width: 8px;
+  height: 8px;
+  cursor: se-resize;
+}
+
+/* 属性面板 */
+.property-panel {
+  width: 280px;
+  background: white;
+  border-left: 1px solid #e8e8e8;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.property-panel h3 {
+  margin: 0 0 16px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #262626;
+}
+
+.no-selection {
+  text-align: center;
+  color: #8c8c8c;
+  padding: 32px 0;
+}
+
+.component-properties {
+  border: 1px solid #e8e8e8;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.property-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background: #fafafa;
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.property-header h4 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #262626;
+}
+
+.property-list {
+  padding: 12px;
+}
+
+.property-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+
+.property-item label {
+  color: #8c8c8c;
+  font-weight: 500;
+}
+
+.property-item span {
+  color: #262626;
+}
+
+/* 响应式设计 */
+@media (max-width: 1200px) {
+  .component-library {
+    width: 200px;
+  }
+  
+  .property-panel {
+    width: 240px;
+  }
+}
+
+@media (max-width: 768px) {
+  .drag-drop-editor {
+    flex-direction: column;
+    height: auto;
+  }
+  
+  .component-library,
+  .property-panel {
+    width: 100%;
+    height: 200px;
+  }
+  
+  .canvas-area {
+    height: 400px;
+  }
+}
+
+/* 动画效果 */
+@keyframes componentDrop {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.canvas-component {
+  animation: componentDrop 0.3s ease-out;
+}
+
+/* 拖拽时的视觉反馈 */
+.drop-canvas.drag-over {
+  background-color: rgba(24, 144, 255, 0.05);
+}
+
+.drop-canvas.drag-over::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border: 2px dashed #1890ff;
+  border-radius: 4px;
+  pointer-events: none;
+}
+
+/* 组件类型特定样式 */
+.component-preview .anticon {
+  color: #1890ff;
+}
+
+.canvas-component[data-type="table"] {
+  border-left: 4px solid #52c41a;
+}
+
+.canvas-component[data-type="chart"] {
+  border-left: 4px solid #1890ff;
+}
+
+.canvas-component[data-type="card"] {
+  border-left: 4px solid #faad14;
+}
+
+.canvas-component[data-type="form"] {
+  border-left: 4px solid #722ed1;
+}
+
+/* 工具提示样式 */
+.ant-tooltip {
+  z-index: 1001;
+}
+
+/* 模态框内的表单样式 */
+.ant-modal .ant-form-item {
+  margin-bottom: 16px;
+}
+
+.ant-modal .ant-form-item-label {
+  font-weight: 500;
+}
+
+/* 颜色选择器样式 */
+.ant-color-picker {
+  width: 100%;
+}
+
+/* 滚动条样式 */
+.component-library::-webkit-scrollbar,
+.property-panel::-webkit-scrollbar,
+.drop-canvas::-webkit-scrollbar {
+  width: 6px;
+}
+
+.component-library::-webkit-scrollbar-track,
+.property-panel::-webkit-scrollbar-track,
+.drop-canvas::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.component-library::-webkit-scrollbar-thumb,
+.property-panel::-webkit-scrollbar-thumb,
+.drop-canvas::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.component-library::-webkit-scrollbar-thumb:hover,
+.property-panel::-webkit-scrollbar-thumb:hover,
+.drop-canvas::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
