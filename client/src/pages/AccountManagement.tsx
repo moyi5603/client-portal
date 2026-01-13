@@ -581,7 +581,7 @@ const AccountManagement: React.FC = () => {
 
   const getFacilityBadges = (account: Account) => {
     if (account.accountType === 'MAIN') {
-      return <Badge variant="info">{t('account.allFacilities')}</Badge>;
+      return <Badge variant="info">All Facilities</Badge>;
     }
     
     const facilityIds = account.facilityIds || account.accessibleFacilityIds || [];
@@ -595,7 +595,7 @@ const AccountManagement: React.FC = () => {
       allFacilityIds.every(id => facilityIds.includes(id));
     
     if (hasAllFacilities) {
-      return <Badge variant="info">{t('account.allFacilities')}</Badge>;
+      return <Badge variant="info">All Facilities</Badge>;
     }
     
     return (
