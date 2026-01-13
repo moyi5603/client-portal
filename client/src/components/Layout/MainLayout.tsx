@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  User, Users, Shield, Menu, LogOut, List, Globe, FileText, Sun, Moon, ChevronDown, ChevronRight
+  User, Users, Shield, Menu, LogOut, List, Globe, FileText, Sun, Moon, ChevronDown, ChevronRight, Edit, Layout
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Avatar, AvatarFallback } from '../ui/avatar';
@@ -44,13 +44,11 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       if (!expandedMenus.includes('account-management')) {
         setExpandedMenus([...expandedMenus, 'account-management']);
       }
+    } else if (['/page-designer', '/user-pages'].includes(location.pathname)) {
+      if (!expandedMenus.includes('page-designer')) {
+        setExpandedMenus([...expandedMenus, 'page-designer']);
+      }
     }
-    // 编辑器路径已移除
-    // else if (['/editor', '/code-editor', '/page-designer'].includes(location.pathname)) {
-    //   if (!expandedMenus.includes('editor')) {
-    //     setExpandedMenus([...expandedMenus, 'editor']);
-    //   }
-    // }
   }, [location.pathname]);
 
   const navItems: NavItem[] = [
@@ -84,33 +82,26 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           path: '/audit-logs'
         }
       ]
+    },
+    {
+      key: 'page-designer',
+      icon: <Layout className="w-4 h-4" />,
+      label: '页面设计器',
+      children: [
+        {
+          key: '/page-designer',
+          icon: <Edit className="w-4 h-4" />,
+          label: '页面设计器',
+          path: '/page-designer'
+        },
+        {
+          key: '/user-pages',
+          icon: <FileText className="w-4 h-4" />,
+          label: '我的页面',
+          path: '/user-pages'
+        }
+      ]
     }
-    // 编辑器菜单已隐藏
-    // {
-    //   key: 'editor',
-    //   icon: <Edit className="w-4 h-4" />,
-    //   label: '编辑器',
-    //   children: [
-    //     {
-    //       key: '/editor',
-    //       icon: <FileText className="w-4 h-4" />,
-    //       label: '文本编辑器',
-    //       path: '/editor'
-    //     },
-    //     {
-    //       key: '/code-editor',
-    //       icon: <Code className="w-4 h-4" />,
-    //       label: '代码编辑器',
-    //       path: '/code-editor'
-    //     },
-    //     {
-    //       key: '/page-designer',
-    //       icon: <Edit className="w-4 h-4" />,
-    //       label: '页面设计器',
-    //       path: '/page-designer'
-    //     }
-    //   ]
-    // }
   ];
 
   const toggleMenu = (key: string) => {

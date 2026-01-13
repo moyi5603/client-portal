@@ -28,8 +28,8 @@ import {
   Empty,
   Skeleton,
   Pagination,
-  DateRangePicker,
 } from '../components/ui';
+import { DateRangePicker } from '../components/ui/date-range-picker';
 import dayjs from 'dayjs';
 import 'dayjs/locale/zh-cn';
 

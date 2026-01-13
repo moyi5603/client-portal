@@ -9,6 +9,8 @@ import PermissionView from './pages/PermissionView';
 import AuditLog from './pages/AuditLog';
 import SimpleEditor from './pages/SimpleEditor';
 import SimpleCodeEditor from './pages/SimpleCodeEditor';
+import PageDesigner from './pages/PageDesigner';
+import UserPageManagement from './pages/UserPageManagement';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { LocaleProvider } from './contexts/LocaleContext';
 import { ThemeProvider } from './contexts/ThemeContext';
@@ -40,6 +42,8 @@ const AppRoutes: React.FC = () => {
                 <Route path="/audit-logs" element={<AuditLog />} />
                 <Route path="/editor" element={<SimpleEditor />} />
                 <Route path="/code-editor" element={<SimpleCodeEditor />} />
+                <Route path="/page-designer" element={<PageDesigner />} />
+                <Route path="/user-pages" element={<UserPageManagement />} />
               </Routes>
             </MainLayout>
           </ProtectedRoute>

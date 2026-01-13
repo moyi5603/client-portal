@@ -2,7 +2,7 @@ import express from 'express';
 import { authenticate, requireAccountType, AuthRequest } from '../middleware/auth';
 import { db } from '../database/models';
 import { generateAccountId } from '../utils/uuid';
-import { validateUniqueAccountInfo, validateCustomerIds, validateRoleIds } from '../utils/validation';
+import { validateUniqueAccountInfo, validateCustomerIds, validateFacilityIds, validateRoleIds } from '../utils/validation';
 import { Account, AccountType, AccountStatus, ApiResponse, PaginatedResponse, ActionType, TargetType } from '../types';
 import { auditService } from '../services/auditService';
 
@@ -14,7 +14,7 @@ router.use(authenticate);
 // 创建客户子账号
 router.post('/customer', requireAccountType(AccountType.MAIN), async (req: AuthRequest, res) => {
   try {
-    const { username, email, phone, password, customerIds, roleIds, status } = req.body;
+    const { username, email, phone, password, customerIds, facilityIds, roleIds, status } = req.body;
 
     if (!username || !email || !password) {
       return res.status(400).json({
@@ -45,6 +45,17 @@ router.post('/customer', requireAccountType(AccountType.MAIN), async (req: AuthR
       }
     }
 
+    // 验证Facility IDs
+    if (facilityIds && facilityIds.length > 0) {
+      const facilityCheck = validateFacilityIds(facilityIds);
+      if (!facilityCheck.valid) {
+        return res.status(400).json({
+          success: false,
+          error: facilityCheck.error
+        } as ApiResponse);
+      }
+    }
+
     // 验证角色IDs
     if (roleIds && roleIds.length > 0) {
       const roleCheck = validateRoleIds(roleIds);
@@ -65,6 +76,7 @@ router.post('/customer', requireAccountType(AccountType.MAIN), async (req: AuthR
       status: status || AccountStatus.ACTIVE,
       tenantId,
       customerIds: customerIds || [],
+      facilityIds: facilityIds || [],
       roles: roleIds || [],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -99,7 +111,7 @@ router.post('/customer', requireAccountType(AccountType.MAIN), async (req: AuthR
 // 创建Partner账号
 router.post('/partner', requireAccountType(AccountType.MAIN), async (req: AuthRequest, res) => {
   try {
-    const { username, email, phone, password, accessibleCustomerIds, roleIds, status } = req.body;
+    const { username, email, phone, password, accessibleCustomerIds, accessibleFacilityIds, roleIds, status } = req.body;
 
     if (!username || !email || !password) {
       return res.status(400).json({
@@ -130,6 +142,17 @@ router.post('/partner', requireAccountType(AccountType.MAIN), async (req: AuthRe
       }
     }
 
+    // 验证Facility IDs
+    if (accessibleFacilityIds && accessibleFacilityIds.length > 0) {
+      const facilityCheck = validateFacilityIds(accessibleFacilityIds);
+      if (!facilityCheck.valid) {
+        return res.status(400).json({
+          success: false,
+          error: facilityCheck.error
+        } as ApiResponse);
+      }
+    }
+
     // 验证角色IDs
     if (roleIds && roleIds.length > 0) {
       const roleCheck = validateRoleIds(roleIds);
@@ -150,6 +173,7 @@ router.post('/partner', requireAccountType(AccountType.MAIN), async (req: AuthRe
       status: status || AccountStatus.ACTIVE,
       tenantId,
       accessibleCustomerIds: accessibleCustomerIds || [],
+      accessibleFacilityIds: accessibleFacilityIds || [],
       roles: roleIds || [],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -318,7 +342,7 @@ router.put('/:id', requireAccountType(AccountType.MAIN), async (req: AuthRequest
       } as ApiResponse);
     }
 
-    const { username, email, phone, customerIds, accessibleCustomerIds, roleIds, status } = req.body;
+    const { username, email, phone, customerIds, accessibleCustomerIds, facilityIds, accessibleFacilityIds, roleIds, status } = req.body;
 
     // 验证唯一性（排除当前账号）
     if (username || email || phone) {
@@ -350,6 +374,19 @@ router.put('/:id', requireAccountType(AccountType.MAIN), async (req: AuthRequest
       }
     }
 
+    // 统一处理Facility IDs
+    // 优先使用accessibleFacilityIds，如果没有则使用facilityIds
+    const finalFacilityIds = accessibleFacilityIds || facilityIds;
+    if (finalFacilityIds) {
+      const facilityCheck = validateFacilityIds(finalFacilityIds);
+      if (!facilityCheck.valid) {
+        return res.status(400).json({
+          success: false,
+          error: facilityCheck.error
+        } as ApiResponse);
+      }
+    }
+
     // 验证角色IDs
     if (roleIds) {
       const roleCheck = validateRoleIds(roleIds);
@@ -376,6 +413,19 @@ router.put('/:id', requireAccountType(AccountType.MAIN), async (req: AuthRequest
         updates.accessibleCustomerIds = finalCustomerIds;
         // 清除customerIds以保持数据一致性
         updates.customerIds = [];
+      }
+    }
+    // 统一处理Facility IDs
+    // 根据账号类型设置对应字段以保持数据一致性
+    if (finalFacilityIds) {
+      if (account.accountType === AccountType.CUSTOMER) {
+        updates.facilityIds = finalFacilityIds;
+        // 清除accessibleFacilityIds以保持数据一致性
+        updates.accessibleFacilityIds = [];
+      } else if (account.accountType === AccountType.PARTNER) {
+        updates.accessibleFacilityIds = finalFacilityIds;
+        // 清除facilityIds以保持数据一致性
+        updates.facilityIds = [];
       }
     }
     if (roleIds) updates.roles = roleIds;

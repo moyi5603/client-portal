@@ -99,6 +99,19 @@ export interface Customer {
   updatedAt: string;
 }
 
+// Facility信息
+export interface Facility {
+  id: string;
+  name: string;
+  code: string;
+  description?: string;
+  address?: string;
+  type?: string;
+  status: 'ACTIVE' | 'INACTIVE';
+  createdAt: string;
+  updatedAt: string;
+}
+
 // 用户信息（新设计）
 export interface User {
   id: string;
@@ -140,6 +153,8 @@ export interface Account {
   tenantId: string;
   customerIds?: string[];
   accessibleCustomerIds?: string[];
+  facilityIds?: string[];
+  accessibleFacilityIds?: string[];
   roles: string[];         // 角色IDs
   createdAt: string;
   updatedAt: string;

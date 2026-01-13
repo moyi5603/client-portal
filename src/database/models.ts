@@ -1,5 +1,5 @@
 import { 
-  Account, Role, Customer, Menu, FunctionPermission, 
+  Account, Role, Customer, Facility, Menu, FunctionPermission, 
   AccountType, AccountStatus, DataPermissionType,
   User, IdpGroupMapping, Warehouse, Region, UserStatus, RoleStatus
 } from '../types';
@@ -18,6 +18,9 @@ class Database {
   
   // Customer数据（由Central系统管理，这里仅做示例）
   customers: Map<string, Customer> = new Map();
+  
+  // Facility数据（由Central系统管理，这里仅做示例）
+  facilities: Map<string, Facility> = new Map();
   
   // Warehouse数据
   warehouses: Map<string, Warehouse> = new Map();
@@ -75,10 +78,24 @@ class Database {
     const defaultCustomers: Customer[] = [
       { id: 'customer-1', name: '客户A', code: 'CUST-A', description: '客户A描述', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
       { id: 'customer-2', name: '客户B', code: 'CUST-B', description: '客户B描述', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+      { id: 'customer-3', name: '客户C', code: 'CUST-C', description: '客户C描述', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+      { id: 'customer-4', name: '客户D', code: 'CUST-D', description: '客户D描述', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
     ];
 
     defaultCustomers.forEach(customer => {
       this.customers.set(customer.id, customer);
+    });
+
+    // 初始化示例Facility（实际由Central系统管理）
+    const defaultFacilities: Facility[] = [
+      { id: 'facility-1', name: '北京仓库', code: 'BJ-WH', description: '北京主仓库', address: '北京市朝阳区', type: 'WAREHOUSE', status: 'ACTIVE', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+      { id: 'facility-2', name: '上海仓库', code: 'SH-WH', description: '上海分仓库', address: '上海市浦东新区', type: 'WAREHOUSE', status: 'ACTIVE', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+      { id: 'facility-3', name: '广州仓库', code: 'GZ-WH', description: '广州分仓库', address: '广州市天河区', type: 'WAREHOUSE', status: 'ACTIVE', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+      { id: 'facility-4', name: '深圳配送中心', code: 'SZ-DC', description: '深圳配送中心', address: '深圳市南山区', type: 'DISTRIBUTION_CENTER', status: 'ACTIVE', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+    ];
+
+    defaultFacilities.forEach(facility => {
+      this.facilities.set(facility.id, facility);
     });
   }
 
@@ -170,6 +187,15 @@ class Database {
 
   getAllCustomers(tenantId?: string): Customer[] {
     return Array.from(this.customers.values());
+  }
+
+  // Facility操作
+  getFacility(id: string): Facility | undefined {
+    return this.facilities.get(id);
+  }
+
+  getAllFacilities(tenantId?: string): Facility[] {
+    return Array.from(this.facilities.values());
   }
 
   // 菜单操作

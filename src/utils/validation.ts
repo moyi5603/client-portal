@@ -46,6 +46,17 @@ export const validateCustomerIds = (customerIds: string[]): { valid: boolean; er
   return { valid: true };
 };
 
+// 验证Facility IDs是否存在
+export const validateFacilityIds = (facilityIds: string[]): { valid: boolean; error?: string } => {
+  for (const facilityId of facilityIds) {
+    const facility = db.getFacility(facilityId);
+    if (!facility) {
+      return { valid: false, error: `Facility ID ${facilityId} 不存在` };
+    }
+  }
+  return { valid: true };
+};
+
 // 验证角色IDs是否存在且为启用状态
 export const validateRoleIds = (roleIds: string[]): { valid: boolean; error?: string } => {
   for (const roleId of roleIds) {

@@ -214,5 +214,21 @@ router.get('/customers', async (req: AuthRequest, res) => {
   }
 });
 
+// 获取所有Facility列表（用于权限配置）
+router.get('/facilities', async (req: AuthRequest, res) => {
+  try {
+    const facilities = db.getAllFacilities();
+    res.json({
+      success: true,
+      data: facilities
+    } as ApiResponse);
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message || '获取Facility列表失败'
+    } as ApiResponse);
+  }
+});
+
 export default router;
 

@@ -9,6 +9,8 @@ import authRoutes from '../routes/auth';
 import auditRoutes from '../routes/audit';
 import permissionMatrixRoutes from '../routes/permission-matrix';
 import idpMappingRoutes from '../routes/idp-mapping';
+import pageDesignerRoutes from '../routes/pageDesigner';
+import userPagesRoutes from '../routes/userPages-simple';
 import { initTestData } from '../database/init';
 
 dotenv.config();
@@ -17,7 +19,7 @@ dotenv.config();
 initTestData();
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3002;
 
 // 中间件
 app.use(cors());
@@ -33,6 +35,9 @@ app.use('/api/permissions', permissionRoutes);
 app.use('/api/audit-logs', auditRoutes);
 app.use('/api/permission-matrix', permissionMatrixRoutes);
 app.use('/api/idp-mappings', idpMappingRoutes);
+app.use('/api/page-designer', pageDesignerRoutes);
+app.use('/api/user-pages', userPagesRoutes);
+app.use('/api/personal-menu', userPagesRoutes);
 
 // 健康检查
 app.get('/health', (req, res) => {

@@ -538,6 +538,7 @@ export const initTestData = () => {
     tenantId: 'admin',
     roles: ['ROLE-001', 'ROLE-002'], // 分配系统管理员和客户管理员角色
     customerIds: ['customer-1'],
+    facilityIds: ['facility-1', 'facility-2'],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   };
@@ -553,6 +554,7 @@ export const initTestData = () => {
     tenantId: 'admin',
     roles: ['ROLE-003'], // 分配客户服务代表角色
     customerIds: ['customer-1'],
+    facilityIds: ['facility-1'],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   };
@@ -568,6 +570,7 @@ export const initTestData = () => {
     tenantId: 'admin',
     roles: ['ROLE-002'], // 分配客户管理员角色
     customerIds: ['customer-2'],
+    facilityIds: ['facility-2', 'facility-3'],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   };
@@ -583,6 +586,7 @@ export const initTestData = () => {
     tenantId: 'admin',
     roles: ['ROLE-003'], // 分配客户服务代表角色
     customerIds: ['customer-2'],
+    facilityIds: ['facility-3'],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   };
@@ -598,6 +602,7 @@ export const initTestData = () => {
     tenantId: 'admin',
     roles: ['ROLE-001'], // 分配系统管理员角色
     customerIds: ['customer-3'],
+    facilityIds: ['facility-1', 'facility-2', 'facility-3'],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   };
@@ -613,6 +618,7 @@ export const initTestData = () => {
     tenantId: 'admin',
     roles: ['ROLE-002', 'ROLE-003'], // 分配客户管理员和客户服务代表角色
     customerIds: ['customer-3'],
+    facilityIds: ['facility-2'],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   };
@@ -628,6 +634,7 @@ export const initTestData = () => {
     tenantId: 'admin',
     roles: ['ROLE-003'], // 分配客户服务代表角色
     customerIds: ['customer-4'],
+    facilityIds: ['facility-1', 'facility-3'],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   };
