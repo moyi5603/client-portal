@@ -62,6 +62,9 @@ class AuditService {
       case ActionType.ACCOUNT_DELETED:
         return `Account deleted: ${targetName}`;
       
+      case ActionType.ACCOUNT_PASSWORD_RESET:
+        return `重置密码，账号：${targetName}`;
+      
       case ActionType.ROLE_CREATED:
         return this.generateRoleCreatedDescription(targetName, newValue);
       
