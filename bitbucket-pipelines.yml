@@ -1,0 +1,115 @@
+# Bitbucket Pipelines配置文件
+# Client Portal权限管理系统 CI/CD配置
+
+image: node:18
+
+definitions:
+  caches:
+    npm: ~/.npm
+    client-npm: client/node_modules
+
+pipelines:
+  default:
+    - step:
+        name: 安装依赖和构建
+        caches:
+          - npm
+          - client-npm
+        script:
+          - echo "开始安装后端依赖..."
+          - npm install
+          - echo "开始安装前端依赖..."
+          - cd client && npm install
+          - echo "开始构建项目..."
+          - cd .. && npm run build
+        artifacts:
+          - dist/**
+          - client/dist/**
+
+  branches:
+    main:
+      - step:
+          name: 主分支 - 构建和测试
+          caches:
+            - npm
+            - client-npm
+          script:
+            - echo "主分支构建开始..."
+            - npm install
+            - cd client && npm install
+            - cd .. && npm run build
+            - echo "构建完成！"
+          artifacts:
+            - dist/**
+            - client/dist/**
+      
+      - step:
+          name: 部署到生产环境
+          deployment: production
+          script:
+            - echo "部署到生产环境..."
+            # 在这里添加你的部署命令
+            # 例如: scp -r dist/* user@server:/path/to/deploy
+            - echo "部署完成！"
+
+    develop:
+      - step:
+          name: 开发分支 - 构建和测试
+          caches:
+            - npm
+            - client-npm
+          script:
+            - echo "开发分支构建开始..."
+            - npm install
+            - cd client && npm install
+            - cd .. && npm run build
+            - echo "构建完成！"
+          artifacts:
+            - dist/**
+            - client/dist/**
+      
+      - step:
+          name: 部署到测试环境
+          deployment: staging
+          script:
+            - echo "部署到测试环境..."
+            # 在这里添加你的测试环境部署命令
+            - echo "部署完成！"
+
+  pull-requests:
+    '**':
+      - step:
+          name: PR检查 - 构建验证
+          caches:
+            - npm
+            - client-npm
+          script:
+            - echo "Pull Request构建验证..."
+            - npm install
+            - cd client && npm install
+            - cd .. && npm run build
+            - echo "构建验证通过！"
+
+  tags:
+    'v*':
+      - step:
+          name: 版本发布 - 构建
+          caches:
+            - npm
+            - client-npm
+          script:
+            - echo "版本发布构建..."
+            - npm install
+            - cd client && npm install
+            - cd .. && npm run build
+          artifacts:
+            - dist/**
+            - client/dist/**
+      
+      - step:
+          name: 发布到生产环境
+          deployment: production
+          script:
+            - echo "发布版本 $BITBUCKET_TAG 到生产环境..."
+            # 在这里添加你的生产环境部署命令
+            - echo "发布完成！"

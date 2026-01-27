@@ -59,7 +59,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (error.code === 'ECONNREFUSED' || error.message?.includes('Network Error')) {
         toast({
           title: 'Connection Error',
-          description: 'Cannot connect to backend service. Please ensure it is running on http://localhost:3001',
+          description: 'Cannot connect to backend service. Please ensure it is running on http://localhost:3002',
           variant: 'destructive',
         });
       }
