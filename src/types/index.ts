@@ -67,7 +67,24 @@ export enum Operation {
   EDIT = 'EDIT',           // 编辑
   DELETE = 'DELETE',       // 删除
   APPROVE = 'APPROVE',     // 审批
-  EXPORT = 'EXPORT'        // 导出
+  EXPORT = 'EXPORT',       // 导出
+  CANCEL = 'CANCEL',       // 取消
+  IMPORT = 'IMPORT',       // 导入
+  PRINT_PACKING_SLIP = 'PRINT_PACKING_SLIP',
+  DOWNLOAD_PDF = 'DOWNLOAD_PDF',
+  DOWNLOAD_TEMPLATE = 'DOWNLOAD_TEMPLATE',
+  DOWNLOAD = 'DOWNLOAD',
+  HOLD_INVENTORY = 'HOLD_INVENTORY',
+  RELEASE_INVENTORY = 'RELEASE_INVENTORY',
+  ADD_ATTACHMENT = 'ADD_ATTACHMENT',
+  SET_ALERT = 'SET_ALERT',
+  SET_DEFAULT = 'SET_DEFAULT',
+  RELOAD = 'RELOAD',
+  IMPORT_RMA = 'IMPORT_RMA',
+  BATCH_IMPORT = 'BATCH_IMPORT',
+  RESET_FIELDS = 'RESET_FIELDS',
+  PAY = 'PAY',
+  INVOICE_DETAIL = 'INVOICE_DETAIL'
 }
 
 // 审计日志操作类型
@@ -80,13 +97,18 @@ export enum ActionType {
   ROLE_CREATED = 'ROLE_CREATED',
   ROLE_UPDATED = 'ROLE_UPDATED',
   ROLE_COPIED = 'ROLE_COPIED',
-  ROLE_DELETED = 'ROLE_DELETED'
+  ROLE_DELETED = 'ROLE_DELETED',
+  // IDP映射相关
+  IDP_MAPPING_CREATED = 'IDP_MAPPING_CREATED',
+  IDP_MAPPING_UPDATED = 'IDP_MAPPING_UPDATED',
+  IDP_MAPPING_DELETED = 'IDP_MAPPING_DELETED'
 }
 
 // 审计日志目标类型
 export enum TargetType {
   ACCOUNT = 'ACCOUNT',
-  ROLE = 'ROLE'
+  ROLE = 'ROLE',
+  IDP_MAPPING = 'IDP_MAPPING'
 }
 
 // Customer信息
@@ -156,6 +178,7 @@ export interface Account {
   facilityIds?: string[];
   accessibleFacilityIds?: string[];
   roles: string[];         // 角色IDs
+  lastLoginAt?: string;    // 最后登录时间
   createdAt: string;
   updatedAt: string;
   createdBy?: string;
@@ -241,6 +264,8 @@ export interface TokenPayload {
   tenantId: string;
   customerIds?: string[];
   accessibleCustomerIds?: string[];
+  id?: string;  // 用户ID（兼容）
+  userId?: string;  // 用户ID（兼容）
 }
 
 // API响应

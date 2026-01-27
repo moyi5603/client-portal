@@ -155,7 +155,7 @@ class ConversationAgent {
 
   // 提取实体（如：用户、角色、菜单等）
   private extractEntities(message: string): string[] {
-    const entities = [];
+    const entities: string[] = [];
     const entityKeywords = {
       'user': ['用户', '账号', 'user', 'account'],
       'role': ['角色', 'role'],
@@ -175,7 +175,7 @@ class ConversationAgent {
 
   // 提取操作（如：列表、添加、编辑、删除等）
   private extractOperations(message: string): string[] {
-    const operations = [];
+    const operations: string[] = [];
     const operationKeywords = {
       'list': ['列表', '显示', '查看', 'list', 'show', 'view'],
       'create': ['添加', '新建', '创建', 'add', 'create', 'new'],

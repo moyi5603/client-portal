@@ -79,6 +79,7 @@ router.post('/', async (req: AuthRequest, res) => {
       ActionType.IDP_MAPPING_CREATED,
       TargetType.IDP_MAPPING,
       mapping.id,
+      mapping.groupClaim,
       undefined,
       mapping
     );
@@ -144,6 +145,7 @@ router.put('/:id', async (req: AuthRequest, res) => {
       ActionType.IDP_MAPPING_UPDATED,
       TargetType.IDP_MAPPING,
       mapping.id,
+      mapping.groupClaim,
       previousValue,
       updatedMapping,
       changes
@@ -186,6 +188,7 @@ router.delete('/:id', async (req: AuthRequest, res) => {
       ActionType.IDP_MAPPING_DELETED,
       TargetType.IDP_MAPPING,
       mapping.id,
+      mapping.groupClaim,
       mapping,
       undefined
     );
