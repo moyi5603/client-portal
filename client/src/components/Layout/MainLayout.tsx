@@ -40,9 +40,13 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
   // Auto-expand parent menu based on current path
   React.useEffect(() => {
-    if (['/accounts', '/roles', '/permissions', '/audit-logs'].includes(location.pathname)) {
+    if (['/accounts', '/roles', '/roles-2', '/permissions', '/permissions-2', '/audit-logs'].includes(location.pathname)) {
       if (!expandedMenus.includes('account-management')) {
         setExpandedMenus([...expandedMenus, 'account-management']);
+      }
+    } else if (['/portal-admin/accounts', '/portal-admin/roles', '/portal-admin/permissions', '/portal-admin/audit-logs'].includes(location.pathname)) {
+      if (!expandedMenus.includes('portal-admin')) {
+        setExpandedMenus([...expandedMenus, 'portal-admin']);
       }
     } else if (['/page-designer', '/user-pages'].includes(location.pathname)) {
       if (!expandedMenus.includes('page-designer')) {
@@ -70,16 +74,59 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           path: '/roles'
         },
         {
+          key: '/roles-2',
+          icon: <Shield className="w-4 h-4" />,
+          label: 'Role Management-2',
+          path: '/roles-2'
+        },
+        {
           key: '/permissions',
           icon: <List className="w-4 h-4" />,
           label: t('nav.permissionView'),
           path: '/permissions'
         },
         {
+          key: '/permissions-2',
+          icon: <List className="w-4 h-4" />,
+          label: 'Permission View-2',
+          path: '/permissions-2'
+        },
+        {
           key: '/audit-logs',
           icon: <FileText className="w-4 h-4" />,
           label: t('nav.auditLog'),
           path: '/audit-logs'
+        }
+      ]
+    },
+    {
+      key: 'portal-admin',
+      icon: <Shield className="w-4 h-4" />,
+      label: t('nav.portalAdmin'),
+      children: [
+        {
+          key: '/portal-admin/accounts',
+          icon: <Users className="w-4 h-4" />,
+          label: t('nav.accountManagement'),
+          path: '/portal-admin/accounts'
+        },
+        {
+          key: '/portal-admin/roles',
+          icon: <Shield className="w-4 h-4" />,
+          label: t('nav.roleManagement'),
+          path: '/portal-admin/roles'
+        },
+        {
+          key: '/portal-admin/permissions',
+          icon: <List className="w-4 h-4" />,
+          label: t('nav.permissionView'),
+          path: '/portal-admin/permissions'
+        },
+        {
+          key: '/portal-admin/audit-logs',
+          icon: <FileText className="w-4 h-4" />,
+          label: t('nav.auditLog'),
+          path: '/portal-admin/audit-logs'
         }
       ]
     },

@@ -35,10 +35,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onPageGenerated, sessionI
         timestamp: new Date(),
         metadata: {
           suggestions: [
-            '创建用户管理页面',
-            '创建角色管理页面',
-            '创建菜单管理页面',
-            '创建审计日志页面'
+            '创建订单统计页面',
+            '创建待发货订单列表',
+            '创建库存报表'
           ]
         }
       }]);

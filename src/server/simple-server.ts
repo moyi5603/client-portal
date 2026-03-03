@@ -46,7 +46,7 @@ app.post('/api/page-designer/chat', (req, res) => {
     success: true,
     data: {
       response: "页面设计器功能正在开发中，请稍后再试。",
-      suggestions: ["创建用户管理页面", "创建数据展示页面"],
+      suggestions: ["创建订单统计页面", "创建待发货订单列表", "创建库存报表"],
       pagePreview: null
     }
   });

@@ -11,10 +11,10 @@ const router = express.Router();
 // 所有路由需要认证
 router.use(authenticate);
 
-// 创建客户子账号
-router.post('/customer', requireAccountType(AccountType.MAIN), async (req: AuthRequest, res) => {
+// 创建子账号（统一接口）
+router.post('/sub', requireAccountType(AccountType.MAIN), async (req: AuthRequest, res) => {
   try {
-    const { username, email, phone, password, customerIds, facilityIds, roleIds, status } = req.body;
+    const { username, email, phone, firstName, lastName, password, customerIds, facilityIds, roleIds, status } = req.body;
 
     if (!username || !email || !password) {
       return res.status(400).json({
@@ -72,7 +72,108 @@ router.post('/customer', requireAccountType(AccountType.MAIN), async (req: AuthR
       username,
       email,
       phone,
-      accountType: AccountType.CUSTOMER,
+      firstName,
+      lastName,
+      accountType: AccountType.SUB, // 统一使用SUB类型
+      status: status || AccountStatus.ACTIVE,
+      tenantId,
+      customerIds: customerIds || [],
+      facilityIds: facilityIds || [],
+      roles: roleIds || [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      createdBy: req.user!.accountId
+    };
+
+    db.createAccount(account, password);
+
+    // 记录审计日志
+    auditService.log(
+      req.user!,
+      ActionType.ACCOUNT_CREATED,
+      TargetType.ACCOUNT,
+      account.id,
+      account.username,
+      undefined,
+      account
+    );
+
+    res.status(201).json({
+      success: true,
+      data: account
+    } as ApiResponse<Account>);
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message || '创建子账号失败'
+    } as ApiResponse);
+  }
+});
+
+// 创建客户子账号（保留以兼容旧代码）
+router.post('/customer', requireAccountType(AccountType.MAIN), async (req: AuthRequest, res) => {
+  try {
+    const { username, email, phone, firstName, lastName, password, customerIds, facilityIds, roleIds, status } = req.body;
+
+    if (!username || !email || !password) {
+      return res.status(400).json({
+        success: false,
+        error: '用户名、邮箱和密码不能为空'
+      } as ApiResponse);
+    }
+
+    const tenantId = req.user!.tenantId;
+
+    // 验证唯一性
+    const uniqueCheck = validateUniqueAccountInfo(tenantId, username, email, phone);
+    if (!uniqueCheck.valid) {
+      return res.status(400).json({
+        success: false,
+        error: uniqueCheck.error
+      } as ApiResponse);
+    }
+
+    // 验证Customer IDs
+    if (customerIds && customerIds.length > 0) {
+      const customerCheck = validateCustomerIds(customerIds);
+      if (!customerCheck.valid) {
+        return res.status(400).json({
+          success: false,
+          error: customerCheck.error
+        } as ApiResponse);
+      }
+    }
+
+    // 验证Facility IDs
+    if (facilityIds && facilityIds.length > 0) {
+      const facilityCheck = validateFacilityIds(facilityIds);
+      if (!facilityCheck.valid) {
+        return res.status(400).json({
+          success: false,
+          error: facilityCheck.error
+        } as ApiResponse);
+      }
+    }
+
+    // 验证角色IDs
+    if (roleIds && roleIds.length > 0) {
+      const roleCheck = validateRoleIds(roleIds);
+      if (!roleCheck.valid) {
+        return res.status(400).json({
+          success: false,
+          error: roleCheck.error
+        } as ApiResponse);
+      }
+    }
+
+    const account: Account = {
+      id: generateAccountId(),
+      username,
+      email,
+      phone,
+      firstName,
+      lastName,
+      accountType: AccountType.SUB, // 更新为SUB类型
       status: status || AccountStatus.ACTIVE,
       tenantId,
       customerIds: customerIds || [],
@@ -111,7 +212,7 @@ router.post('/customer', requireAccountType(AccountType.MAIN), async (req: AuthR
 // 创建Partner账号
 router.post('/partner', requireAccountType(AccountType.MAIN), async (req: AuthRequest, res) => {
   try {
-    const { username, email, phone, password, accessibleCustomerIds, accessibleFacilityIds, roleIds, status } = req.body;
+    const { username, email, phone, firstName, lastName, password, accessibleCustomerIds, accessibleFacilityIds, roleIds, status } = req.body;
 
     if (!username || !email || !password) {
       return res.status(400).json({
@@ -169,7 +270,9 @@ router.post('/partner', requireAccountType(AccountType.MAIN), async (req: AuthRe
       username,
       email,
       phone,
-      accountType: AccountType.PARTNER,
+      firstName,
+      lastName,
+      accountType: AccountType.SUB, // 更新为SUB类型
       status: status || AccountStatus.ACTIVE,
       tenantId,
       accessibleCustomerIds: accessibleCustomerIds || [],
@@ -251,7 +354,6 @@ router.get('/', requireAccountType(AccountType.MAIN), async (req: AuthRequest, r
       );
     }
     // Customer筛选（支持多选，使用AND逻辑：账号必须包含所有选中的Customer）
-    // 账号类型只起到标签作用，客户子账号和Partner子账号逻辑相同
     if (customerIds) {
       const customerIdArray = Array.isArray(customerIds) 
         ? customerIds 
@@ -261,7 +363,7 @@ router.get('/', requireAccountType(AccountType.MAIN), async (req: AuthRequest, r
         if (acc.accountType === AccountType.MAIN) {
           return true;
         }
-        // 子账号统一检查：使用customerIds或accessibleCustomerIds（必须包含所有选中的Customer）
+        // 子账号统一检查customerIds或accessibleCustomerIds（必须包含所有选中的Customer）
         const accountCustomerIds = acc.customerIds || acc.accessibleCustomerIds || [];
         return accountCustomerIds.length > 0 && 
                customerIdArray.every(cid => accountCustomerIds.includes(cid as string));
@@ -342,7 +444,7 @@ router.put('/:id', requireAccountType(AccountType.MAIN), async (req: AuthRequest
       } as ApiResponse);
     }
 
-    const { username, email, phone, customerIds, accessibleCustomerIds, facilityIds, accessibleFacilityIds, roleIds, status } = req.body;
+    const { username, email, phone, firstName, lastName, customerIds, accessibleCustomerIds, facilityIds, accessibleFacilityIds, roleIds, status } = req.body;
 
     // 验证唯一性（排除当前账号）
     if (username || email || phone) {
@@ -361,8 +463,7 @@ router.put('/:id', requireAccountType(AccountType.MAIN), async (req: AuthRequest
       }
     }
 
-    // 账号类型只起到标签作用，统一处理Customer IDs
-    // 优先使用accessibleCustomerIds，如果没有则使用customerIds
+    // 统一处理Customer IDs
     const finalCustomerIds = accessibleCustomerIds || customerIds;
     if (finalCustomerIds) {
       const customerCheck = validateCustomerIds(finalCustomerIds);
@@ -375,7 +476,6 @@ router.put('/:id', requireAccountType(AccountType.MAIN), async (req: AuthRequest
     }
 
     // 统一处理Facility IDs
-    // 优先使用accessibleFacilityIds，如果没有则使用facilityIds
     const finalFacilityIds = accessibleFacilityIds || facilityIds;
     if (finalFacilityIds) {
       const facilityCheck = validateFacilityIds(finalFacilityIds);
@@ -401,32 +501,17 @@ router.put('/:id', requireAccountType(AccountType.MAIN), async (req: AuthRequest
     const updates: Partial<Account> = {};
     if (username) updates.username = username;
     if (email) updates.email = email;
-    if (phone) updates.phone = phone;
-    // 账号类型只起到标签作用，统一处理Customer IDs
-    // 根据账号类型设置对应字段以保持数据一致性
+    if (phone !== undefined) updates.phone = phone;
+    if (firstName !== undefined) updates.firstName = firstName;
+    if (lastName !== undefined) updates.lastName = lastName;
+    // 统一处理Customer IDs和Facility IDs
     if (finalCustomerIds) {
-      if (account.accountType === AccountType.CUSTOMER) {
-        updates.customerIds = finalCustomerIds;
-        // 清除accessibleCustomerIds以保持数据一致性
-        updates.accessibleCustomerIds = [];
-      } else if (account.accountType === AccountType.PARTNER) {
-        updates.accessibleCustomerIds = finalCustomerIds;
-        // 清除customerIds以保持数据一致性
-        updates.customerIds = [];
-      }
+      updates.customerIds = finalCustomerIds;
+      updates.accessibleCustomerIds = [];
     }
-    // 统一处理Facility IDs
-    // 根据账号类型设置对应字段以保持数据一致性
     if (finalFacilityIds) {
-      if (account.accountType === AccountType.CUSTOMER) {
-        updates.facilityIds = finalFacilityIds;
-        // 清除accessibleFacilityIds以保持数据一致性
-        updates.accessibleFacilityIds = [];
-      } else if (account.accountType === AccountType.PARTNER) {
-        updates.accessibleFacilityIds = finalFacilityIds;
-        // 清除facilityIds以保持数据一致性
-        updates.facilityIds = [];
-      }
+      updates.facilityIds = finalFacilityIds;
+      updates.accessibleFacilityIds = [];
     }
     if (roleIds) updates.roles = roleIds;
     if (status) updates.status = status as AccountStatus;
@@ -514,6 +599,74 @@ router.delete('/:id', requireAccountType(AccountType.MAIN), async (req: AuthRequ
     res.status(500).json({
       success: false,
       error: error.message || '删除账号失败'
+    } as ApiResponse);
+  }
+});
+
+// 重置密码
+router.post('/:id/reset-password', requireAccountType(AccountType.MAIN), async (req: AuthRequest, res) => {
+  try {
+    const { newPassword } = req.body;
+    
+    if (!newPassword) {
+      return res.status(400).json({
+        success: false,
+        error: '新密码不能为空'
+      } as ApiResponse);
+    }
+
+    // 验证密码强度
+    if (newPassword.length < 8) {
+      return res.status(400).json({
+        success: false,
+        error: '密码长度至少为8个字符'
+      } as ApiResponse);
+    }
+
+    if (!/[a-z]/.test(newPassword) || !/[A-Z]/.test(newPassword) || 
+        !/[0-9]/.test(newPassword) || !/[^a-zA-Z0-9]/.test(newPassword)) {
+      return res.status(400).json({
+        success: false,
+        error: '密码必须包含大小写字母、数字和特殊字符'
+      } as ApiResponse);
+    }
+
+    const account = db.getAccount(req.params.id);
+    if (!account) {
+      return res.status(404).json({
+        success: false,
+        error: '账号不存在'
+      } as ApiResponse);
+    }
+
+    // 检查租户权限
+    if (account.tenantId !== req.user!.tenantId) {
+      return res.status(403).json({
+        success: false,
+        error: '无权访问该账号'
+      } as ApiResponse);
+    }
+
+    // 更新密码
+    db.updatePassword(account.id, newPassword);
+
+    // 记录审计日志
+    auditService.log(
+      req.user!,
+      ActionType.ACCOUNT_PASSWORD_RESET,
+      TargetType.ACCOUNT,
+      account.id,
+      account.username
+    );
+
+    res.json({
+      success: true,
+      message: '密码重置成功'
+    } as ApiResponse);
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message || '重置密码失败'
     } as ApiResponse);
   }
 });

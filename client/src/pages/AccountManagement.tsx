@@ -15,7 +15,6 @@ import {
 import api from '../utils/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useLocale } from '../contexts/LocaleContext';
-import PasswordStrengthIndicator from '../components/PasswordStrengthIndicator';
 import { useDebounce, useKeyboardShortcut } from '../hooks/useDebounce';
 import {
   Button,
@@ -65,40 +64,58 @@ interface Account {
   username: string;
   email: string;
   phone?: string;
+  firstName?: string;
+  lastName?: string;
   accountType: string;
   status: string;
   customerIds?: string[];
   accessibleCustomerIds?: string[];
   facilityIds?: string[];
   accessibleFacilityIds?: string[];
+  customerFacilityMappings?: CustomerFacilityMapping[];
   roles: string[];
   lastLoginAt?: string;
   createdAt?: string;
+}
+
+
+interface CustomerFacilityMapping {
+  customerId: string;
+  facilityIds: string[];
 }
 
 interface FormData {
   username: string;
   email: string;
   phone: string;
+  firstName: string;
+  lastName: string;
   password: string;
+  confirmPassword: string;
   accountType: string;
   status: string;
   accessibleCustomerIds: string[];
   accessibleFacilityIds: string[];
+  customerFacilityMappings: CustomerFacilityMapping[];
   roleIds: string[];
 }
+
 
 const initialFormData: FormData = {
   username: '',
   email: '',
   phone: '',
+  firstName: '',
+  lastName: '',
   password: '',
-  accountType: 'CUSTOMER',
+  confirmPassword: '',
+  accountType: 'SUB', // 默认为子账号
   status: 'ACTIVE',
   accessibleCustomerIds: [],
   accessibleFacilityIds: [],
+  customerFacilityMappings: [],
   roleIds: [],
-};
+}
 
 const AccountManagement: React.FC = () => {
   const { user } = useAuth();
@@ -110,6 +127,9 @@ const AccountManagement: React.FC = () => {
   const [resetPasswordDialogVisible, setResetPasswordDialogVisible] = useState(false);
   const [accountToDelete, setAccountToDelete] = useState<Account | null>(null);
   const [accountToResetPassword, setAccountToResetPassword] = useState<Account | null>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [passwordErrors, setPasswordErrors] = useState<{ newPassword?: string; confirmPassword?: string }>({});
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof FormData, string>>>({});
@@ -133,7 +153,6 @@ const AccountManagement: React.FC = () => {
     phone: '',
     customerIds: [] as string[],
     facilityIds: [] as string[],
-    accountType: '',
     status: ''
   });
   
@@ -175,7 +194,6 @@ const AccountManagement: React.FC = () => {
       phone: '',
       customerIds: [] as string[],
       facilityIds: [] as string[],
-      accountType: '',
       status: ''
     };
     setFilters(resetFilters);
@@ -199,7 +217,6 @@ const AccountManagement: React.FC = () => {
       if (filterParams.facilityIds && filterParams.facilityIds.length > 0) {
         params.facilityIds = filterParams.facilityIds;
       }
-      if (filterParams.accountType) params.accountType = filterParams.accountType;
       if (filterParams.status) params.status = filterParams.status;
       
       const response = await api.get('/accounts', { params });
@@ -223,7 +240,10 @@ const AccountManagement: React.FC = () => {
         // 添加预设的 facility 选项
         const presetFacilities = [
           { id: 'facility-1', name: 'facility-1', code: 'facility-1' },
-          { id: 'facility-2', name: 'facility-2', code: 'facility-2' }
+          { id: 'facility-2', name: 'facility-2', code: 'facility-2' },
+          { id: 'facility-3', name: 'facility-3', code: 'facility-3' },
+          { id: 'facility-4', name: 'facility-4', code: 'facility-4' },
+          { id: 'facility-5', name: 'facility-5', code: 'facility-5' }
         ];
         // 合并预设选项和 API 数据，避免重复
         const existingIds = apiFacilities.map((f: any) => f.id);
@@ -235,7 +255,10 @@ const AccountManagement: React.FC = () => {
       // 如果 API 失败，至少提供预设选项
       const presetFacilities = [
         { id: 'facility-1', name: 'facility-1', code: 'facility-1' },
-        { id: 'facility-2', name: 'facility-2', code: 'facility-2' }
+        { id: 'facility-2', name: 'facility-2', code: 'facility-2' },
+        { id: 'facility-3', name: 'facility-3', code: 'facility-3' },
+        { id: 'facility-4', name: 'facility-4', code: 'facility-4' },
+        { id: 'facility-5', name: 'facility-5', code: 'facility-5' }
       ];
       setFacilities(presetFacilities);
     }
@@ -317,22 +340,61 @@ const AccountManagement: React.FC = () => {
       const headers = [
         t('account.username'),
         t('account.email'),
+        t('account.firstName'),
+        t('account.lastName'),
         t('account.phone'),
         t('account.accountType'),
+        'Customer & Facility',
         t('account.roles'),
         t('common.status'),
         t('account.lastLogin'),
+        t('account.createdAt'),
       ];
 
-      const rows = accounts.map(account => [
-        account.username,
-        account.email,
-        account.phone || '-',
-        account.accountType,
-        account.roles.map(roleId => roles.find(r => r.id === roleId)?.name || roleId).join(', '),
-        account.status,
-        account.lastLoginAt ? dayjs(account.lastLoginAt).format('YYYY-MM-DD HH:mm:ss') : t('account.neverLoggedIn'),
-      ]);
+      const rows = accounts.map(account => {
+        // 获取Customer和Facility信息（合并显示）
+        const customerIds = account.customerIds || account.accessibleCustomerIds || [];
+        const facilityIds = account.facilityIds || account.accessibleFacilityIds || [];
+        
+        let customerFacilityText = '-';
+        if (customerIds.length > 0) {
+          const customerFacilityPairs = customerIds.map(customerId => {
+            const customer = customers.find(c => c.id === customerId);
+            const customerName = customer ? `${customer.name}(${customer.code})` : customerId;
+            
+            // 简化：显示所有facilities（实际应用中可以根据映射关系调整）
+            const facilityNames = facilityIds.map(facilityId => {
+              const facility = facilities.find(f => f.id === facilityId);
+              return facility ? facility.name : facilityId;
+            }).join(', ');
+            
+            return `${customerName} → [${facilityNames || 'No facilities'}]`;
+          });
+          customerFacilityText = customerFacilityPairs.join('; ');
+        }
+
+        // 获取角色信息
+        const roleNames = account.roles && account.roles.length > 0
+          ? account.roles.map(roleId => {
+              const role = roles.find(r => r.id === roleId);
+              return role ? role.name : roleId;
+            }).join('; ')
+          : '-';
+
+        return [
+          account.username,
+          account.email,
+          account.firstName || '-',
+          account.lastName || '-',
+          account.phone || '-',
+          account.accountType,
+          customerFacilityText,
+          roleNames,
+          account.status,
+          account.lastLoginAt ? dayjs(account.lastLoginAt).format('MM/DD/YYYY HH:mm:ss') : t('account.neverLoggedIn'),
+          account.createdAt ? dayjs(account.createdAt).format('MM/DD/YYYY HH:mm:ss') : '-',
+        ];
+      });
 
       const csvContent = [
         headers.join(','),
@@ -363,17 +425,44 @@ const AccountManagement: React.FC = () => {
   const handleResetPassword = async () => {
     if (!accountToResetPassword) return;
     
+    // 验证密码
+    const errors: { newPassword?: string; confirmPassword?: string } = {};
+    
+    if (!newPassword) {
+      errors.newPassword = t('account.passwordRequired');
+    } else if (newPassword.length < 8) {
+      errors.newPassword = t('account.passwordRequirements');
+    } else if (!/[a-z]/.test(newPassword)) {
+      errors.newPassword = t('account.passwordRequirements');
+    } else if (!/[A-Z]/.test(newPassword)) {
+      errors.newPassword = t('account.passwordRequirements');
+    } else if (!/[0-9]/.test(newPassword)) {
+      errors.newPassword = t('account.passwordRequirements');
+    } else if (!/[^a-zA-Z0-9]/.test(newPassword)) {
+      errors.newPassword = t('account.passwordRequirements');
+    }
+    
+    if (!confirmNewPassword) {
+      errors.confirmPassword = t('account.confirmPasswordRequired');
+    } else if (newPassword !== confirmNewPassword) {
+      errors.confirmPassword = t('account.passwordMismatch');
+    }
+    
+    setPasswordErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+    
     try {
-      // Call API (may succeed or fail)
-      await api.post(`/accounts/${accountToResetPassword.id}/reset-password`);
-    } catch (error: any) {
-      // Ignore API errors - we always show the same message
-      console.log('Password reset API call failed, but showing success message to user');
-    } finally {
-      // Always show email sent message for security reasons
-      toast.success(t('account.resetPasswordEmailSent'));
+      await api.post(`/accounts/${accountToResetPassword.id}/reset-password`, {
+        newPassword: newPassword
+      });
+      toast.success(t('account.resetPasswordSuccess'));
       setResetPasswordDialogVisible(false);
       setAccountToResetPassword(null);
+      setNewPassword('');
+      setConfirmNewPassword('');
+      setPasswordErrors({});
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || t('account.resetPasswordFailed'));
     }
   };
 
@@ -381,15 +470,34 @@ const AccountManagement: React.FC = () => {
     setEditingAccount(account);
     const customerIds = account.customerIds || account.accessibleCustomerIds || [];
     const facilityIds = account.facilityIds || account.accessibleFacilityIds || [];
+    
+    // 构建 customerFacilityMappings
+    // 优先使用account中已有的customerFacilityMappings
+    let mappings: CustomerFacilityMapping[];
+    if (account.customerFacilityMappings && account.customerFacilityMappings.length > 0) {
+      // 使用已有的映射关系
+      mappings = account.customerFacilityMappings;
+    } else {
+      // 如果没有映射关系，则所有customer共享相同的facilities
+      mappings = customerIds.map(customerId => ({
+        customerId,
+        facilityIds: facilityIds
+      }));
+    }
+    
     setFormData({
       username: account.username,
       email: account.email,
       phone: account.phone || '',
+      firstName: account.firstName || '',
+      lastName: account.lastName || '',
       password: '',
+      confirmPassword: '',
       accountType: account.accountType,
       status: account.status,
       accessibleCustomerIds: customerIds,
       accessibleFacilityIds: facilityIds,
+      customerFacilityMappings: mappings,
       roleIds: account.roles || [],
     });
     setFormErrors({});
@@ -478,10 +586,21 @@ const AccountManagement: React.FC = () => {
       errors.password = t('account.passwordRequired');
     } else if (!editingAccount && formData.password.length < 8) {
       errors.password = t('account.passwordRequirements');
+    } else if (!editingAccount && !/[a-z]/.test(formData.password)) {
+      errors.password = t('account.passwordRequirements');
+    } else if (!editingAccount && !/[A-Z]/.test(formData.password)) {
+      errors.password = t('account.passwordRequirements');
+    } else if (!editingAccount && !/[0-9]/.test(formData.password)) {
+      errors.password = t('account.passwordRequirements');
+    } else if (!editingAccount && !/[^a-zA-Z0-9]/.test(formData.password)) {
+      errors.password = t('account.passwordRequirements');
     }
-    if (!editingAccount && !formData.accountType) {
-      errors.accountType = t('account.accountTypeRequired');
+    if (!editingAccount && !formData.confirmPassword) {
+      errors.confirmPassword = t('account.confirmPasswordRequired');
+    } else if (!editingAccount && formData.password !== formData.confirmPassword) {
+      errors.confirmPassword = t('account.passwordMismatch');
     }
+    // Account Type字段已移除，不再需要验证
     
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
@@ -491,15 +610,13 @@ const AccountManagement: React.FC = () => {
     if (!validateForm()) return;
 
     try {
-      let accessibleCustomerIds = formData.accessibleCustomerIds;
-      if (accessibleCustomerIds.includes('ALL')) {
-        accessibleCustomerIds = customers.map(c => c.id);
-      }
-
-      let accessibleFacilityIds = formData.accessibleFacilityIds;
-      if (accessibleFacilityIds.includes('ALL')) {
-        accessibleFacilityIds = facilities.map(f => f.id);
-      }
+      // 从 customerFacilityMappings 提取 customerIds 和 facilityIds
+      const accessibleCustomerIds = formData.customerFacilityMappings.map(m => m.customerId);
+      const allFacilityIds = new Set<string>();
+      formData.customerFacilityMappings.forEach(m => {
+        m.facilityIds.forEach(id => allFacilityIds.add(id));
+      });
+      const accessibleFacilityIds = Array.from(allFacilityIds);
 
       if (editingAccount) {
         const updatePayload = {
@@ -517,17 +634,16 @@ const AccountManagement: React.FC = () => {
           loadAccounts();
         }
       } else {
-        const endpoint = formData.accountType === 'CUSTOMER' ? '/accounts/customer' : '/accounts/partner';
+        // 创建账号时，统一使用SUB类型
+        const endpoint = '/accounts/sub';
         const payload: any = {
           username: formData.username,
           email: formData.email,
           phone: formData.phone || undefined,
           password: formData.password,
           status: formData.status,
-          accessibleCustomerIds: formData.accountType === 'PARTNER' ? accessibleCustomerIds : undefined,
-          customerIds: formData.accountType === 'CUSTOMER' ? accessibleCustomerIds : undefined,
-          accessibleFacilityIds: formData.accountType === 'PARTNER' ? accessibleFacilityIds : undefined,
-          facilityIds: formData.accountType === 'CUSTOMER' ? accessibleFacilityIds : undefined,
+          customerIds: accessibleCustomerIds,
+          facilityIds: accessibleFacilityIds,
           roleIds: formData.roleIds,
         };
         const response = await api.post(endpoint, payload);
@@ -543,9 +659,14 @@ const AccountManagement: React.FC = () => {
     }
   };
 
-  const getCustomerBadges = (account: Account) => {
+  const getCustomerFacilityDisplay = (account: Account) => {
     if (account.accountType === 'MAIN') {
-      return <Badge variant="info">{t('account.allCustomers')}</Badge>;
+      return (
+        <div style={{ fontSize: '13px', color: 'var(--text-primary)' }}>
+          <span style={{ fontWeight: 'var(--font-medium)' }}>{t('account.allCustomers')}</span>
+          <span style={{ color: 'var(--text-secondary)' }}>: All Facilities</span>
+        </div>
+      );
     }
     
     const customerIds = account.customerIds || account.accessibleCustomerIds || [];
@@ -554,68 +675,66 @@ const AccountManagement: React.FC = () => {
       return <span className="text-secondary">{t('account.noCustomers')}</span>;
     }
     
-    const allCustomerIds = customers.map(c => c.id);
-    const hasAllCustomers = customerIds.length === allCustomerIds.length && 
-      allCustomerIds.every(id => customerIds.includes(id));
-    
-    if (hasAllCustomers) {
-      return <Badge variant="info">{t('account.allCustomers')}</Badge>;
-    }
+    // 显示前3个customer及其facilities
+    const displayCount = 3;
+    const displayCustomers = customerIds.slice(0, displayCount);
+    const remainingCount = customerIds.length - displayCount;
     
     return (
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-xs)' }}>
-        {customerIds.slice(0, 3).map((id: string) => {
-          const customer = customers.find(c => c.id === id);
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '13px' }}>
+        {displayCustomers.map((customerId: string) => {
+          const customer = customers.find(c => c.id === customerId);
+          const customerName = customer ? customer.name : customerId;
+          
+          // 优先使用customerFacilityMappings中的映射关系
+          let facilityNames = '';
+          if (account.customerFacilityMappings && account.customerFacilityMappings.length > 0) {
+            const mapping = account.customerFacilityMappings.find(m => m.customerId === customerId);
+            if (mapping && mapping.facilityIds.length > 0) {
+              facilityNames = mapping.facilityIds.map((facilityId: string) => {
+                const facility = facilities.find(f => f.id === facilityId);
+                return facility ? facility.name : facilityId;
+              }).join('、');
+            }
+          } else {
+            // 如果没有映射关系，则显示所有facilities（兼容旧数据）
+            const facilityIds = account.facilityIds || account.accessibleFacilityIds || [];
+            facilityNames = facilityIds.map((facilityId: string) => {
+              const facility = facilities.find(f => f.id === facilityId);
+              return facility ? facility.name : facilityId;
+            }).join('、');
+          }
+          
           return (
-            <Badge key={id} variant="info">
-              {customer ? customer.name : id}
-            </Badge>
+            <div key={customerId} style={{ lineHeight: '1.4' }}>
+              <span style={{ fontWeight: 'var(--font-medium)', color: 'var(--text-primary)' }}>
+                {customerName}
+              </span>
+              <span style={{ color: 'var(--text-secondary)' }}>
+                : {facilityNames || t('account.noFacilities')}
+              </span>
+            </div>
           );
         })}
-        {customerIds.length > 3 && (
-          <Badge variant="secondary">+{customerIds.length - 3}</Badge>
-        )}
-      </div>
-    );
-  };
-
-  const getFacilityBadges = (account: Account) => {
-    if (account.accountType === 'MAIN') {
-      return <Badge variant="info">All Facilities</Badge>;
-    }
-    
-    const facilityIds = account.facilityIds || account.accessibleFacilityIds || [];
-    
-    if (facilityIds.length === 0) {
-      return <span className="text-secondary">{t('account.noFacilities')}</span>;
-    }
-    
-    const allFacilityIds = facilities.map(f => f.id);
-    const hasAllFacilities = facilityIds.length === allFacilityIds.length && 
-      allFacilityIds.every(id => facilityIds.includes(id));
-    
-    if (hasAllFacilities) {
-      return <Badge variant="info">All Facilities</Badge>;
-    }
-    
-    return (
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-xs)' }}>
-        {facilityIds.slice(0, 3).map((id: string) => {
-          const facility = facilities.find(f => f.id === id);
-          return (
-            <Badge key={id} variant="success">
-              {facility ? facility.name : id}
-            </Badge>
-          );
-        })}
-        {facilityIds.length > 3 && (
-          <Badge variant="secondary">+{facilityIds.length - 3}</Badge>
+        {remainingCount > 0 && (
+          <span style={{ fontSize: '12px', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+            +{remainingCount} more customer(s)
+          </span>
         )}
       </div>
     );
   };
 
   const getRoleBadges = (account: Account) => {
+    // 主账号显示"Admin"
+    if (account.accountType === 'MAIN') {
+      return (
+        <Badge variant="default">
+          Admin
+        </Badge>
+      );
+    }
+    
     if (!account.roles || account.roles.length === 0) {
       return <span className="text-secondary">{t('account.noRoles')}</span>;
     }
@@ -686,10 +805,9 @@ const AccountManagement: React.FC = () => {
   };
 
   const getStatusBadge = (status: string) => {
-    const statusMap: Record<string, { text: string; variant: 'success' | 'secondary' | 'warning' }> = {
+    const statusMap: Record<string, { text: string; variant: 'success' | 'secondary' }> = {
       ACTIVE: { text: t('account.statusActive'), variant: 'success' },
-      INACTIVE: { text: t('account.statusInactive'), variant: 'secondary' },
-      SUSPENDED: { text: t('account.statusSuspended'), variant: 'warning' }
+      INACTIVE: { text: t('account.statusInactive'), variant: 'secondary' }
     };
     const info = statusMap[status] || { text: status, variant: 'secondary' as any };
     return <Badge variant={info.variant}>{info.text}</Badge>;
@@ -713,23 +831,21 @@ const AccountManagement: React.FC = () => {
             {t('account.title')}
           </h2>
           <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
-            {selectedIds.size > 0 && (
-              <DropdownMenu modal={false}>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline">
-                    {t('common.bulkActions')} ({selectedIds.size}) <ChevronDown size={14} style={{ marginLeft: 4 }} />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start">
-                  <DropdownMenuItem onClick={() => setBulkStatusModalVisible(true)}>
-                    {t('account.bulkChangeStatus')}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem danger onClick={handleBulkDelete}>
-                    {t('account.bulkDelete')}
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
+            <DropdownMenu modal={false}>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" disabled={selectedIds.size === 0}>
+                  {t('common.bulkActions')} {selectedIds.size > 0 && `(${selectedIds.size})`} <ChevronDown size={14} style={{ marginLeft: 4 }} />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem onClick={() => setBulkStatusModalVisible(true)}>
+                  {t('account.bulkChangeStatus')}
+                </DropdownMenuItem>
+                <DropdownMenuItem danger onClick={handleBulkDelete}>
+                  {t('account.bulkDelete')}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button onClick={handleCreate}>
@@ -751,7 +867,7 @@ const AccountManagement: React.FC = () => {
         {/* Filters */}
         <Card style={{ marginBottom: 'var(--space-md)' }}>
           <CardContent style={{ padding: 'var(--space-md)' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 'var(--space-md)' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 'var(--space-md)' }}>
               <Input
                 placeholder={t('account.searchUsername')}
                 value={filters.username}
@@ -763,19 +879,6 @@ const AccountManagement: React.FC = () => {
                 onChange={(e) => setFilters({ ...filters, email: e.target.value })}
               />
               <Select
-                value={filters.accountType || undefined}
-                onValueChange={(value) => setFilters({ ...filters, accountType: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={t('account.selectAccountType')} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="MAIN">{t('account.typeMain')}</SelectItem>
-                  <SelectItem value="CUSTOMER">{t('account.typeCustomer')}</SelectItem>
-                  <SelectItem value="PARTNER">{t('account.typePartner')}</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select
                 value={filters.status || undefined}
                 onValueChange={(value) => setFilters({ ...filters, status: value })}
               >
@@ -785,7 +888,6 @@ const AccountManagement: React.FC = () => {
                 <SelectContent>
                   <SelectItem value="ACTIVE">{t('account.statusActive')}</SelectItem>
                   <SelectItem value="INACTIVE">{t('account.statusInactive')}</SelectItem>
-                  <SelectItem value="SUSPENDED">{t('account.statusSuspended')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -838,8 +940,7 @@ const AccountManagement: React.FC = () => {
                   <TableHead>{t('account.username')}</TableHead>
                   <TableHead>{t('account.email')}</TableHead>
                   <TableHead>{t('account.accountType')}</TableHead>
-                  <TableHead>Customer</TableHead>
-                  <TableHead>Facility</TableHead>
+                  <TableHead style={{ minWidth: 200 }}>Customer & Facility</TableHead>
                   <TableHead>{t('account.roles')}</TableHead>
                   <TableHead>{t('common.status')}</TableHead>
                   <TableHead>{t('account.lastLogin')}</TableHead>
@@ -867,22 +968,16 @@ const AccountManagement: React.FC = () => {
                       </TableCell>
                       <TableCell>{account.email}</TableCell>
                       <TableCell>{getAccountTypeBadge(account.accountType)}</TableCell>
-                      <TableCell>{getCustomerBadges(account)}</TableCell>
-                      <TableCell>{getFacilityBadges(account)}</TableCell>
+                      <TableCell>{getCustomerFacilityDisplay(account)}</TableCell>
                       <TableCell>{getRoleBadges(account)}</TableCell>
                       <TableCell>{getStatusBadge(account.status)}</TableCell>
                       <TableCell>
                         {!account.lastLoginAt ? (
                           <span className="text-secondary text-xs">{t('account.neverLoggedIn')}</span>
                         ) : (
-                          <Tooltip>
-                            <TooltipTrigger>
-                              <span className="text-sm">{dayjs(account.lastLoginAt).fromNow()}</span>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              {dayjs(account.lastLoginAt).format('YYYY-MM-DD HH:mm:ss')}
-                            </TooltipContent>
-                          </Tooltip>
+                          <span className="text-sm">
+                            {dayjs(account.lastLoginAt).format('YYYY-MM-DD HH:mm:ss')}
+                          </span>
                         )}
                       </TableCell>
                       <TableCell style={{ textAlign: 'center' }}>
@@ -902,6 +997,9 @@ const AccountManagement: React.FC = () => {
                               </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => {
                                 setAccountToResetPassword(account);
+                                setNewPassword('');
+                                setConfirmNewPassword('');
+                                setPasswordErrors({});
                                 setResetPasswordDialogVisible(true);
                               }}>
                                 <KeyRound size={14} style={{ marginRight: 8 }} />
@@ -953,28 +1051,7 @@ const AccountManagement: React.FC = () => {
             </DialogHeader>
             
             <div style={{ display: 'grid', gap: 'var(--space-md)' }}>
-              {!editingAccount && (
-                <div>
-                  <Label required>{t('account.accountType')}</Label>
-                  <Select
-                    value={formData.accountType}
-                    onValueChange={(value) => setFormData({ ...formData, accountType: value })}
-                  >
-                    <SelectTrigger error={!!formErrors.accountType}>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="CUSTOMER">{t('account.typeCustomer')}</SelectItem>
-                      <SelectItem value="PARTNER">{t('account.typePartner')}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {formErrors.accountType && (
-                    <span className="text-sm" style={{ color: 'var(--danger)', marginTop: 4 }}>
-                      {formErrors.accountType}
-                    </span>
-                  )}
-                </div>
-              )}
+              {/* Account Type字段已移除，默认创建为子账号 */}
               
               <div>
                 <Label required>{t('account.username')}</Label>
@@ -997,6 +1074,7 @@ const AccountManagement: React.FC = () => {
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  disabled={!!editingAccount}
                   error={!!formErrors.email}
                 />
                 {formErrors.email && (
@@ -1004,6 +1082,24 @@ const AccountManagement: React.FC = () => {
                     {formErrors.email}
                   </span>
                 )}
+              </div>
+              
+              <div>
+                <Label>{t('account.firstName')}</Label>
+                <Input
+                  value={formData.firstName}
+                  onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                  placeholder={t('account.firstNameOptional')}
+                />
+              </div>
+              
+              <div>
+                <Label>{t('account.lastName')}</Label>
+                <Input
+                  value={formData.lastName}
+                  onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                  placeholder={t('account.lastNameOptional')}
+                />
               </div>
               
               <div>
@@ -1016,21 +1112,42 @@ const AccountManagement: React.FC = () => {
               </div>
               
               {!editingAccount && (
-                <div>
-                  <Label required>{t('account.password')}</Label>
-                  <Input
-                    type="password"
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    error={!!formErrors.password}
-                  />
-                  <PasswordStrengthIndicator password={formData.password} />
-                  {formErrors.password && (
-                    <span className="text-sm" style={{ color: 'var(--danger)', marginTop: 4 }}>
-                      {formErrors.password}
-                    </span>
-                  )}
-                </div>
+                <>
+                  <div>
+                    <Label required>{t('account.password')}</Label>
+                    <Input
+                      type="password"
+                      value={formData.password}
+                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                      error={!!formErrors.password}
+                    />
+                    <div className="mt-1">
+                      <span className="text-xs text-muted">
+                        Password must contain: lowercase • uppercase • number • special char • 8+ chars
+                      </span>
+                    </div>
+                    {formErrors.password && (
+                      <span className="text-sm" style={{ color: 'var(--danger)', marginTop: 4 }}>
+                        {formErrors.password}
+                      </span>
+                    )}
+                  </div>
+                  
+                  <div>
+                    <Label required>{t('account.confirmPassword')}</Label>
+                    <Input
+                      type="password"
+                      value={formData.confirmPassword}
+                      onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                      error={!!formErrors.confirmPassword}
+                    />
+                    {formErrors.confirmPassword && (
+                      <span className="text-sm" style={{ color: 'var(--danger)', marginTop: 4 }}>
+                        {formErrors.confirmPassword}
+                      </span>
+                    )}
+                  </div>
+                </>
               )}
               
               <div>
@@ -1045,225 +1162,188 @@ const AccountManagement: React.FC = () => {
                   <SelectContent>
                     <SelectItem value="ACTIVE">{t('account.statusActive')}</SelectItem>
                     <SelectItem value="INACTIVE">{t('account.statusInactive')}</SelectItem>
-                    <SelectItem value="SUSPENDED">{t('account.statusSuspended')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               
               <div>
-                <Label>Customer</Label>
-                <DropdownMenu open={customerSelectOpen} onOpenChange={setCustomerSelectOpen}>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" style={{ width: '100%', justifyContent: 'space-between' }}>
-                      {t('account.selectCustomersPlaceholder')}
-                      <ChevronDown size={16} />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent style={{ width: '300px', maxHeight: '200px', overflowY: 'auto', backgroundColor: 'white' }}>
-                    <DropdownMenuItem 
-                      onSelect={(e) => {
-                        e.preventDefault();
-                        if (formData.accessibleCustomerIds.includes('ALL')) {
-                          setFormData({ ...formData, accessibleCustomerIds: [] });
-                        } else {
-                          setFormData({ ...formData, accessibleCustomerIds: ['ALL'] });
-                        }
-                      }}
-                      style={{
-                        color: formData.accessibleCustomerIds.includes('ALL') ? 'var(--primary)' : 'inherit',
-                        fontWeight: formData.accessibleCustomerIds.includes('ALL') ? 'var(--font-bold)' : 'normal'
-                      }}
-                    >
-                      {t('account.allCustomers')}
-                    </DropdownMenuItem>
-                    {customers.map(customer => (
-                      <DropdownMenuItem 
-                        key={customer.id}
-                        onSelect={(e) => {
-                          e.preventDefault();
-                          const currentIds = formData.accessibleCustomerIds.filter(id => id !== 'ALL');
-                          if (currentIds.includes(customer.id)) {
-                            // 如果已选中，则取消选择
-                            setFormData({ ...formData, accessibleCustomerIds: currentIds.filter(id => id !== customer.id) });
-                          } else {
-                            // 如果未选中，则添加选择
-                            setFormData({ ...formData, accessibleCustomerIds: [...currentIds, customer.id] });
+                <Label>Customer & Facility</Label>
+                <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: 'var(--space-md)' }}>
+                  {/* Customer选择 */}
+                  <div style={{ marginBottom: 'var(--space-md)' }}>
+                    <Label style={{ fontSize: '14px', marginBottom: '8px', display: 'block' }}>Select Customers</Label>
+                    <DropdownMenu open={customerSelectOpen} onOpenChange={setCustomerSelectOpen}>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" style={{ width: '100%', justifyContent: 'space-between' }}>
+                          {formData.customerFacilityMappings.length === 0 
+                            ? t('account.selectCustomersPlaceholder')
+                            : `${formData.customerFacilityMappings.length} customer(s) selected`
                           }
-                        }}
-                        style={{
-                          color: formData.accessibleCustomerIds.includes(customer.id) ? 'var(--primary)' : 'inherit',
-                          fontWeight: formData.accessibleCustomerIds.includes(customer.id) ? 'var(--font-bold)' : 'normal'
-                        }}
-                      >
-                        {customer.name}
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                {/* 显示选中的标签 */}
-                {formData.accessibleCustomerIds.length > 0 && (
-                  <div style={{ marginTop: '8px', display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                    {formData.accessibleCustomerIds.includes('ALL') ? (
-                      <Badge variant="secondary" style={{ fontSize: '12px', padding: '2px 6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        {t('account.allCustomers')}
-                        <button
-                          type="button"
-                          style={{ 
-                            background: 'none', 
-                            border: 'none', 
-                            cursor: 'pointer', 
-                            padding: 0, 
-                            display: 'flex', 
-                            alignItems: 'center',
-                            color: 'inherit'
-                          }}
-                          onClick={() => {
-                            setFormData({ ...formData, accessibleCustomerIds: [] });
-                          }}
-                        >
-                          <X size={12} />
-                        </button>
-                      </Badge>
-                    ) : (
-                      formData.accessibleCustomerIds.map(id => {
-                        const customer = customers.find(c => c.id === id);
-                        return customer ? (
-                          <Badge key={id} variant="secondary" style={{ fontSize: '12px', padding: '2px 6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            {customer.name}
-                            <button
-                              type="button"
-                              style={{ 
-                                background: 'none', 
-                                border: 'none', 
-                                cursor: 'pointer', 
-                                padding: 0, 
-                                display: 'flex', 
-                                alignItems: 'center',
-                                color: 'inherit'
+                          <ChevronDown size={16} />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent style={{ width: '300px', maxHeight: '200px', overflowY: 'auto', backgroundColor: 'white' }}>
+                        {customers.map(customer => {
+                          const isSelected = formData.customerFacilityMappings.some(m => m.customerId === customer.id);
+                          return (
+                            <DropdownMenuItem 
+                              key={customer.id}
+                              onSelect={(e) => {
+                                e.preventDefault();
+                                if (isSelected) {
+                                  // 取消选择：移除该customer的mapping
+                                  setFormData({ 
+                                    ...formData, 
+                                    customerFacilityMappings: formData.customerFacilityMappings.filter(m => m.customerId !== customer.id)
+                                  });
+                                } else {
+                                  // 添加选择：添加新的mapping
+                                  setFormData({ 
+                                    ...formData, 
+                                    customerFacilityMappings: [
+                                      ...formData.customerFacilityMappings,
+                                      { customerId: customer.id, facilityIds: [] }
+                                    ]
+                                  });
+                                }
                               }}
-                              onClick={() => {
-                                setFormData({ 
-                                  ...formData, 
-                                  accessibleCustomerIds: formData.accessibleCustomerIds.filter(cId => cId !== id) 
-                                });
+                              style={{
+                                color: isSelected ? 'var(--primary)' : 'inherit',
+                                fontWeight: isSelected ? 'var(--font-bold)' : 'normal'
                               }}
                             >
-                              <X size={12} />
-                            </button>
-                          </Badge>
-                        ) : null;
-                      })
-                    )}
+                              {customer.name}
+                            </DropdownMenuItem>
+                          );
+                        })}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
-                )}
-              </div>
-              
-              <div>
-                <Label>Facility</Label>
-                <DropdownMenu open={facilitySelectOpen} onOpenChange={setFacilitySelectOpen}>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" style={{ width: '100%', justifyContent: 'space-between' }}>
-                      Select Facilities
-                      <ChevronDown size={16} />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent style={{ width: '300px', maxHeight: '200px', overflowY: 'auto', backgroundColor: 'white' }}>
-                    <DropdownMenuItem 
-                      onSelect={(e) => {
-                        e.preventDefault();
-                        if (formData.accessibleFacilityIds.includes('ALL')) {
-                          setFormData({ ...formData, accessibleFacilityIds: [] });
-                        } else {
-                          setFormData({ ...formData, accessibleFacilityIds: ['ALL'] });
-                        }
-                      }}
-                      style={{
-                        color: formData.accessibleFacilityIds.includes('ALL') ? 'var(--primary)' : 'inherit',
-                        fontWeight: formData.accessibleFacilityIds.includes('ALL') ? 'var(--font-bold)' : 'normal'
-                      }}
-                    >
-                      AllFacility
-                    </DropdownMenuItem>
-                    {facilities.map(facility => (
-                      <DropdownMenuItem 
-                        key={facility.id}
-                        onSelect={(e) => {
-                          e.preventDefault();
-                          const currentIds = formData.accessibleFacilityIds.filter(id => id !== 'ALL');
-                          if (currentIds.includes(facility.id)) {
-                            // 如果已选中，则取消选择
-                            setFormData({ ...formData, accessibleFacilityIds: currentIds.filter(id => id !== facility.id) });
-                          } else {
-                            // 如果未选中，则添加选择
-                            setFormData({ ...formData, accessibleFacilityIds: [...currentIds, facility.id] });
-                          }
-                        }}
-                        style={{
-                          color: formData.accessibleFacilityIds.includes(facility.id) ? 'var(--primary)' : 'inherit',
-                          fontWeight: formData.accessibleFacilityIds.includes(facility.id) ? 'var(--font-bold)' : 'normal'
-                        }}
-                      >
-                        {facility.name}
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                {/* 显示选中的标签 */}
-                {formData.accessibleFacilityIds.length > 0 && (
-                  <div style={{ marginTop: '8px', display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                    {formData.accessibleFacilityIds.includes('ALL') ? (
-                      <Badge variant="success" style={{ fontSize: '12px', padding: '2px 6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        AllFacility
-                        <button
-                          type="button"
-                          style={{ 
-                            background: 'none', 
-                            border: 'none', 
-                            cursor: 'pointer', 
-                            padding: 0, 
-                            display: 'flex', 
-                            alignItems: 'center',
-                            color: 'inherit'
-                          }}
-                          onClick={() => {
-                            setFormData({ ...formData, accessibleFacilityIds: [] });
-                          }}
-                        >
-                          <X size={12} />
-                        </button>
-                      </Badge>
-                    ) : (
-                      formData.accessibleFacilityIds.map(id => {
-                        const facility = facilities.find(f => f.id === id);
-                        return facility ? (
-                          <Badge key={id} variant="success" style={{ fontSize: '12px', padding: '2px 6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            {facility.name}
-                            <button
-                              type="button"
-                              style={{ 
-                                background: 'none', 
-                                border: 'none', 
-                                cursor: 'pointer', 
-                                padding: 0, 
-                                display: 'flex', 
-                                alignItems: 'center',
-                                color: 'inherit'
-                              }}
-                              onClick={() => {
-                                setFormData({ 
-                                  ...formData, 
-                                  accessibleFacilityIds: formData.accessibleFacilityIds.filter(fId => fId !== id) 
-                                });
-                              }}
-                            >
-                              <X size={12} />
-                            </button>
-                          </Badge>
-                        ) : null;
-                      })
-                    )}
-                  </div>
-                )}
+
+                  {/* 为每个选中的Customer分配Facility */}
+                  {formData.customerFacilityMappings.length > 0 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+                      {formData.customerFacilityMappings.map((mapping, index) => {
+                        const customer = customers.find(c => c.id === mapping.customerId);
+                        if (!customer) return null;
+                        
+                        return (
+                          <div key={mapping.customerId} style={{ 
+                            padding: 'var(--space-sm)', 
+                            backgroundColor: 'var(--background-secondary)', 
+                            borderRadius: 'var(--radius)',
+                            border: '1px solid var(--border)'
+                          }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                              <Badge variant="info" style={{ fontSize: '13px' }}>{customer.name}</Badge>
+                              <button
+                                type="button"
+                                style={{ 
+                                  background: 'none', 
+                                  border: 'none', 
+                                  cursor: 'pointer', 
+                                  padding: '4px',
+                                  color: 'var(--text-secondary)',
+                                  display: 'flex',
+                                  alignItems: 'center'
+                                }}
+                                onClick={() => {
+                                  setFormData({ 
+                                    ...formData, 
+                                    customerFacilityMappings: formData.customerFacilityMappings.filter(m => m.customerId !== mapping.customerId)
+                                  });
+                                }}
+                                title="Remove customer"
+                              >
+                                <X size={16} />
+                              </button>
+                            </div>
+                            
+                            <Label style={{ fontSize: '13px', marginBottom: '6px', display: 'block', color: 'var(--text-secondary)' }}>
+                              Facilities for {customer.name}
+                            </Label>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="outline" size="sm" style={{ width: '100%', justifyContent: 'space-between', fontSize: '13px' }}>
+                                  {mapping.facilityIds.length === 0 
+                                    ? 'Select facilities'
+                                    : `${mapping.facilityIds.length} facility(ies) selected`
+                                  }
+                                  <ChevronDown size={14} />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent style={{ width: '280px', maxHeight: '180px', overflowY: 'auto', backgroundColor: 'white' }}>
+                                {facilities.map(facility => {
+                                  const isFacilitySelected = mapping.facilityIds.includes(facility.id);
+                                  return (
+                                    <DropdownMenuItem 
+                                      key={facility.id}
+                                      onSelect={(e) => {
+                                        e.preventDefault();
+                                        const newMappings = [...formData.customerFacilityMappings];
+                                        const currentMapping = newMappings[index];
+                                        
+                                        if (isFacilitySelected) {
+                                          // 取消选择facility
+                                          currentMapping.facilityIds = currentMapping.facilityIds.filter(id => id !== facility.id);
+                                        } else {
+                                          // 添加facility
+                                          currentMapping.facilityIds = [...currentMapping.facilityIds, facility.id];
+                                        }
+                                        
+                                        setFormData({ ...formData, customerFacilityMappings: newMappings });
+                                      }}
+                                      style={{
+                                        color: isFacilitySelected ? 'var(--primary)' : 'inherit',
+                                        fontWeight: isFacilitySelected ? 'var(--font-bold)' : 'normal',
+                                        fontSize: '13px'
+                                      }}
+                                    >
+                                      {facility.name}
+                                    </DropdownMenuItem>
+                                  );
+                                })}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                            
+                            {/* 显示选中的facility标签 */}
+                            {mapping.facilityIds.length > 0 && (
+                              <div style={{ marginTop: '8px', display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                                {mapping.facilityIds.map(facilityId => {
+                                  const facility = facilities.find(f => f.id === facilityId);
+                                  return facility ? (
+                                    <Badge key={facilityId} variant="success" style={{ fontSize: '11px', padding: '2px 6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                      {facility.name}
+                                      <button
+                                        type="button"
+                                        style={{ 
+                                          background: 'none', 
+                                          border: 'none', 
+                                          cursor: 'pointer', 
+                                          padding: 0, 
+                                          display: 'flex', 
+                                          alignItems: 'center',
+                                          color: 'inherit'
+                                        }}
+                                        onClick={() => {
+                                          const newMappings = [...formData.customerFacilityMappings];
+                                          newMappings[index].facilityIds = newMappings[index].facilityIds.filter(id => id !== facilityId);
+                                          setFormData({ ...formData, customerFacilityMappings: newMappings });
+                                        }}
+                                      >
+                                        <X size={10} />
+                                      </button>
+                                    </Badge>
+                                  ) : null;
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               </div>
               
               <div>
@@ -1376,8 +1456,15 @@ const AccountManagement: React.FC = () => {
           </DialogContent>
         </Dialog>
 
-        {/* Reset Password Confirmation Dialog */}
-        <Dialog open={resetPasswordDialogVisible} onOpenChange={setResetPasswordDialogVisible}>
+        {/* Reset Password Dialog */}
+        <Dialog open={resetPasswordDialogVisible} onOpenChange={(open) => {
+          setResetPasswordDialogVisible(open);
+          if (!open) {
+            setNewPassword('');
+            setConfirmNewPassword('');
+            setPasswordErrors({});
+          }
+        }}>
           <DialogContent className="ui-dialog-content--sm">
             <DialogHeader>
               <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
@@ -1385,15 +1472,53 @@ const AccountManagement: React.FC = () => {
                 <DialogTitle>{t('account.resetPassword')}</DialogTitle>
               </div>
               <DialogDescription>
-                {accountToResetPassword && t('account.resetPasswordConfirm', { name: accountToResetPassword.username })}
+                {accountToResetPassword && `Reset password for: ${accountToResetPassword.username}`}
               </DialogDescription>
             </DialogHeader>
+            
+            <div style={{ display: 'grid', gap: 'var(--space-md)', marginTop: 'var(--space-md)' }}>
+              <div>
+                <Label required>{t('account.newPassword')}</Label>
+                <Input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  error={!!passwordErrors.newPassword}
+                />
+                <div className="mt-1">
+                  <span className="text-xs text-muted">
+                    Password must contain: lowercase • uppercase • number • special char • 8+ chars
+                  </span>
+                </div>
+                {passwordErrors.newPassword && (
+                  <span className="text-sm" style={{ color: 'var(--danger)', marginTop: 4 }}>
+                    {passwordErrors.newPassword}
+                  </span>
+                )}
+              </div>
+              
+              <div>
+                <Label required>{t('account.confirmPassword')}</Label>
+                <Input
+                  type="password"
+                  value={confirmNewPassword}
+                  onChange={(e) => setConfirmNewPassword(e.target.value)}
+                  error={!!passwordErrors.confirmPassword}
+                />
+                {passwordErrors.confirmPassword && (
+                  <span className="text-sm" style={{ color: 'var(--danger)', marginTop: 4 }}>
+                    {passwordErrors.confirmPassword}
+                  </span>
+                )}
+              </div>
+            </div>
+            
             <DialogFooter>
               <Button variant="outline" onClick={() => setResetPasswordDialogVisible(false)}>
                 {t('common.cancel')}
               </Button>
               <Button onClick={handleResetPassword}>
-                {t('account.resetPassword')}
+                {t('common.confirm')}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -1418,7 +1543,6 @@ const AccountManagement: React.FC = () => {
               <SelectContent>
                 <SelectItem value="ACTIVE">{t('account.statusActive')}</SelectItem>
                 <SelectItem value="INACTIVE">{t('account.statusInactive')}</SelectItem>
-                <SelectItem value="SUSPENDED">{t('account.statusSuspended')}</SelectItem>
               </SelectContent>
             </Select>
             <DialogFooter>

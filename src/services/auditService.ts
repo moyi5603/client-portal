@@ -86,21 +86,15 @@ class AuditService {
    * 生成创建账号描述
    */
   private generateAccountCreatedDescription(username: string, accountData: Account): string {
-    const accountTypeMap: Record<string, string> = {
-      'MAIN': 'Main Account',
-      'CUSTOMER': 'Customer Sub-account',
-      'PARTNER': 'Partner Account'
-    };
-
     const statusMap: Record<string, string> = {
       'ACTIVE': 'Active',
-      'INACTIVE': 'Inactive',
-      'SUSPENDED': 'Suspended'
+      'INACTIVE': 'Inactive'
     };
 
-    const accountType = accountTypeMap[accountData.accountType] || accountData.accountType;
     const status = statusMap[accountData.status] || accountData.status;
     const phone = accountData.phone || 'None';
+    const firstName = accountData.firstName || 'None';
+    const lastName = accountData.lastName || 'None';
     
     // 处理Customer信息
     const customerIds = accountData.customerIds || accountData.accessibleCustomerIds || [];
@@ -109,7 +103,7 @@ class AuditService {
     // 处理角色信息
     const roles = accountData.roles && accountData.roles.length > 0 ? accountData.roles.join(', ') : 'None';
 
-    return `Account created: ${username}\nAccount Type: ${accountType}\nEmail: ${accountData.email}\nPhone: ${phone}\nStatus: ${status}\nAccessible Customers: ${customers}\nRoles: ${roles}`;
+    return `Account created: ${username}\nEmail: ${accountData.email}\nPhone: ${phone}\nFirst Name: ${firstName}\nLast Name: ${lastName}\nStatus: ${status}\nAccessible Customers: ${customers}\nRoles: ${roles}`;
   }
 
   /**
@@ -123,6 +117,8 @@ class AuditService {
     const fieldMap: Record<string, string> = {
       'email': 'Email',
       'phone': 'Phone',
+      'firstName': 'First Name',
+      'lastName': 'Last Name',
       'status': 'Status',
       'customerIds': 'Accessible Customers',
       'accessibleCustomerIds': 'Accessible Customers',
@@ -131,8 +127,7 @@ class AuditService {
 
     const statusMap: Record<string, string> = {
       'ACTIVE': 'Active',
-      'INACTIVE': 'Inactive',
-      'SUSPENDED': 'Suspended'
+      'INACTIVE': 'Inactive'
     };
 
     const changeDescriptions = changes.map(change => {

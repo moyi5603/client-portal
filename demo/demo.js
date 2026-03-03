@@ -24,36 +24,51 @@ const mockAPIs = {
 
 // 模拟的页面模板
 const pageTemplates = {
-    userList: {
-        title: '用户管理',
+    orderStatistics: {
+        title: '订单统计',
+        type: 'dashboard',
+        fields: ['订单总量', '待发货', '已发货', '已完成', '订单趋势'],
+        operations: ['刷新', '导出', '时间筛选'],
+        mockData: {
+            summary: [
+                { label: '订单总量', value: 1250, trend: '+12%' },
+                { label: '待发货', value: 85, trend: '+5%' },
+                { label: '已发货', value: 320, trend: '+8%' },
+                { label: '已完成', value: 845, trend: '+15%' }
+            ],
+            chart: [
+                { date: '01-01', orders: 45 },
+                { date: '01-02', orders: 52 },
+                { date: '01-03', orders: 48 },
+                { date: '01-04', orders: 61 },
+                { date: '01-05', orders: 55 },
+                { date: '01-06', orders: 67 },
+                { date: '01-07', orders: 58 }
+            ]
+        }
+    },
+    pendingShipment: {
+        title: '待发货订单列表',
         type: 'list',
-        fields: ['ID', '用户名', '邮箱', '角色', '状态', '创建时间'],
-        operations: ['新增', '编辑', '删除', '搜索'],
+        fields: ['订单号', '客户名称', '订单金额', '下单时间', '优先级', '操作'],
+        operations: ['批量发货', '搜索', '筛选', '导出'],
         mockData: [
-            { id: 1, username: 'admin', email: 'admin@example.com', role: '管理员', status: '激活', createdAt: '2024-01-01' },
-            { id: 2, username: 'user1', email: 'user1@example.com', role: '普通用户', status: '激活', createdAt: '2024-01-02' },
-            { id: 3, username: 'user2', email: 'user2@example.com', role: '普通用户', status: '禁用', createdAt: '2024-01-03' }
+            { id: 'ORD-2024-001', customer: '张三', amount: '¥1,250.00', orderTime: '2024-01-15 10:30', priority: '高', status: '待发货' },
+            { id: 'ORD-2024-002', customer: '李四', amount: '¥850.00', orderTime: '2024-01-15 11:20', priority: '中', status: '待发货' },
+            { id: 'ORD-2024-003', customer: '王五', amount: '¥2,100.00', orderTime: '2024-01-15 14:15', priority: '高', status: '待发货' },
+            { id: 'ORD-2024-004', customer: '赵六', amount: '¥680.00', orderTime: '2024-01-15 15:45', priority: '低', status: '待发货' }
         ]
     },
-    roleList: {
-        title: '角色管理',
+    inventoryReport: {
+        title: '库存报表',
         type: 'list',
-        fields: ['ID', '角色名称', '描述', '权限数量', '用户数量', '创建时间'],
-        operations: ['新增', '编辑', '删除', '权限配置'],
+        fields: ['产品名称', '产品编码', '库存数量', '预警值', '状态', '最后更新'],
+        operations: ['刷新', '导出', '设置预警'],
         mockData: [
-            { id: 1, name: '管理员', description: '系统管理员角色', permissions: 15, users: 2, createdAt: '2024-01-01' },
-            { id: 2, name: '普通用户', description: '普通用户角色', permissions: 5, users: 10, createdAt: '2024-01-01' }
-        ]
-    },
-    menuList: {
-        title: '菜单管理',
-        type: 'list',
-        fields: ['ID', '菜单名称', '路径', '图标', '父级菜单', '排序'],
-        operations: ['新增', '编辑', '删除', '排序'],
-        mockData: [
-            { id: 1, name: '系统管理', path: '/system', icon: '⚙️', parent: '-', order: 1 },
-            { id: 2, name: '用户管理', path: '/system/users', icon: '👥', parent: '系统管理', order: 1 },
-            { id: 3, name: '角色管理', path: '/system/roles', icon: '🔐', parent: '系统管理', order: 2 }
+            { id: 1, name: '产品A', code: 'PRD-001', stock: 150, alert: 50, status: '正常', updated: '2024-01-15 16:30' },
+            { id: 2, name: '产品B', code: 'PRD-002', stock: 35, alert: 50, status: '预警', updated: '2024-01-15 16:25' },
+            { id: 3, name: '产品C', code: 'PRD-003', stock: 280, alert: 100, status: '正常', updated: '2024-01-15 16:20' },
+            { id: 4, name: '产品D', code: 'PRD-004', stock: 15, alert: 30, status: '严重', updated: '2024-01-15 16:15' }
         ]
     }
 };
@@ -69,7 +84,7 @@ function initializeChat() {
         role: 'agent',
         content: '您好！我是页面设计助手。我可以帮您通过对话的方式创建个性化的页面。请告诉我您想要创建什么类型的页面？',
         timestamp: new Date(),
-        suggestions: ['创建用户管理页面', '创建角色管理页面', '创建菜单管理页面', '创建数据统计页面']
+        suggestions: ['创建订单统计页面', '创建待发货订单列表', '创建库存报表']
     };
     
     addMessage(welcomeMessage);
@@ -168,39 +183,42 @@ function generateResponse(message) {
         }
     }
     
-    // 用户管理页面
-    if (messageLower.includes('用户管理') || messageLower.includes('用户列表')) {
+    // 订单统计页面
+    if (messageLower.includes('订单统计') || messageLower.includes('订单报表')) {
+        currentPageConfig = pageTemplates.orderStatistics;
         return {
             role: 'agent',
-            content: '好的，我来帮您创建用户管理页面。\n\n根据您的需求，页面将包含：\n- 用户列表显示\n- 搜索和筛选功能\n- 新增用户功能\n- 编辑用户功能\n- 删除用户功能\n\n我发现系统有以下相关API：\n- GET /api/users - 获取用户列表\n- POST /api/users - 创建新用户\n- PUT /api/users/:id - 更新用户信息\n- DELETE /api/users/:id - 删除用户\n\n这样的设计符合您的需求吗？',
+            content: '好的，我来帮您创建订单统计页面。\n\n根据您的需求，页面将包含：\n- 订单总量统计\n- 订单状态分布图\n- 订单趋势分析\n- 按时间筛选功能\n\n我发现系统有以下相关API：\n- GET /api/orders/statistics - 获取订单统计数据\n- GET /api/orders/trend - 获取订单趋势\n- GET /api/orders/status-distribution - 获取状态分布\n\n这样的设计符合您的需求吗？',
             timestamp: new Date(),
             apis: mockAPIs.user,
-            pageConfig: pageTemplates.userList,
-            suggestions: ['确认生成页面', '添加批量操作', '修改字段显示', '添加导出功能']
+            pageConfig: pageTemplates.orderStatistics,
+            suggestions: ['确认生成页面', '添加图表展示', '添加导出功能', '添加时间对比']
         };
     }
     
-    // 角色管理页面
-    if (messageLower.includes('角色管理') || messageLower.includes('角色列表')) {
+    // 待发货订单列表
+    if (messageLower.includes('待发货') || messageLower.includes('发货订单')) {
+        currentPageConfig = pageTemplates.pendingShipment;
         return {
             role: 'agent',
-            content: '好的，我来帮您创建角色管理页面。\n\n页面将包含：\n- 角色列表显示\n- 角色权限配置\n- 新增角色功能\n- 编辑角色功能\n\n相关API接口：\n- GET /api/roles - 获取角色列表\n- POST /api/roles - 创建新角色\n- PUT /api/roles/:id - 更新角色信息\n\n是否需要添加权限分配功能？',
+            content: '好的，我来帮您创建待发货订单列表页面。\n\n页面将包含：\n- 待发货订单列表\n- 优先级排序\n- 发货进度跟踪\n- 批量发货操作\n\n相关API接口：\n- GET /api/orders/pending-shipment - 获取待发货订单\n- POST /api/orders/ship - 执行发货操作\n- PUT /api/orders/:id/priority - 更新优先级\n\n是否需要添加物流信息录入功能？',
             timestamp: new Date(),
             apis: mockAPIs.role,
-            pageConfig: pageTemplates.roleList,
-            suggestions: ['确认生成页面', '添加权限分配', '添加用户关联', '修改显示字段']
+            pageConfig: pageTemplates.pendingShipment,
+            suggestions: ['确认生成页面', '添加物流信息', '添加批量操作', '添加优先级筛选']
         };
     }
     
-    // 菜单管理页面
-    if (messageLower.includes('菜单管理') || messageLower.includes('菜单列表')) {
+    // 库存报表
+    if (messageLower.includes('库存报表') || messageLower.includes('库存统计')) {
+        currentPageConfig = pageTemplates.inventoryReport;
         return {
             role: 'agent',
-            content: '好的，我来帮您创建菜单管理页面。\n\n页面将包含：\n- 树形菜单结构显示\n- 菜单拖拽排序\n- 新增菜单功能\n- 编辑菜单功能\n\n相关API接口：\n- GET /api/menus - 获取菜单列表\n- POST /api/menus - 创建新菜单\n\n需要支持菜单图标选择吗？',
+            content: '好的，我来帮您创建库存报表页面。\n\n页面将包含：\n- 库存数量统计\n- 库存预警提示\n- 库存周转率分析\n- 按仓库/产品筛选\n\n相关API接口：\n- GET /api/inventory/summary - 获取库存汇总\n- GET /api/inventory/alerts - 获取库存预警\n- GET /api/inventory/turnover - 获取周转率\n\n需要支持库存预警阈值设置吗？',
             timestamp: new Date(),
             apis: mockAPIs.menu,
-            pageConfig: pageTemplates.menuList,
-            suggestions: ['确认生成页面', '添加图标选择', '添加权限控制', '支持拖拽排序']
+            pageConfig: pageTemplates.inventoryReport,
+            suggestions: ['确认生成页面', '添加预警设置', '添加图表展示', '添加导出功能']
         };
     }
     
@@ -219,9 +237,9 @@ function generateResponse(message) {
     // 默认响应
     return {
         role: 'agent',
-        content: '我理解您想要创建页面。请告诉我您具体需要什么功能？\n\n我可以帮您创建：\n- 数据管理页面（列表、表单）\n- 统计分析页面\n- 用户交互页面\n- 系统配置页面\n\n您也可以直接指定表头来创建表格，格式如：\n"表头：姓名，年龄，部门，职位"',
+        content: '我理解您想要创建页面。请告诉我您具体需要什么功能？\n\n我可以帮您创建：\n- 订单统计页面\n- 待发货订单列表\n- 库存报表\n- 数据分析页面\n\n您也可以直接指定表头来创建表格，格式如：\n"表头：订单号，客户名称，订单金额，订单状态"',
         timestamp: new Date(),
-        suggestions: ['创建用户管理页面', '创建角色管理页面', '表头：姓名，年龄，部门', '表头：产品名称，价格，库存']
+        suggestions: ['创建订单统计页面', '创建待发货订单列表', '表头：订单号，客户名称，订单金额', '表头：产品名称，库存数量，预警值']
     };
 }
 
@@ -446,47 +464,96 @@ function generatePagePreview(pageConfig) {
     previewPlaceholder.style.display = 'none';
     previewResult.style.display = 'block';
     
-    // 生成页面HTML
-    const pageHTML = `
-        <div class="generated-page">
-            <div class="page-header">
-                <h2 class="page-title">${pageConfig.title}</h2>
-                <div class="page-actions">
-                    ${pageConfig.operations.map(op => 
-                        `<button class="action-btn ${getButtonClass(op)}">${op}</button>`
-                    ).join('')}
-                    <button class="action-btn" onclick="openSaveModal()">💾 保存页面</button>
-                </div>
-            </div>
-            
-            <div class="search-bar">
-                <input type="text" class="search-input" placeholder="搜索数据...">
-                ${pageConfig.isCustom ? '<span style="margin-left: 10px; color: #666; font-size: 12px;">✨ 自定义表格</span>' : ''}
-            </div>
-            
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        ${pageConfig.fields.map(field => `<th>${field}</th>`).join('')}
-                        <th>操作</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${generateTableRows(pageConfig)}
-                </tbody>
-            </table>
-            
-            ${pageConfig.isCustom ? `
-                <div style="margin-top: 16px; padding: 12px; background: #f0f9ff; border-left: 4px solid #0ea5e9; border-radius: 4px;">
-                    <div style="font-size: 14px; color: #0369a1; font-weight: 500;">💡 提示</div>
-                    <div style="font-size: 12px; color: #075985; margin-top: 4px;">
-                        这是根据您指定的表头"${pageConfig.fields.join('，')}"自动生成的表格，包含了${pageConfig.mockData.length}条示例数据。
-                        您可以继续对话来调整字段、添加功能或修改样式。
+    let pageHTML = '';
+    
+    // 根据页面类型生成不同的预览
+    if (pageConfig.type === 'dashboard') {
+        // 仪表板类型（订单统计）
+        pageHTML = `
+            <div class="generated-page">
+                <div class="page-header">
+                    <h2 class="page-title">${pageConfig.title}</h2>
+                    <div class="page-actions">
+                        ${pageConfig.operations.map(op => 
+                            `<button class="action-btn ${getButtonClass(op)}">${op}</button>`
+                        ).join('')}
+                        <button class="action-btn" onclick="openSaveModal()">💾 保存页面</button>
                     </div>
                 </div>
-            ` : ''}
-        </div>
-    `;
+                
+                <!-- 统计卡片 -->
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px;">
+                    ${pageConfig.mockData.summary.map(item => `
+                        <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                            <div style="font-size: 14px; color: #666; margin-bottom: 8px;">${item.label}</div>
+                            <div style="font-size: 28px; font-weight: bold; color: #1890ff; margin-bottom: 4px;">${item.value}</div>
+                            <div style="font-size: 12px; color: ${item.trend.startsWith('+') ? '#52c41a' : '#f5222d'};">
+                                ${item.trend.startsWith('+') ? '↑' : '↓'} ${item.trend}
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+                
+                <!-- 趋势图 -->
+                <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                    <h3 style="margin: 0 0 16px 0; font-size: 16px;">订单趋势</h3>
+                    <div style="display: flex; align-items: flex-end; height: 200px; gap: 8px;">
+                        ${pageConfig.mockData.chart.map(item => {
+                            const height = (item.orders / 70) * 100;
+                            return `
+                                <div style="flex: 1; display: flex; flex-direction: column; align-items: center;">
+                                    <div style="font-size: 12px; color: #666; margin-bottom: 4px;">${item.orders}</div>
+                                    <div style="width: 100%; background: linear-gradient(to top, #1890ff, #40a9ff); border-radius: 4px 4px 0 0; height: ${height}%;"></div>
+                                    <div style="font-size: 11px; color: #999; margin-top: 4px;">${item.date}</div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            </div>
+        `;
+    } else {
+        // 列表类型（待发货订单、库存报表）
+        pageHTML = `
+            <div class="generated-page">
+                <div class="page-header">
+                    <h2 class="page-title">${pageConfig.title}</h2>
+                    <div class="page-actions">
+                        ${pageConfig.operations.map(op => 
+                            `<button class="action-btn ${getButtonClass(op)}">${op}</button>`
+                        ).join('')}
+                        <button class="action-btn" onclick="openSaveModal()">💾 保存页面</button>
+                    </div>
+                </div>
+                
+                <div class="search-bar">
+                    <input type="text" class="search-input" placeholder="搜索数据...">
+                    ${pageConfig.isCustom ? '<span style="margin-left: 10px; color: #666; font-size: 12px;">✨ 自定义表格</span>' : ''}
+                </div>
+                
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            ${pageConfig.fields.map(field => `<th>${field}</th>`).join('')}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${generateTableRows(pageConfig)}
+                    </tbody>
+                </table>
+                
+                ${pageConfig.isCustom ? `
+                    <div style="margin-top: 16px; padding: 12px; background: #f0f9ff; border-left: 4px solid #0ea5e9; border-radius: 4px;">
+                        <div style="font-size: 14px; color: #0369a1; font-weight: 500;">💡 提示</div>
+                        <div style="font-size: 12px; color: #075985; margin-top: 4px;">
+                            这是根据您指定的表头"${pageConfig.fields.join('，')}"自动生成的表格，包含了${pageConfig.mockData.length}条示例数据。
+                            您可以继续对话来调整字段、添加功能或修改样式。
+                        </div>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    }
     
     previewResult.innerHTML = pageHTML;
     
@@ -499,28 +566,37 @@ function generateTableRows(pageConfig) {
     return pageConfig.mockData.map(row => `
         <tr>
             ${pageConfig.fields.map(field => {
-                const value = row[field];
+                const value = row[field] || row[Object.keys(row).find(k => k.toLowerCase() === field.toLowerCase())];
+                
                 // 特殊字段的渲染处理
                 if (field === '状态' || field === 'status') {
-                    const statusClass = (value === '激活' || value === 'active') ? 'status-active' : 
-                                       (value === '禁用' || value === 'inactive') ? 'status-inactive' : 'status-pending';
+                    let statusClass = 'status-pending';
+                    if (value === '激活' || value === 'active' || value === '正常') statusClass = 'status-active';
+                    if (value === '禁用' || value === 'inactive' || value === '预警') statusClass = 'status-inactive';
+                    if (value === '严重') statusClass = 'status-danger';
                     return `<td><span class="status-tag ${statusClass}">${value}</span></td>`;
-                } else if (field.includes('时间') || field.includes('日期')) {
+                } else if (field === '优先级' || field === 'priority') {
+                    const priorityColor = value === '高' ? '#f5222d' : value === '中' ? '#faad14' : '#52c41a';
+                    return `<td><span style="color: ${priorityColor}; font-weight: 500;">● ${value}</span></td>`;
+                } else if (field.includes('时间') || field.includes('日期') || field.includes('Time') || field.includes('Date')) {
                     return `<td><span style="color: #666; font-size: 13px;">${value}</span></td>`;
-                } else if (field.includes('价格') || field.includes('金额')) {
+                } else if (field.includes('价格') || field.includes('金额') || field.includes('amount')) {
                     return `<td><span style="color: #f56565; font-weight: 500;">${value}</span></td>`;
-                } else if (field.includes('数量') || field.includes('库存')) {
-                    return `<td><span style="color: #38a169; font-weight: 500;">${value}</span></td>`;
-                } else if (field === 'ID' || field === 'id' || field.includes('编号')) {
+                } else if (field.includes('数量') || field.includes('库存') || field.includes('stock')) {
+                    const numValue = parseInt(value);
+                    const color = numValue < 50 ? '#f5222d' : '#38a169';
+                    return `<td><span style="color: ${color}; font-weight: 500;">${value}</span></td>`;
+                } else if (field === 'ID' || field === 'id' || field.includes('编号') || field.includes('订单号') || field.includes('产品编码')) {
                     return `<td><span style="font-family: monospace; color: #4a5568;">${value}</span></td>`;
+                } else if (field === '操作') {
+                    return `<td>
+                        <button class="action-btn" style="font-size: 12px; padding: 4px 8px;">查看</button>
+                        <button class="action-btn" style="font-size: 12px; padding: 4px 8px; margin-left: 4px;">编辑</button>
+                    </td>`;
                 } else {
                     return `<td>${value}</td>`;
                 }
             }).join('')}
-            <td>
-                <button class="action-btn" style="font-size: 12px; padding: 4px 8px;">编辑</button>
-                <button class="action-btn danger" style="font-size: 12px; padding: 4px 8px; margin-left: 4px;">删除</button>
-            </td>
         </tr>
     `).join('');
 }

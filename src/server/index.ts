@@ -10,7 +10,8 @@ import auditRoutes from '../routes/audit';
 import permissionMatrixRoutes from '../routes/permission-matrix';
 // import idpMappingRoutes from '../routes/idp-mapping';  // 暂时注释，有类型错误
 import pageDesignerRoutes from '../routes/pageDesigner';
-import userPagesRoutes from '../routes/userPages-simple';
+import userPagesRoutes from '../routes/userPages';
+import portalAdminRoutes from '../routes/portalAdmin';
 import { initTestData } from '../database/init';
 
 dotenv.config();
@@ -38,6 +39,7 @@ app.use('/api/permission-matrix', permissionMatrixRoutes);
 app.use('/api/page-designer', pageDesignerRoutes);
 app.use('/api/user-pages', userPagesRoutes);
 app.use('/api/personal-menu', userPagesRoutes);
+app.use('/api/portal-admin', portalAdminRoutes);
 
 // 健康检查
 app.get('/health', (req, res) => {

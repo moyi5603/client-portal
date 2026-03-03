@@ -1,8 +1,7 @@
 // 账号类型
 export enum AccountType {
   MAIN = 'MAIN',           // 主账号
-  CUSTOMER = 'CUSTOMER',   // 客户子账号
-  PARTNER = 'PARTNER'      // Partner账号
+  SUB = 'SUB'              // 子账号
 }
 
 // 用户状态
@@ -171,6 +170,8 @@ export interface Account {
   username: string;
   email: string;
   phone?: string;         // 手机号（可选）
+  firstName?: string;     // 名字（可选）
+  lastName?: string;      // 姓氏（可选）
   accountType: AccountType;
   status: AccountStatus;
   tenantId: string;

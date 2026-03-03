@@ -564,6 +564,13 @@ class UserPageService {
 
     return statistics;
   }
+
+  // 清空所有数据（仅用于测试/初始化）
+  clearAll(): void {
+    this.pages.clear();
+    this.versions.clear();
+    this.personalMenus.clear();
+  }
 }
 
 export default new UserPageService();

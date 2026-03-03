@@ -5,7 +5,7 @@
   overflow: hidden;
   border-radius: 8px;
   border: 1px solid var(--border-color, #e5e5e5);
-  background-color: var(--bg-color);
+  background-color: var(--bg-primary);
   padding: 4px;
   box-shadow: 0 10px 38px -10px rgba(22, 23, 24, 0.35),
     0 10px 20px -15px rgba(22, 23, 24, 0.2);
@@ -159,7 +159,7 @@
 .dark .dropdown-menu-content,
 .dark .dropdown-menu-sub-content {
   border-color: #424242;
-  background-color: var(--bg-color);
+  background-color: var(--bg-primary);
   box-shadow: 0 10px 38px -10px rgba(0, 0, 0, 0.5),
     0 10px 20px -15px rgba(0, 0, 0, 0.4);
 }

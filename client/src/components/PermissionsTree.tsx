@@ -6,38 +6,6 @@ import {
   Plus,
   Pencil,
   Trash2,
-  Download,
-  Upload,
-  Ban,
-  CreditCard,
-  Printer,
-  Lock,
-  Unlock,
-  FileText,
-  Paperclip,
-  FileDown,
-  RefreshCw,
-  Bell,
-  Star,
-  RotateCcw,
-  KeyRound,
-  Users,
-  Copy,
-  UserX,
-  ListChecks,
-  Layers,
-  ToggleLeft,
-  ToggleRight,
-  UserMinus,
-  Settings2,
-  Sliders,
-  UsersX,
-  X,
-  MinusCircle,
-  ListX,
-  Archive,
-  PackageMinus,
-  FolderMinus,
 } from 'lucide-react';
 import { Checkbox } from './ui/checkbox';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
@@ -49,28 +17,6 @@ const OPERATION_ICONS: Record<string, React.ReactNode> = {
   CREATE: <Plus size={16} />,
   EDIT: <Pencil size={16} />,
   DELETE: <Trash2 size={16} />,
-  EXPORT: <Download size={16} />,
-  IMPORT: <Upload size={16} />,
-  CANCEL: <Ban size={16} />,
-  PAY: <CreditCard size={16} />,
-  PRINT_PACKING_SLIP: <Printer size={16} />,
-  HOLD_INVENTORY: <Lock size={16} />,
-  RELEASE_INVENTORY: <Unlock size={16} />,
-  DOWNLOAD_PDF: <FileText size={16} />,
-  ADD_ATTACHMENT: <Paperclip size={16} />,
-  IMPORT_RMA: <Upload size={16} />,
-  DOWNLOAD_TEMPLATE: <FileDown size={16} />,
-  DOWNLOAD: <Download size={16} />,
-  BATCH_IMPORT: <Upload size={16} />,
-  INVOICE_DETAIL: <FileText size={16} />,
-  RELOAD: <RefreshCw size={16} />,
-  SET_ALERT: <Bell size={16} />,
-  SET_DEFAULT: <Star size={16} />,
-  RESET_FIELDS: <RotateCcw size={16} />,
-  RESET_PASSWORD: <KeyRound size={16} />,
-  BULK_STATUS_CHANGE: <Settings2 size={16} />,
-  BULK_DELETE: <ListX size={16} />,
-  COPY: <Copy size={16} />,
 };
 
 interface ModulePage {
@@ -295,7 +241,9 @@ const PermissionsTree: React.FC<PermissionsTreeProps> = ({
                         flex: 1,
                         justifyContent: 'flex-end',
                       }}>
-                        {page.operations.map(op => {
+                        {page.operations
+                          .filter(op => ['VIEW', 'CREATE', 'EDIT', 'DELETE'].includes(op))
+                          .map(op => {
                           const isChecked = selectedOps.includes(op);
                           const icon = OPERATION_ICONS[op];
 

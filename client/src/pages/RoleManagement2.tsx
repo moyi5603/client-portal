@@ -90,7 +90,7 @@ interface Permission {
   };
 }
 
-const RoleManagement: React.FC = () => {
+const RoleManagement2: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const params = useParams<{ id?: string }>();
@@ -154,67 +154,49 @@ const RoleManagement: React.FC = () => {
   ];
 
   const ALL_OPERATIONS = [
-    { value: 'VIEW', label: t('operation.VIEW') },
-    { value: 'CREATE', label: t('operation.CREATE') },
-    { value: 'EDIT', label: t('operation.EDIT') },
-    { value: 'DELETE', label: t('operation.DELETE') },
-    { value: 'EXPORT', label: t('operation.EXPORT') },
-    { value: 'CANCEL', label: t('operation.CANCEL') },
-    { value: 'PRINT_PACKING_SLIP', label: t('operation.PRINT_PACKING_SLIP') },
-    { value: 'HOLD_INVENTORY', label: t('operation.HOLD_INVENTORY') },
-    { value: 'RELEASE_INVENTORY', label: t('operation.RELEASE_INVENTORY') },
-    { value: 'DOWNLOAD_PDF', label: t('operation.DOWNLOAD_PDF') },
-    { value: 'ADD_ATTACHMENT', label: t('operation.ADD_ATTACHMENT') },
-    { value: 'IMPORT_RMA', label: t('operation.IMPORT_RMA') },
-    { value: 'DOWNLOAD_TEMPLATE', label: t('operation.DOWNLOAD_TEMPLATE') },
-    { value: 'DOWNLOAD', label: t('operation.DOWNLOAD') },
-    { value: 'BATCH_IMPORT', label: t('operation.BATCH_IMPORT') },
-    { value: 'PAY', label: t('operation.PAY') },
-    { value: 'INVOICE_DETAIL', label: t('operation.INVOICE_DETAIL') },
-    { value: 'RELOAD', label: t('operation.RELOAD') },
-    { value: 'SET_ALERT', label: t('operation.SET_ALERT') },
-    { value: 'SET_DEFAULT', label: t('operation.SET_DEFAULT') },
-    { value: 'IMPORT', label: t('operation.IMPORT') },
-    { value: 'RESET_FIELDS', label: t('operation.RESET_FIELDS') },
-    { value: 'RESET_PASSWORD', label: t('operation.RESET_PASSWORD') },
-    { value: 'BULK_STATUS_CHANGE', label: t('operation.BULK_STATUS_CHANGE') },
-    { value: 'BULK_DELETE', label: t('operation.BULK_DELETE') },
-    { value: 'COPY', label: t('operation.COPY') }
+    { value: 'VIEW', label: 'View' },
+    { value: 'CREATE', label: 'Create' },
+    { value: 'EDIT', label: 'Edit' },
+    { value: 'DELETE', label: 'Delete' }
   ];
 
   const MODULE_PAGES: Record<string, Array<{ code: string; name: string; operations: string[]; tooltip?: string }>> = {
-    DASHBOARDS: [{ code: 'kpi', name: 'KPI', operations: ['VIEW'] }],
+    DASHBOARDS: [
+      { code: 'kpi', name: 'KPI', operations: ['VIEW'] }
+    ],
     PURCHASE_MANAGEMENT: [
-      { code: 'projects', name: 'Projects', operations: ['VIEW', 'CREATE', 'EXPORT'] },
-      { code: 'purchase-request', name: 'Purchase Request', operations: ['VIEW', 'CREATE', 'EXPORT'] },
+      { code: 'projects', name: 'Projects', operations: ['VIEW', 'CREATE'] },
+      { code: 'purchase-request', name: 'Purchase Request', operations: ['VIEW', 'CREATE'] },
       { code: 'purchase-order', name: 'Purchase Order', operations: ['VIEW'] }
     ],
     SALES_ORDER: [
       { code: 'wholesale-orders', name: 'Wholesale Orders', operations: ['VIEW'] },
       { code: 'retail-orders', name: 'Retail Orders', operations: ['VIEW'] }
     ],
-    WORK_ORDER: [{ code: 'work-orders', name: 'Work Orders', operations: ['VIEW'] }],
+    WORK_ORDER: [
+      { code: 'work-orders', name: 'Work Orders', operations: ['VIEW'] }
+    ],
     INBOUND: [
-      { code: 'inquiry', name: 'Inquiry', operations: ['VIEW', 'EDIT', 'EXPORT', 'CANCEL', 'PRINT_PACKING_SLIP'] },
+      { code: 'inquiry', name: 'Inquiry', operations: ['VIEW', 'EDIT'] },
       { code: 'schedule-summary', name: 'Schedule Summary', operations: ['VIEW'] },
       { code: 'received-summary', name: 'Received Summary', operations: ['VIEW'] },
       { code: 'receipt-entry', name: 'Receipt Entry', operations: ['CREATE'] },
-      { code: 'put-away-report', name: 'Put Away Report', operations: ['VIEW', 'EXPORT'] },
+      { code: 'put-away-report', name: 'Put Away Report', operations: ['VIEW'] },
       { code: 'make-appointment', name: 'Make Appointment', operations: ['CREATE'] },
-      { code: 'appointment-list', name: 'Appointment List', operations: ['VIEW', 'CREATE', 'EDIT', 'CANCEL'] }
+      { code: 'appointment-list', name: 'Appointment List', operations: ['VIEW', 'CREATE', 'EDIT'] }
     ],
     INVENTORY: [
-      { code: 'sn-look-up', name: 'SN Look Up', operations: ['VIEW', 'EXPORT'] },
-      { code: 'inventory-activity', name: 'Inventory Activity', operations: ['VIEW', 'EXPORT'] },
-      { code: 'inventory-adjustment', name: 'Inventory Adjustment', operations: ['VIEW', 'EXPORT'] },
-      { code: 'inventory-status', name: 'Inventory Status', operations: ['VIEW', 'EXPORT', 'HOLD_INVENTORY', 'RELEASE_INVENTORY'] },
-      { code: 'item-master', name: 'Item Master', operations: ['VIEW', 'EXPORT'] },
-      { code: 'current-onhand', name: 'Current Onhand Inventory Aging Report', operations: ['VIEW', 'EXPORT'] },
-      { code: 'historical-inventory-aging', name: 'Historical Inventory Aging Report', operations: ['VIEW', 'EXPORT'] },
-      { code: 'warehouse-projects', name: 'Warehouse Projects', operations: ['VIEW', 'EXPORT'] }
+      { code: 'sn-look-up', name: 'SN Look Up', operations: ['VIEW'] },
+      { code: 'inventory-activity', name: 'Inventory Activity', operations: ['VIEW'] },
+      { code: 'inventory-adjustment', name: 'Inventory Adjustment', operations: ['VIEW'] },
+      { code: 'inventory-status', name: 'Inventory Status', operations: ['VIEW', 'EDIT'] },
+      { code: 'item-master', name: 'Item Master', operations: ['VIEW'] },
+      { code: 'current-onhand', name: 'Current Onhand Inventory Aging Report', operations: ['VIEW'] },
+      { code: 'historical-inventory-aging', name: 'Historical Inventory Aging Report', operations: ['VIEW'] },
+      { code: 'warehouse-projects', name: 'Warehouse Projects', operations: ['VIEW'] }
     ],
     OUTBOUND: [
-      { code: 'inquiry', name: 'Inquiry', operations: ['VIEW', 'EXPORT', 'DOWNLOAD_PDF', 'ADD_ATTACHMENT'] },
+      { code: 'inquiry', name: 'Inquiry', operations: ['VIEW'] },
       { code: 'schedule-summary', name: 'Schedule Summary', operations: ['VIEW'] },
       { code: 'shipped-summary', name: 'Shipped Summary', operations: ['VIEW'] },
       { code: 'order-carrier-update', name: 'Order Carrier Update', operations: ['VIEW'] },
@@ -223,19 +205,19 @@ const RoleManagement: React.FC = () => {
       { code: 'freight-quote', name: 'Freight Quote', operations: ['VIEW', 'CREATE'] }
     ],
     RETURNS: [
-      { code: 'rma', name: 'RMA', operations: ['VIEW', 'EXPORT', 'IMPORT_RMA', 'DOWNLOAD_TEMPLATE'] },
+      { code: 'rma', name: 'RMA', operations: ['VIEW', 'EDIT'] },
       { code: 'traveler-id', name: 'Traveler ID', operations: ['VIEW'] },
-      { code: 'return-report', name: 'Return Report', operations: ['VIEW', 'EXPORT'] },
-      { code: 'restock-report', name: 'Restock Report', operations: ['VIEW', 'EXPORT'] },
-      { code: 'adjustment-report', name: 'Adjustment Report', operations: ['VIEW', 'EXPORT'] },
-      { code: 'scrap-report', name: 'Scrap Report', operations: ['VIEW', 'EXPORT'] },
-      { code: 'service-claim-report', name: 'Service Claim Report', operations: ['VIEW', 'EXPORT'] }
+      { code: 'return-report', name: 'Return Report', operations: ['VIEW'] },
+      { code: 'restock-report', name: 'Restock Report', operations: ['VIEW'] },
+      { code: 'adjustment-report', name: 'Adjustment Report', operations: ['VIEW'] },
+      { code: 'scrap-report', name: 'Scrap Report', operations: ['VIEW'] },
+      { code: 'service-claim-report', name: 'Service Claim Report', operations: ['VIEW'] }
     ],
     YARD_MANAGEMENT: [
-      { code: 'equipment-history-report', name: 'Equipment History Report', operations: ['VIEW', 'EXPORT'] },
-      { code: 'equipment-report', name: 'Equipment Report', operations: ['VIEW', 'EXPORT'] },
-      { code: 'yard-status-report', name: 'Yard Status Report', operations: ['VIEW', 'EXPORT'] },
-      { code: 'yard-check-report', name: 'Yard Check Report', operations: ['VIEW', 'EXPORT'] }
+      { code: 'equipment-history-report', name: 'Equipment History Report', operations: ['VIEW'] },
+      { code: 'equipment-report', name: 'Equipment Report', operations: ['VIEW'] },
+      { code: 'yard-status-report', name: 'Yard Status Report', operations: ['VIEW'] },
+      { code: 'yard-check-report', name: 'Yard Check Report', operations: ['VIEW'] }
     ],
     SUPPLY_CHAIN: [
       { code: 'damaged-box-detection', name: 'Damaged Box Detection', operations: ['VIEW', 'EDIT'] },
@@ -243,30 +225,30 @@ const RoleManagement: React.FC = () => {
       { code: 'walmart-shipments', name: 'Walmart Shipments', operations: ['VIEW'] },
       { code: 'target-shipments', name: 'Target Shipments', operations: ['VIEW'] },
       { code: 'shipments', name: 'Shipments', operations: ['VIEW', 'CREATE'] },
-      { code: 'tracking', name: 'Tracking', operations: ['VIEW', 'EXPORT', 'DOWNLOAD', 'BATCH_IMPORT'] },
+      { code: 'tracking', name: 'Tracking', operations: ['VIEW', 'EDIT'] },
       { code: 'automated-order-entry', name: 'Automated Order Entry', operations: ['CREATE'] }
     ],
     FINANCE: [
-      { code: 'invoice', name: 'Invoice', operations: ['VIEW', 'EXPORT', 'PAY', 'INVOICE_DETAIL'] },
-      { code: 'card-and-balance', name: 'Card and Balance', operations: ['VIEW', 'CREATE', 'RELOAD', 'SET_ALERT'] },
-      { code: 'history', name: 'History', operations: ['VIEW', 'EXPORT'] },
+      { code: 'invoice', name: 'Invoice', operations: ['VIEW', 'EDIT'] },
+      { code: 'card-and-balance', name: 'Card and Balance', operations: ['VIEW', 'CREATE', 'EDIT'] },
+      { code: 'history', name: 'History', operations: ['VIEW'] },
       { code: 'cost-calculator', name: 'Cost Calculator', operations: ['VIEW'] },
-      { code: 'claim', name: 'Claim', operations: ['VIEW', 'CREATE', 'EDIT', 'EXPORT'] }
+      { code: 'claim', name: 'Claim', operations: ['VIEW', 'CREATE', 'EDIT'] }
     ],
     SYSTEM_MANAGEMENT: [
-      { code: 'address-book', name: 'Address Book', operations: ['VIEW', 'CREATE', 'EDIT', 'DELETE', 'EXPORT', 'SET_DEFAULT', 'IMPORT'] },
+      { code: 'address-book', name: 'Address Book', operations: ['VIEW', 'CREATE', 'EDIT', 'DELETE'] },
       { code: 'settings', name: 'Settings', operations: ['VIEW', 'CREATE', 'EDIT'] }
     ],
     PERMISSION_MANAGEMENT: [
       { 
         code: 'account-management', 
         name: 'Account Management', 
-        operations: ['VIEW', 'CREATE', 'EDIT', 'DELETE', 'EXPORT', 'RESET_PASSWORD', 'BULK_STATUS_CHANGE', 'BULK_DELETE'] 
+        operations: ['VIEW', 'CREATE', 'EDIT', 'DELETE'] 
       },
       { 
         code: 'role-management', 
         name: 'Role Management', 
-        operations: ['VIEW', 'CREATE', 'EDIT', 'DELETE', 'COPY'] 
+        operations: ['VIEW', 'CREATE', 'EDIT', 'DELETE'] 
       },
       { 
         code: 'permission-view', 
@@ -276,7 +258,7 @@ const RoleManagement: React.FC = () => {
       { 
         code: 'audit-log', 
         name: 'Audit Log', 
-        operations: ['VIEW', 'EXPORT'] 
+        operations: ['VIEW'] 
       }
     ]
   };
@@ -1029,4 +1011,4 @@ const RoleManagement: React.FC = () => {
   );
 };
 
-export default RoleManagement;
+export default RoleManagement2;

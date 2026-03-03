@@ -2,9 +2,10 @@ import { db } from './models';
 import { Account, AccountType, AccountStatus, Role, RoleStatus, Module, Operation, ActionType, TargetType } from '../types';
 import { generateAccountId, generateId } from '../utils/uuid';
 import { auditService } from '../services/auditService';
+import userPageService from '../services/userPageService';
 
 // 初始化测试数据
-export const initTestData = () => {
+export const initTestData = async () => {
   // 创建主账号
   const mainAccount: Account = {
     id: 'ACC-000', // 主账号使用特殊ID
@@ -533,12 +534,17 @@ export const initTestData = () => {
     username: 'john.smith',
     email: 'john.smith@example.com',
     phone: '13800138001',
-    accountType: AccountType.CUSTOMER,
+    accountType: AccountType.SUB, // 子账号
     status: AccountStatus.ACTIVE,
     tenantId: 'admin',
     roles: ['ROLE-001', 'ROLE-002'], // 分配系统管理员和客户管理员角色
-    customerIds: ['customer-1'],
-    facilityIds: ['facility-1', 'facility-2'],
+    customerIds: ['customer-1', 'customer-2', 'customer-3'], // 3个customer
+    facilityIds: ['facility-1', 'facility-2', 'facility-3', 'facility-4', 'facility-5'],
+    customerFacilityMappings: [
+      { customerId: 'customer-1', facilityIds: ['facility-1', 'facility-2'] },
+      { customerId: 'customer-2', facilityIds: ['facility-3', 'facility-4'] },
+      { customerId: 'customer-3', facilityIds: ['facility-5'] }
+    ],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   };
@@ -549,7 +555,7 @@ export const initTestData = () => {
     username: 'jane.doe',
     email: 'jane.doe@example.com',
     phone: '13800138002',
-    accountType: AccountType.CUSTOMER,
+    accountType: AccountType.SUB, // 子账号
     status: AccountStatus.ACTIVE,
     tenantId: 'admin',
     roles: ['ROLE-003'], // 分配客户服务代表角色
@@ -565,7 +571,7 @@ export const initTestData = () => {
     username: 'mike.johnson',
     email: 'mike.johnson@example.com',
     phone: '13800138003',
-    accountType: AccountType.CUSTOMER,
+    accountType: AccountType.SUB, // 子账号
     status: AccountStatus.ACTIVE,
     tenantId: 'admin',
     roles: ['ROLE-002'], // 分配客户管理员角色
@@ -581,7 +587,7 @@ export const initTestData = () => {
     username: 'sarah.wilson',
     email: 'sarah.wilson@example.com',
     phone: '13800138004',
-    accountType: AccountType.CUSTOMER,
+    accountType: AccountType.SUB, // 子账号
     status: AccountStatus.ACTIVE,
     tenantId: 'admin',
     roles: ['ROLE-003'], // 分配客户服务代表角色
@@ -597,7 +603,7 @@ export const initTestData = () => {
     username: 'david.brown',
     email: 'david.brown@example.com',
     phone: '13800138005',
-    accountType: AccountType.CUSTOMER,
+    accountType: AccountType.SUB, // 子账号
     status: AccountStatus.ACTIVE,
     tenantId: 'admin',
     roles: ['ROLE-001'], // 分配系统管理员角色
@@ -613,7 +619,7 @@ export const initTestData = () => {
     username: 'lisa.garcia',
     email: 'lisa.garcia@example.com',
     phone: '13800138006',
-    accountType: AccountType.CUSTOMER,
+    accountType: AccountType.SUB, // 子账号
     status: AccountStatus.ACTIVE,
     tenantId: 'admin',
     roles: ['ROLE-002', 'ROLE-003'], // 分配客户管理员和客户服务代表角色
@@ -629,7 +635,7 @@ export const initTestData = () => {
     username: 'robert.davis',
     email: 'robert.davis@example.com',
     phone: '13800138007',
-    accountType: AccountType.CUSTOMER,
+    accountType: AccountType.SUB, // 子账号
     status: AccountStatus.ACTIVE,
     tenantId: 'admin',
     roles: ['ROLE-003'], // 分配客户服务代表角色
@@ -654,7 +660,7 @@ export const initTestData = () => {
   const mockActor2: any = {
     accountId: user1.id,
     username: user1.username,
-    accountType: AccountType.CUSTOMER,
+    accountType: AccountType.SUB, // 子账号
     tenantId: user1.tenantId
   };
 
@@ -828,6 +834,257 @@ export const initTestData = () => {
   console.log('Test data initialization completed');
   console.log('Main account: admin / admin123 (ONLY Super Administrator role)');
   console.log('User account 1: john.smith / user123 (roles: System Administrator, Customer Administrator)');
+
+  // 创建示例用户页面（初始化测试数据）
+  console.log('\nInitializing user pages...');
+  
+  // 清空现有数据（避免重复初始化）
+  userPageService.clearAll();
+  
+  // 注册数据源权限（临时为demo添加）
+  const dataPermissionService = (await import('../services/dataPermissionService')).default;
+  dataPermissionService.addAccessRule('order_statistics', {
+    userId: '*',
+    dataSource: 'order_statistics',
+    operations: ['VIEW'],
+    conditions: {}
+  });
+  dataPermissionService.addAccessRule('products', {
+    userId: '*',
+    dataSource: 'products',
+    operations: ['VIEW'],
+    conditions: {}
+  });
+  dataPermissionService.addAccessRule('orders', {
+    userId: '*',
+    dataSource: 'orders',
+    operations: ['VIEW'],
+    conditions: {}
+  });
+  dataPermissionService.addAccessRule('inventory', {
+    userId: '*',
+    dataSource: 'inventory',
+    operations: ['VIEW'],
+    conditions: {}
+  });
+  dataPermissionService.addAccessRule('customers', {
+    userId: '*',
+    dataSource: 'customers',
+    operations: ['VIEW'],
+    conditions: {}
+  });
+  
+  try {
+    // 为admin用户创建订单统计页面（使用主账号ID）
+    const orderStatsPage = await userPageService.createUserPage(
+    mainAccount.id,  // 使用主账号ID而不是'admin'
+    {
+      name: '订单统计看板',
+      description: '实时订单数据统计和趋势分析',
+      pageType: 'dashboard',
+      config: {
+        entity: 'orders',
+        operations: ['VIEW', 'EXPORT', 'REFRESH'],
+        fields: ['订单总量', '待发货', '已发货', '已完成', '订单趋势'],
+        layout: 'dashboard',
+        theme: 'default',
+        dataSources: ['orders', 'order_statistics'],
+        calculations: [
+          {
+            id: 'calc-1',
+            name: '订单总量',
+            type: 'count',
+            field: 'orderId',
+            groupBy: []
+          },
+          {
+            id: 'calc-2',
+            name: '待发货订单',
+            type: 'count',
+            field: 'orderId',
+            groupBy: [],
+            filter: { status: 'pending_shipment' }
+          }
+        ],
+        filters: [
+          {
+            field: 'dateRange',
+            type: 'date',
+            defaultValue: 'last7days'
+          }
+        ]
+      },
+      componentCode: '// 订单统计看板组件\nexport default function OrderStatistics() { return <div>订单统计看板</div>; }',
+      styleCode: '.order-stats { padding: 20px; }',
+      configCode: '{ "refreshInterval": 30000 }',
+      apiCalls: ['/api/orders/statistics', '/api/orders/trend'],
+      dependencies: ['react', 'antd']
+    }
+  );
+  
+  // 发布订单统计页面（发布时会自动添加到个人菜单）
+  await userPageService.publishPage(orderStatsPage.id, mainAccount.id);
+  
+  console.log(`✅ Created page: ${orderStatsPage.name} (${orderStatsPage.id})`);
+
+  // 为admin用户创建待发货订单列表
+  const pendingShipmentPage = await userPageService.createUserPage(
+    mainAccount.id,  // 使用主账号ID
+    {
+      name: '待发货订单列表',
+      description: '待发货订单管理和批量操作',
+      pageType: 'list',
+      config: {
+        entity: 'orders',
+        operations: ['VIEW', 'EXPORT', 'BATCH_SHIP'],
+        fields: ['订单号', '客户名称', '订单金额', '下单时间', '优先级', '操作'],
+        layout: 'table',
+        theme: 'default',
+        dataSources: ['orders'],
+        filters: [
+          {
+            field: 'priority',
+            type: 'select',
+            options: ['高', '中', '低']
+          },
+          {
+            field: 'orderDate',
+            type: 'date'
+          }
+        ]
+      },
+      componentCode: '// 待发货订单列表组件\nexport default function PendingShipment() { return <div>待发货订单列表</div>; }',
+      styleCode: '.pending-shipment { padding: 20px; }',
+      configCode: '{ "pageSize": 20 }',
+      apiCalls: ['/api/orders/pending-shipment'],
+      dependencies: ['react', 'antd']
+    }
+  );
+  
+  // 发布待发货订单页面（发布时会自动添加到个人菜单）
+  await userPageService.publishPage(pendingShipmentPage.id, mainAccount.id);
+  
+  console.log(`✅ Created page: ${pendingShipmentPage.name} (${pendingShipmentPage.id})`);
+
+  // 为admin用户创建库存报表
+  const inventoryReportPage = await userPageService.createUserPage(
+    mainAccount.id,  // 使用主账号ID
+    {
+      name: '库存报表',
+      description: '库存数量统计和预警监控',
+      pageType: 'list',
+      config: {
+        entity: 'inventory',
+        operations: ['VIEW', 'EXPORT', 'SET_ALERT'],
+        fields: ['产品名称', '产品编码', '库存数量', '预警值', '状态', '最后更新'],
+        layout: 'table',
+        theme: 'default',
+        dataSources: ['inventory', 'products'],
+        calculations: [
+          {
+            id: 'calc-3',
+            name: '库存预警',
+            type: 'comparison',
+            field: 'stock',
+            filter: { stock: { $lt: 'alertThreshold' } }
+          }
+        ],
+        filters: [
+          {
+            field: 'status',
+            type: 'select',
+            options: ['正常', '预警', '严重']
+          },
+          {
+            field: 'warehouse',
+            type: 'select'
+          }
+        ]
+      },
+      componentCode: '// 库存报表组件\nexport default function InventoryReport() { return <div>库存报表</div>; }',
+      styleCode: '.inventory-report { padding: 20px; }',
+      configCode: '{ "alertThreshold": 50 }',
+      apiCalls: ['/api/inventory/summary', '/api/inventory/alerts'],
+      dependencies: ['react', 'antd']
+    }
+  );
+  
+  // 发布库存报表页面（发布时会自动添加到个人菜单）
+  await userPageService.publishPage(inventoryReportPage.id, mainAccount.id);
+  
+  console.log(`✅ Created page: ${inventoryReportPage.name} (${inventoryReportPage.id})`);
+
+  // 为admin用户创建客户分析报表
+  const customerAnalysisPage = await userPageService.createUserPage(
+    mainAccount.id,  // 使用主账号ID
+    {
+      name: '客户分析报表',
+      description: '客户订单分析和消费趋势统计',
+      pageType: 'dashboard',
+      config: {
+        entity: 'customers',
+        operations: ['VIEW', 'EXPORT', 'ANALYZE'],
+        fields: ['客户名称', '订单总数', '消费金额', '最近订单', '客户等级', '趋势'],
+        layout: 'dashboard',
+        theme: 'default',
+        dataSources: ['customers', 'orders', 'order_statistics'],
+        calculations: [
+          {
+            id: 'calc-4',
+            name: '客户总数',
+            type: 'count',
+            field: 'customerId',
+            groupBy: []
+          },
+          {
+            id: 'calc-5',
+            name: '活跃客户',
+            type: 'count',
+            field: 'customerId',
+            groupBy: [],
+            filter: { lastOrderDate: { $gte: 'last30days' } }
+          },
+          {
+            id: 'calc-6',
+            name: '总消费金额',
+            type: 'sum',
+            field: 'totalAmount',
+            groupBy: []
+          }
+        ],
+        filters: [
+          {
+            field: 'customerLevel',
+            type: 'select',
+            options: ['VIP', '普通', '新客户']
+          },
+          {
+            field: 'dateRange',
+            type: 'date',
+            defaultValue: 'last30days'
+          }
+        ]
+      },
+      componentCode: '// 客户分析报表组件\nexport default function CustomerAnalysis() { return <div>客户分析报表</div>; }',
+      styleCode: '.customer-analysis { padding: 20px; background: #f5f5f5; }',
+      configCode: '{ "refreshInterval": 60000, "chartType": "bar" }',
+      apiCalls: ['/api/customers/analysis', '/api/customers/trend'],
+      dependencies: ['react', 'antd', 'recharts']
+    }
+  );
+  
+  // 发布客户分析报表页面（发布时会自动添加到个人菜单）
+  await userPageService.publishPage(customerAnalysisPage.id, mainAccount.id);
+  
+  console.log(`✅ Created page: ${customerAnalysisPage.name} (${customerAnalysisPage.id})`);
+  
+    console.log('\n✅ User pages initialization completed');
+    console.log(`Total pages created: 4`);
+    console.log(`Pages added to personal menu: 4`);
+  } catch (error: any) {
+    console.log(`⚠️  User pages initialization skipped: ${error.message}`);
+  }
+  
   console.log('User account 2: jane.doe / user123 (roles: Customer Service Representative)');
   console.log('User account 3: mike.johnson / user123 (roles: Customer Administrator)');
   console.log('User account 4: sarah.wilson / user123 (roles: Customer Service Representative)');

@@ -435,6 +435,12 @@ body {
     color: #856404;
 }
 
+.status-danger {
+    background: #f8d7da;
+    color: #721c24;
+    font-weight: 600;
+}
+
 .config-display {
     background: #f8f9fa;
     border-radius: 8px;

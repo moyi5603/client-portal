@@ -4,6 +4,19 @@ import userPageService from '../services/userPageService';
 
 const router = express.Router();
 
+// 使用authenticate作为authenticateToken的别名
+const authenticateToken = authenticate;
+
+// 简单的审计日志中间件（占位符）
+const auditLog = (req: any, res: any, next: any) => {
+  next();
+};
+
+// 辅助函数：从请求中获取用户ID
+const getUserId = (req: any): string | null => {
+  return req.user?.accountId || req.user?.userId || req.user?.id || null;
+};
+
 /**
  * @endpoint POST /api/user-pages
  * @method POST
@@ -64,7 +77,14 @@ router.post('/', authenticate, async (req, res) => {
  */
 router.get('/', authenticate, async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = getUserId(req);
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: '用户未认证'
+      });
+    }
+    
     const { page, pageSize, status, pageType } = req.query;
 
     const options: any = {};
