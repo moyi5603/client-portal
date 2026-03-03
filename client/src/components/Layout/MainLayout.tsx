@@ -32,6 +32,8 @@ interface NavItem {
 const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [expandedMenus, setExpandedMenus] = useState<string[]>(['account-management']);
+  const [clickCounts, setClickCounts] = useState<Record<string, number>>({});
+  const [unlockedMenus, setUnlockedMenus] = useState<Set<string>>(new Set());
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuth();
@@ -166,10 +168,40 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
   const isDark = theme === 'dark';
 
+  // 需要后门解锁的菜单项
+  const lockedMenuKeys = ['/roles', '/permissions'];
+
+  // 处理锁定菜单的点击
+  const handleLockedMenuClick = (menuKey: string) => {
+    if (unlockedMenus.has(menuKey)) {
+      // 已解锁，正常导航
+      return true;
+    }
+
+    // 增加点击计数
+    const currentCount = clickCounts[menuKey] || 0;
+    const newCount = currentCount + 1;
+    
+    setClickCounts({
+      ...clickCounts,
+      [menuKey]: newCount
+    });
+
+    // 检查是否达到5次
+    if (newCount >= 5) {
+      setUnlockedMenus(new Set([...unlockedMenus, menuKey]));
+      return true;
+    }
+
+    return false;
+  };
+
   const renderNavItem = (item: NavItem, depth = 0) => {
     const isExpanded = expandedMenus.includes(item.key);
     const isActive = item.path ? location.pathname === item.path : false;
     const hasChildren = item.children && item.children.length > 0;
+    const isLocked = item.path && lockedMenuKeys.includes(item.path) && !unlockedMenus.has(item.path);
+    const clickCount = item.path ? (clickCounts[item.path] || 0) : 0;
 
     if (hasChildren) {
       return (
@@ -204,9 +236,21 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         <Tooltip>
           <TooltipTrigger asChild>
             <button
-              onClick={() => item.path && navigate(item.path)}
-              className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors
+              onClick={() => {
+                if (!item.path) return;
+                
+                if (isLocked) {
+                  const canNavigate = handleLockedMenuClick(item.path);
+                  if (canNavigate) {
+                    navigate(item.path);
+                  }
+                } else {
+                  navigate(item.path);
+                }
+              }}
+              className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors relative
                 ${collapsed ? 'justify-center' : ''}
+                ${isLocked ? 'opacity-50 cursor-not-allowed' : ''}
                 ${isActive 
                   ? 'bg-white/20 text-white font-medium' 
                   : 'text-white/70 hover:bg-white/10 hover:text-white'}`}
