@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { Search, Users, Building2, Pencil, Trash2, MoreHorizontal, ChevronDown, ChevronRight, X, AlertCircle, UserPlus } from 'lucide-react';
+import { Search, Users, Building2, Pencil, Trash2, MoreHorizontal, ChevronDown, X, AlertCircle, UserPlus } from 'lucide-react';
 import api from '../utils/api';
 import { useLocale } from '../contexts/LocaleContext';
 import {
@@ -75,7 +75,7 @@ const PortalAdminAccountManagement: React.FC = () => {
   const [pageSize, setPageSize] = useState(10);
   const [showPermissionsDialog, setShowPermissionsDialog] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
-  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
   const [editForm, setEditForm] = useState({
@@ -107,6 +107,8 @@ const PortalAdminAccountManagement: React.FC = () => {
     status: 'ACTIVE'
   });
   const [subAccountFormErrors, setSubAccountFormErrors] = useState<Record<string, string>>({});
+  const [showSubAccountsDialog, setShowSubAccountsDialog] = useState(false);
+  const [selectedMainAccount, setSelectedMainAccount] = useState<Account | null>(null);
 
   useEffect(() => {
     loadData();
@@ -120,7 +122,26 @@ const PortalAdminAccountManagement: React.FC = () => {
       setLoading(true);
       // Load all accounts across tenants
       const accountsRes = await api.get('/portal-admin/accounts');
-      setAccounts(accountsRes.data);
+      const accountsData = accountsRes.data;
+      
+      // 补全映射关系：如果账号没有customerFacilityMappings，则根据customerIds和facilityIds生成
+      const processedAccounts = accountsData.map((account: Account) => {
+        if (!account.customerFacilityMappings || account.customerFacilityMappings.length === 0) {
+          const customerIds = account.customerIds || [];
+          const facilityIds = account.facilityIds || [];
+          
+          if (customerIds.length > 0) {
+            // 为每个customer创建映射，所有customer共享相同的facilities
+            account.customerFacilityMappings = customerIds.map(customerId => ({
+              customerId,
+              facilityIds: facilityIds
+            }));
+          }
+        }
+        return account;
+      });
+      
+      setAccounts(processedAccounts);
 
       // Load tenants list
       const tenantsRes = await api.get('/portal-admin/tenants');
@@ -453,25 +474,28 @@ const PortalAdminAccountManagement: React.FC = () => {
   };
 
   const getPermissionsCount = (account: Account) => {
+    // 计数规则：一条customer+一个Facility数据计一次数
+    if (account.customerFacilityMappings && account.customerFacilityMappings.length > 0) {
+      // 如果有映射关系，计算每个customer下的facility数量总和
+      return account.customerFacilityMappings.reduce((total, mapping) => {
+        return total + (mapping.facilityIds?.length || 0);
+      }, 0);
+    }
+    
+    // 兼容旧数据：如果没有映射关系，使用customerIds和facilityIds
     const customerCount = account.customerIds?.length || 0;
     const facilityCount = account.facilityIds?.length || 0;
+    
+    // 如果两者都有，返回customer数量 * facility数量（笛卡尔积）
+    if (customerCount > 0 && facilityCount > 0) {
+      return customerCount * facilityCount;
+    }
+    
+    // 如果只有其中一个，返回该数量
     return customerCount + facilityCount;
   };
 
-  const toggleRowExpansion = (accountId: string, tenantId: string) => {
-    const rowKey = `${accountId}-${tenantId}`;
-    const newExpanded = new Set(expandedRows);
-    if (newExpanded.has(rowKey)) {
-      newExpanded.delete(rowKey);
-    } else {
-      newExpanded.add(rowKey);
-    }
-    setExpandedRows(newExpanded);
-  };
 
-  const isRowExpanded = (accountId: string, tenantId: string) => {
-    return expandedRows.has(`${accountId}-${tenantId}`);
-  };
 
   return (
     <div className="space-y-6">
@@ -577,28 +601,13 @@ const PortalAdminAccountManagement: React.FC = () => {
                       const permissionsCount = getPermissionsCount(account);
                       const displayTenant = account.displayTenantId || account.tenantId;
                       const rowKey = `${account.id}-${displayTenant}`;
-                      const isExpanded = isRowExpanded(account.id, displayTenant);
                       const hasSubAccounts = account.subAccounts && account.subAccounts.length > 0;
                       
                       return (
-                        <React.Fragment key={rowKey}>
-                          {/* Main Account Row */}
-                          <TableRow>
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                <button
-                                  onClick={() => toggleRowExpansion(account.id, displayTenant)}
-                                  className="p-1 hover:bg-muted rounded"
-                                >
-                                  {isExpanded ? (
-                                    <ChevronDown className="w-4 h-4" />
-                                  ) : (
-                                    <ChevronRight className="w-4 h-4" />
-                                  )}
-                                </button>
-                                <span className="font-medium">{getTenantName(displayTenant)}</span>
-                              </div>
-                            </TableCell>
+                        <TableRow key={rowKey}>
+                          <TableCell>
+                            <span className="font-medium">{getTenantName(displayTenant)}</span>
+                          </TableCell>
                             <TableCell className="font-medium">{account.username}</TableCell>
                             <TableCell>{account.email}</TableCell>
                             <TableCell>{getStatusBadge(account.status)}</TableCell>
@@ -621,20 +630,30 @@ const PortalAdminAccountManagement: React.FC = () => {
                               )}
                             </TableCell>
                             <TableCell>
-                              <Badge variant="secondary">
-                                {hasSubAccounts ? account.subAccounts!.length : 0}
-                              </Badge>
+                              {hasSubAccounts ? (
+                                <button
+                                  onClick={() => {
+                                    setSelectedMainAccount(account);
+                                    setShowSubAccountsDialog(true);
+                                  }}
+                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900 transition-colors cursor-pointer border border-blue-200 dark:border-blue-800"
+                                >
+                                  <Users className="w-3.5 h-3.5" />
+                                  <span className="font-medium text-sm">{account.subAccounts!.length}</span>
+                                </button>
+                              ) : (
+                                <span className="text-muted-foreground text-sm">0</span>
+                              )}
                             </TableCell>
                             <TableCell>
                               {permissionsCount > 0 ? (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
+                                <button
                                   onClick={() => handleViewPermissions(account)}
-                                  className="h-7 px-2"
+                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-900 transition-colors cursor-pointer border border-green-200 dark:border-green-800"
                                 >
-                                  <Badge variant="secondary">{permissionsCount}</Badge>
-                                </Button>
+                                  <Building2 className="w-3.5 h-3.5" />
+                                  <span className="font-medium text-sm">{permissionsCount}</span>
+                                </button>
                               ) : (
                                 <span className="text-muted-foreground">-</span>
                               )}
@@ -680,64 +699,6 @@ const PortalAdminAccountManagement: React.FC = () => {
                               </DropdownMenu>
                             </TableCell>
                           </TableRow>
-
-                          {/* Sub-accounts Rows */}
-                          {isExpanded && hasSubAccounts && account.subAccounts!.map((subAccount, subIdx) => {
-                            return (
-                              <TableRow key={`${rowKey}-sub-${subIdx}`} className="bg-muted/30">
-                                <TableCell className="pl-12">
-                                  <span className="text-sm text-muted-foreground">└─</span>
-                                </TableCell>
-                                <TableCell className="font-medium">{subAccount.username}</TableCell>
-                                <TableCell>{subAccount.email}</TableCell>
-                                <TableCell>{getStatusBadge(subAccount.status)}</TableCell>
-                                <TableCell>
-                                  <span className="text-muted-foreground">-</span>
-                                </TableCell>
-                                <TableCell>
-                                  <span className="text-muted-foreground">-</span>
-                                </TableCell>
-                                <TableCell>
-                                  <span className="text-muted-foreground">-</span>
-                                </TableCell>
-                                <TableCell>
-                                  {subAccount.lastLoginAt ? (
-                                    <span className="text-sm text-muted-foreground">
-                                      {new Date(subAccount.lastLoginAt).toLocaleString()}
-                                    </span>
-                                  ) : (
-                                    <span className="text-muted-foreground">Never</span>
-                                  )}
-                                </TableCell>
-                                <TableCell className="text-right">
-                                  <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                      <Button variant="ghost" size="icon">
-                                        <MoreHorizontal className="w-4 h-4" />
-                                      </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                      <DropdownMenuItem onClick={() => handleEdit(subAccount)}>
-                                        <Pencil className="w-4 h-4 mr-2" />
-                                        Edit
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem 
-                                        onClick={() => {
-                                          setAccountToDelete(subAccount);
-                                          setDeleteDialogVisible(true);
-                                        }}
-                                        className="text-danger"
-                                      >
-                                        <Trash2 className="w-4 h-4 mr-2" />
-                                        Delete
-                                      </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                  </DropdownMenu>
-                                </TableCell>
-                              </TableRow>
-                            );
-                          })}
-                        </React.Fragment>
                       );
                     })}
                   </TableBody>
@@ -769,44 +730,53 @@ const PortalAdminAccountManagement: React.FC = () => {
             {/* Customer-Facility Mappings */}
             {selectedAccount?.customerFacilityMappings && selectedAccount.customerFacilityMappings.length > 0 ? (
               <div className="space-y-3">
-                {selectedAccount.customerFacilityMappings.map((mapping, idx) => (
-                  <div
-                    key={idx}
-                    className="border rounded-lg p-4 bg-muted/30"
-                  >
-                    {/* Customer Header */}
-                    <div className="flex items-center gap-2 mb-3">
-                      <Building2 className="w-5 h-5 text-blue-600" />
-                      <span className="font-semibold text-blue-600">
-                        Customer: {mapping.customerId}
-                      </span>
-                    </div>
+                {selectedAccount.customerFacilityMappings.map((mapping, idx) => {
+                  const customer = customers.find(c => c.id === mapping.customerId);
+                  const customerName = customer ? customer.name : mapping.customerId;
+                  
+                  return (
+                    <div
+                      key={idx}
+                      className="border rounded-lg p-4 bg-muted/30"
+                    >
+                      {/* Customer Header */}
+                      <div className="flex items-center gap-2 mb-3">
+                        <Building2 className="w-5 h-5 text-blue-600" />
+                        <span className="font-semibold text-blue-600">
+                          Customer: {customerName}
+                        </span>
+                      </div>
 
-                    {/* Facilities List */}
-                    {mapping.facilityIds && mapping.facilityIds.length > 0 ? (
-                      <div className="ml-7 space-y-2">
-                        <div className="text-sm text-muted-foreground mb-2">
-                          Facilities ({mapping.facilityIds.length}):
+                      {/* Facilities List */}
+                      {mapping.facilityIds && mapping.facilityIds.length > 0 ? (
+                        <div className="ml-7 space-y-2">
+                          <div className="text-sm text-muted-foreground mb-2">
+                            Facilities ({mapping.facilityIds.length}):
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            {mapping.facilityIds.map((facilityId, fIdx) => {
+                              const facility = facilities.find(f => f.id === facilityId);
+                              const facilityName = facility ? facility.name : facilityId;
+                              return (
+                                <div
+                                  key={fIdx}
+                                  className="px-3 py-2 bg-green-50 dark:bg-green-950 rounded-md text-sm flex items-center gap-2"
+                                >
+                                  <div className="w-1 h-1 rounded-full bg-green-600"></div>
+                                  {facilityName}
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
-                        <div className="grid grid-cols-2 gap-2">
-                          {mapping.facilityIds.map((facilityId, fIdx) => (
-                            <div
-                              key={fIdx}
-                              className="px-3 py-2 bg-green-50 dark:bg-green-950 rounded-md text-sm flex items-center gap-2"
-                            >
-                              <div className="w-1 h-1 rounded-full bg-green-600"></div>
-                              {facilityId}
-                            </div>
-                          ))}
+                      ) : (
+                        <div className="ml-7 text-sm text-muted-foreground italic">
+                          No facilities assigned to this customer
                         </div>
-                      </div>
-                    ) : (
-                      <div className="ml-7 text-sm text-muted-foreground italic">
-                        No facilities assigned to this customer
-                      </div>
-                    )}
-                  </div>
-                ))}
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             ) : (
               /* Fallback: Show separate lists if no mappings */
@@ -819,14 +789,18 @@ const PortalAdminAccountManagement: React.FC = () => {
                       Customers ({selectedAccount.customerIds.length})
                     </h3>
                     <div className="grid grid-cols-2 gap-2">
-                      {selectedAccount.customerIds.map((customerId, idx) => (
-                        <div
-                          key={idx}
-                          className="px-3 py-2 bg-blue-50 dark:bg-blue-950 rounded-md text-sm"
-                        >
-                          {customerId}
-                        </div>
-                      ))}
+                      {selectedAccount.customerIds.map((customerId, idx) => {
+                        const customer = customers.find(c => c.id === customerId);
+                        const customerName = customer ? customer.name : customerId;
+                        return (
+                          <div
+                            key={idx}
+                            className="px-3 py-2 bg-blue-50 dark:bg-blue-950 rounded-md text-sm"
+                          >
+                            {customerName}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -839,14 +813,18 @@ const PortalAdminAccountManagement: React.FC = () => {
                       Facilities ({selectedAccount.facilityIds.length})
                     </h3>
                     <div className="grid grid-cols-2 gap-2">
-                      {selectedAccount.facilityIds.map((facilityId, idx) => (
-                        <div
-                          key={idx}
-                          className="px-3 py-2 bg-green-50 dark:bg-green-950 rounded-md text-sm"
-                        >
-                          {facilityId}
-                        </div>
-                      ))}
+                      {selectedAccount.facilityIds.map((facilityId, idx) => {
+                        const facility = facilities.find(f => f.id === facilityId);
+                        const facilityName = facility ? facility.name : facilityId;
+                        return (
+                          <div
+                            key={idx}
+                            className="px-3 py-2 bg-green-50 dark:bg-green-950 rounded-md text-sm"
+                          >
+                            {facilityName}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -1277,6 +1255,81 @@ const PortalAdminAccountManagement: React.FC = () => {
                 Create Sub-account
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Sub-accounts List Dialog */}
+      <Dialog open={showSubAccountsDialog} onOpenChange={setShowSubAccountsDialog}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Sub-accounts of {selectedMainAccount?.username}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {selectedMainAccount?.subAccounts && selectedMainAccount.subAccounts.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Username</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Last Login</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {selectedMainAccount.subAccounts.map((subAccount) => (
+                    <TableRow key={subAccount.id}>
+                      <TableCell className="font-medium">{subAccount.username}</TableCell>
+                      <TableCell>{subAccount.email}</TableCell>
+                      <TableCell>{getStatusBadge(subAccount.status)}</TableCell>
+                      <TableCell>
+                        {subAccount.lastLoginAt ? (
+                          <span className="text-sm text-muted-foreground">
+                            {new Date(subAccount.lastLoginAt).toLocaleString()}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">Never</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreHorizontal className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => {
+                              setShowSubAccountsDialog(false);
+                              handleEdit(subAccount);
+                            }}>
+                              <Pencil className="w-4 h-4 mr-2" />
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              onClick={() => {
+                                setAccountToDelete(subAccount);
+                                setDeleteDialogVisible(true);
+                                setShowSubAccountsDialog(false);
+                              }}
+                              className="text-danger"
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                No sub-accounts found
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>

@@ -11,6 +11,7 @@ import {
   Search,
   AlertCircle,
   X,
+  Building2,
 } from 'lucide-react';
 import api from '../utils/api';
 import { useAuth } from '../contexts/AuthContext';
@@ -167,6 +168,8 @@ const AccountManagement: React.FC = () => {
   // Select dropdown states
   const [customerSelectOpen, setCustomerSelectOpen] = useState(false);
   const [facilitySelectOpen, setFacilitySelectOpen] = useState(false);
+  const [showPermissionsDialog, setShowPermissionsDialog] = useState(false);
+  const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
   const [roleSelectOpen, setRoleSelectOpen] = useState(false);
 
   useEffect(() => {
@@ -221,7 +224,26 @@ const AccountManagement: React.FC = () => {
       
       const response = await api.get('/accounts', { params });
       if (response.data.success) {
-        setAccounts(response.data.data.items || []);
+        const accountsData = response.data.data.items || [];
+        
+        // 补全映射关系：如果账号没有customerFacilityMappings，则根据customerIds和facilityIds生成
+        const processedAccounts = accountsData.map((account: Account) => {
+          if (!account.customerFacilityMappings || account.customerFacilityMappings.length === 0) {
+            const customerIds = account.customerIds || account.accessibleCustomerIds || [];
+            const facilityIds = account.facilityIds || account.accessibleFacilityIds || [];
+            
+            if (customerIds.length > 0) {
+              // 为每个customer创建映射，所有customer共享相同的facilities
+              account.customerFacilityMappings = customerIds.map(customerId => ({
+                customerId,
+                facilityIds: facilityIds
+              }));
+            }
+          }
+          return account;
+        });
+        
+        setAccounts(processedAccounts);
         setSelectedIds(new Set());
         setCurrentPage(1);
       }
@@ -659,70 +681,31 @@ const AccountManagement: React.FC = () => {
     }
   };
 
-  const getCustomerFacilityDisplay = (account: Account) => {
-    if (account.accountType === 'MAIN') {
-      return (
-        <div style={{ fontSize: '13px', color: 'var(--text-primary)' }}>
-          <span style={{ fontWeight: 'var(--font-medium)' }}>{t('account.allCustomers')}</span>
-          <span style={{ color: 'var(--text-secondary)' }}>: All Facilities</span>
-        </div>
-      );
+  const getPermissionsCount = (account: Account) => {
+    // 计数规则：一条customer+一个Facility数据计一次数
+    if (account.customerFacilityMappings && account.customerFacilityMappings.length > 0) {
+      // 如果有映射关系，计算每个customer下的facility数量总和
+      return account.customerFacilityMappings.reduce((total, mapping) => {
+        return total + (mapping.facilityIds?.length || 0);
+      }, 0);
     }
     
+    // 兼容旧数据：如果没有映射关系，使用customerIds和facilityIds
     const customerIds = account.customerIds || account.accessibleCustomerIds || [];
+    const facilityIds = account.facilityIds || account.accessibleFacilityIds || [];
     
-    if (customerIds.length === 0) {
-      return <span className="text-secondary">{t('account.noCustomers')}</span>;
+    // 如果两者都有，返回customer数量 * facility数量（笛卡尔积）
+    if (customerIds.length > 0 && facilityIds.length > 0) {
+      return customerIds.length * facilityIds.length;
     }
     
-    // 显示前3个customer及其facilities
-    const displayCount = 3;
-    const displayCustomers = customerIds.slice(0, displayCount);
-    const remainingCount = customerIds.length - displayCount;
-    
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '13px' }}>
-        {displayCustomers.map((customerId: string) => {
-          const customer = customers.find(c => c.id === customerId);
-          const customerName = customer ? customer.name : customerId;
-          
-          // 优先使用customerFacilityMappings中的映射关系
-          let facilityNames = '';
-          if (account.customerFacilityMappings && account.customerFacilityMappings.length > 0) {
-            const mapping = account.customerFacilityMappings.find(m => m.customerId === customerId);
-            if (mapping && mapping.facilityIds.length > 0) {
-              facilityNames = mapping.facilityIds.map((facilityId: string) => {
-                const facility = facilities.find(f => f.id === facilityId);
-                return facility ? facility.name : facilityId;
-              }).join('、');
-            }
-          } else {
-            // 如果没有映射关系，则显示所有facilities（兼容旧数据）
-            const facilityIds = account.facilityIds || account.accessibleFacilityIds || [];
-            facilityNames = facilityIds.map((facilityId: string) => {
-              const facility = facilities.find(f => f.id === facilityId);
-              return facility ? facility.name : facilityId;
-            }).join('、');
-          }
-          
-          return (
-            <div key={customerId} style={{ lineHeight: '1.4' }}>
-              <span style={{ fontWeight: 'var(--font-medium)', color: 'var(--text-primary)' }}>
-                {customerName}
-              </span>
-              <span style={{ color: 'var(--text-secondary)' }}>
-                : {facilityNames || t('account.noFacilities')}
-              </span>
-            </div>
-          );
-        })}
-        {remainingCount > 0 && (
-          <span style={{ fontSize: '12px', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
-            +{remainingCount} more customer(s)
-          </span>
-        )}
-      </div>
-    );
+    // 如果只有其中一个，返回该数量
+    return customerIds.length + facilityIds.length;
+  };
+
+  const handleViewPermissions = (account: Account) => {
+    setSelectedAccount(account);
+    setShowPermissionsDialog(true);
   };
 
   const getRoleBadges = (account: Account) => {
@@ -789,8 +772,34 @@ const AccountManagement: React.FC = () => {
   // Pagination
   const paginatedAccounts = useMemo(() => {
     const startIndex = (currentPage - 1) * pageSize;
-    return accounts.slice(startIndex, startIndex + pageSize);
-  }, [accounts, currentPage, pageSize]);
+    const paginatedData = accounts.slice(startIndex, startIndex + pageSize);
+    
+    // 动态补全主账号的Customer & Facility数据
+    return paginatedData.map(account => {
+      if (account.accountType === 'MAIN') {
+        // 如果主账号没有customerFacilityMappings，为其分配所有customers和facilities
+        if ((!account.customerFacilityMappings || account.customerFacilityMappings.length === 0) &&
+            (!account.customerIds || account.customerIds.length === 0) &&
+            (!account.accessibleCustomerIds || account.accessibleCustomerIds.length === 0)) {
+          const allCustomerIds = customers.map(c => c.id);
+          const allFacilityIds = facilities.map(f => f.id);
+          
+          if (allCustomerIds.length > 0) {
+            return {
+              ...account,
+              accessibleCustomerIds: allCustomerIds,
+              accessibleFacilityIds: allFacilityIds,
+              customerFacilityMappings: allCustomerIds.map(customerId => ({
+                customerId,
+                facilityIds: allFacilityIds
+              }))
+            };
+          }
+        }
+      }
+      return account;
+    });
+  }, [accounts, currentPage, pageSize, customers, facilities]);
 
   const totalPages = Math.ceil(accounts.length / pageSize);
 
@@ -968,7 +977,22 @@ const AccountManagement: React.FC = () => {
                       </TableCell>
                       <TableCell>{account.email}</TableCell>
                       <TableCell>{getAccountTypeBadge(account.accountType)}</TableCell>
-                      <TableCell>{getCustomerFacilityDisplay(account)}</TableCell>
+                      <TableCell>
+                        {(() => {
+                          const permissionsCount = getPermissionsCount(account);
+                          return permissionsCount > 0 ? (
+                            <button
+                              onClick={() => handleViewPermissions(account)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-900 transition-colors cursor-pointer border border-green-200 dark:border-green-800"
+                            >
+                              <Building2 className="w-3.5 h-3.5" />
+                              <span className="font-medium text-sm">{permissionsCount}</span>
+                            </button>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          );
+                        })()}
+                      </TableCell>
                       <TableCell>{getRoleBadges(account)}</TableCell>
                       <TableCell>{getStatusBadge(account.status)}</TableCell>
                       <TableCell>
@@ -1430,6 +1454,140 @@ const AccountManagement: React.FC = () => {
                 {t('common.save')}
               </Button>
             </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Data Permissions Dialog */}
+        <Dialog open={showPermissionsDialog} onOpenChange={setShowPermissionsDialog}>
+          <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Data Permissions - {selectedAccount?.username}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              {/* Customer-Facility Mappings */}
+              {selectedAccount?.customerFacilityMappings && selectedAccount.customerFacilityMappings.length > 0 ? (
+                <div className="space-y-3">
+                  {selectedAccount.customerFacilityMappings.map((mapping, idx) => {
+                    const customer = customers.find(c => c.id === mapping.customerId);
+                    const customerName = customer ? customer.name : mapping.customerId;
+                    
+                    return (
+                      <div
+                        key={idx}
+                        className="border rounded-lg p-4 bg-muted/30"
+                      >
+                        {/* Customer Header */}
+                        <div className="flex items-center gap-2 mb-3">
+                          <Building2 className="w-5 h-5 text-blue-600" />
+                          <span className="font-semibold text-blue-600">
+                            Customer: {customerName}
+                          </span>
+                        </div>
+
+                        {/* Facilities List */}
+                        {mapping.facilityIds && mapping.facilityIds.length > 0 ? (
+                          <div className="ml-7 space-y-2">
+                            <div className="text-sm text-muted-foreground mb-2">
+                              Facilities ({mapping.facilityIds.length}):
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                              {mapping.facilityIds.map((facilityId, fIdx) => {
+                                const facility = facilities.find(f => f.id === facilityId);
+                                const facilityName = facility ? facility.name : facilityId;
+                                return (
+                                  <div
+                                    key={fIdx}
+                                    className="px-3 py-2 bg-green-50 dark:bg-green-950 rounded-md text-sm flex items-center gap-2"
+                                  >
+                                    <div className="w-1 h-1 rounded-full bg-green-600"></div>
+                                    {facilityName}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="ml-7 text-sm text-muted-foreground italic">
+                            No facilities assigned to this customer
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                /* Fallback: Show separate lists if no mappings */
+                <div className="space-y-4">
+                  {/* Customers Section */}
+                  {(() => {
+                    const customerIds = selectedAccount?.customerIds || selectedAccount?.accessibleCustomerIds || [];
+                    if (customerIds.length === 0) return null;
+                    return (
+                      <div>
+                        <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                          <Building2 className="w-4 h-4 text-blue-600" />
+                          Customers ({customerIds.length})
+                        </h3>
+                        <div className="grid grid-cols-2 gap-2">
+                          {customerIds.map((customerId, idx) => {
+                            const customer = customers.find(c => c.id === customerId);
+                            const customerName = customer ? customer.name : customerId;
+                            return (
+                              <div
+                                key={idx}
+                                className="px-3 py-2 bg-blue-50 dark:bg-blue-950 rounded-md text-sm"
+                              >
+                                {customerName}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Facilities Section */}
+                  {(() => {
+                    const facilityIds = selectedAccount?.facilityIds || selectedAccount?.accessibleFacilityIds || [];
+                    if (facilityIds.length === 0) return null;
+                    return (
+                      <div>
+                        <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                          <Building2 className="w-4 h-4 text-green-600" />
+                          Facilities ({facilityIds.length})
+                        </h3>
+                        <div className="grid grid-cols-2 gap-2">
+                          {facilityIds.map((facilityId, idx) => {
+                            const facility = facilities.find(f => f.id === facilityId);
+                            const facilityName = facility ? facility.name : facilityId;
+                            return (
+                              <div
+                                key={idx}
+                                className="px-3 py-2 bg-green-50 dark:bg-green-950 rounded-md text-sm"
+                              >
+                                {facilityName}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Empty State */}
+                  {(() => {
+                    const customerIds = selectedAccount?.customerIds || selectedAccount?.accessibleCustomerIds || [];
+                    const facilityIds = selectedAccount?.facilityIds || selectedAccount?.accessibleFacilityIds || [];
+                    if (customerIds.length > 0 || facilityIds.length > 0) return null;
+                    return (
+                      <div className="text-center py-8 text-muted-foreground">
+                        No data permissions assigned
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+            </div>
           </DialogContent>
         </Dialog>
 
