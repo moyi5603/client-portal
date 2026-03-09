@@ -34,6 +34,7 @@ import {
   Empty,
   Skeleton,
   Pagination,
+  Switch,
 } from '../components/ui';
 
 interface Account {
@@ -92,6 +93,8 @@ const PortalAdminAccountManagement: React.FC = () => {
   const [facilities, setFacilities] = useState<any[]>([]);
   const [roles, setRoles] = useState<any[]>([]);
   const [customerSelectOpen, setCustomerSelectOpen] = useState(false);
+  const [customerSearchTerm, setCustomerSearchTerm] = useState('');
+  const [facilitySearchTerms, setFacilitySearchTerms] = useState<Record<string, string>>({});
   const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
   const [accountToDelete, setAccountToDelete] = useState<Account | null>(null);
   const [showCreateSubAccountDialog, setShowCreateSubAccountDialog] = useState(false);
@@ -124,23 +127,43 @@ const PortalAdminAccountManagement: React.FC = () => {
       const accountsRes = await api.get('/portal-admin/accounts');
       const accountsData = accountsRes.data;
       
+      // 获取所有facility IDs（从API或预设数据）
+      let allFacilityIds: string[] = [];
+      try {
+        const facilityRes = await api.get('/permissions/facilities');
+        if (facilityRes.data.success) {
+          allFacilityIds = facilityRes.data.data.map((f: any) => f.id);
+        }
+      } catch (error) {
+        // 如果API失败，使用预设的facility IDs
+        allFacilityIds = ['FAC-001', 'FAC-002', 'FAC-003', 'FAC-004', 'FAC-005', 'FAC-006', 'FAC-007'];
+      }
+      
+      // 如果没有从API获取到，使用预设的
+      if (allFacilityIds.length === 0) {
+        allFacilityIds = ['FAC-001', 'FAC-002', 'FAC-003', 'FAC-004', 'FAC-005', 'FAC-006', 'FAC-007'];
+      }
+      
       // 补全映射关系：如果账号没有customerFacilityMappings，则根据customerIds和facilityIds生成
       const processedAccounts = accountsData.map((account: Account) => {
         if (!account.customerFacilityMappings || account.customerFacilityMappings.length === 0) {
           const customerIds = account.customerIds || [];
-          const facilityIds = account.facilityIds || [];
           
           if (customerIds.length > 0) {
-            // 为每个customer创建映射，所有customer共享相同的facilities
+            // 主账号：为每个customer分配所有facility
             account.customerFacilityMappings = customerIds.map(customerId => ({
               customerId,
-              facilityIds: facilityIds
+              facilityIds: allFacilityIds
             }));
+            console.log(`补全账号 ${account.username} 的映射关系:`, account.customerFacilityMappings);
           }
+        } else {
+          console.log(`账号 ${account.username} 已有映射关系:`, account.customerFacilityMappings);
         }
         return account;
       });
       
+      console.log('处理后的账号数据:', processedAccounts);
       setAccounts(processedAccounts);
 
       // Load tenants list
@@ -321,14 +344,33 @@ const PortalAdminAccountManagement: React.FC = () => {
 
   const handleEdit = (account: Account) => {
     setEditingAccount(account);
-    const customerIds = account.customerIds || [];
-    const facilityIds = account.facilityIds || [];
     
-    // 构建 customerFacilityMappings
-    const mappings = customerIds.map(customerId => ({
-      customerId,
-      facilityIds: facilityIds
-    }));
+    console.log('Editing account:', account);
+    console.log('Available facilities:', facilities);
+    
+    let mappings: Array<{ customerId: string; facilityIds: string[] }> = [];
+    
+    // 如果已有映射关系，直接使用
+    if (account.customerFacilityMappings && account.customerFacilityMappings.length > 0) {
+      mappings = account.customerFacilityMappings;
+      console.log('Using existing mappings:', mappings);
+    } else {
+      // 如果没有映射关系，根据customerIds和facilityIds生成
+      const customerIds = account.customerIds || [];
+      
+      if (customerIds.length > 0) {
+        // 主账号：每个customer分配所有facility
+        const allFacilityIds = facilities.map(f => f.id);
+        console.log('All facility IDs:', allFacilityIds);
+        mappings = customerIds.map(customerId => ({
+          customerId,
+          facilityIds: allFacilityIds
+        }));
+        console.log('Generated mappings:', mappings);
+      }
+    }
+    
+    console.log('Final mappings for edit form:', mappings);
     
     setEditForm({
       username: account.username,
@@ -341,6 +383,8 @@ const PortalAdminAccountManagement: React.FC = () => {
       roleIds: account.roles || []
     });
     setCustomerSelectOpen(false);
+    setCustomerSearchTerm('');
+    setFacilitySearchTerms({});
     setShowEditDialog(true);
   };
 
@@ -437,7 +481,6 @@ const PortalAdminAccountManagement: React.FC = () => {
 
       await api.put(`/portal-admin/accounts/${editingAccount.id}`, {
         email: editForm.email,
-        phone: editForm.phone || undefined,
         status: editForm.status,
         customerIds,
         facilityIds,
@@ -474,25 +517,14 @@ const PortalAdminAccountManagement: React.FC = () => {
   };
 
   const getPermissionsCount = (account: Account) => {
-    // 计数规则：一条customer+一个Facility数据计一次数
+    // 只显示Customer数量
     if (account.customerFacilityMappings && account.customerFacilityMappings.length > 0) {
-      // 如果有映射关系，计算每个customer下的facility数量总和
-      return account.customerFacilityMappings.reduce((total, mapping) => {
-        return total + (mapping.facilityIds?.length || 0);
-      }, 0);
+      // 如果有映射关系，返回customer数量
+      return account.customerFacilityMappings.length;
     }
     
-    // 兼容旧数据：如果没有映射关系，使用customerIds和facilityIds
-    const customerCount = account.customerIds?.length || 0;
-    const facilityCount = account.facilityIds?.length || 0;
-    
-    // 如果两者都有，返回customer数量 * facility数量（笛卡尔积）
-    if (customerCount > 0 && facilityCount > 0) {
-      return customerCount * facilityCount;
-    }
-    
-    // 如果只有其中一个，返回该数量
-    return customerCount + facilityCount;
+    // 兼容旧数据：如果没有映射关系，使用customerIds
+    return account.customerIds?.length || 0;
   };
 
 
@@ -591,7 +623,7 @@ const PortalAdminAccountManagement: React.FC = () => {
                       <TableHead>{t('account.status')}</TableHead>
                       <TableHead>Roles</TableHead>
                       <TableHead>Sub-accounts</TableHead>
-                      <TableHead>Customer&Facility</TableHead>
+                      <TableHead>Customer</TableHead>
                       <TableHead>Last Login</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
@@ -865,30 +897,6 @@ const PortalAdminAccountManagement: React.FC = () => {
               />
             </div>
             <div>
-              <Label>First Name</Label>
-              <Input
-                value={editForm.firstName}
-                onChange={(e) => setEditForm({ ...editForm, firstName: e.target.value })}
-                placeholder="Enter first name (optional)"
-              />
-            </div>
-            <div>
-              <Label>Last Name</Label>
-              <Input
-                value={editForm.lastName}
-                onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })}
-                placeholder="Enter last name (optional)"
-              />
-            </div>
-            <div>
-              <Label>Contact Number</Label>
-              <Input
-                value={editForm.phone}
-                onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
-                placeholder="Enter phone number"
-              />
-            </div>
-            <div>
               <Label>Status</Label>
               <Select value={editForm.status} onValueChange={(value) => setEditForm({ ...editForm, status: value })}>
                 <SelectTrigger>
@@ -910,7 +918,10 @@ const PortalAdminAccountManagement: React.FC = () => {
                     {/* Customer选择 */}
                     <div className="mb-4">
                       <Label className="text-sm mb-2 block">Select Customers</Label>
-                      <DropdownMenu open={customerSelectOpen} onOpenChange={setCustomerSelectOpen}>
+                      <DropdownMenu open={customerSelectOpen} onOpenChange={(open) => {
+                        setCustomerSelectOpen(open);
+                        if (!open) setCustomerSearchTerm('');
+                      }}>
                         <DropdownMenuTrigger asChild>
                           <Button variant="outline" className="w-full justify-between">
                             {editForm.customerFacilityMappings.length === 0 
@@ -920,35 +931,61 @@ const PortalAdminAccountManagement: React.FC = () => {
                             <ChevronDown className="w-4 h-4" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent className="w-[300px] max-h-[200px] overflow-y-auto">
-                          {customers.map(customer => {
-                            const isSelected = editForm.customerFacilityMappings.some(m => m.customerId === customer.id);
-                            return (
-                              <DropdownMenuItem 
-                                key={customer.id}
-                                onSelect={(e) => {
-                                  e.preventDefault();
-                                  if (isSelected) {
-                                    setEditForm({ 
-                                      ...editForm, 
-                                      customerFacilityMappings: editForm.customerFacilityMappings.filter(m => m.customerId !== customer.id)
-                                    });
-                                  } else {
-                                    setEditForm({ 
-                                      ...editForm, 
-                                      customerFacilityMappings: [
-                                        ...editForm.customerFacilityMappings,
-                                        { customerId: customer.id, facilityIds: [] }
-                                      ]
-                                    });
-                                  }
-                                }}
-                                className={isSelected ? 'text-primary font-semibold' : ''}
-                              >
-                                {customer.name}
-                              </DropdownMenuItem>
-                            );
-                          })}
+                        <DropdownMenuContent className="w-[300px]">
+                          <div className="p-2 border-b">
+                            <Input
+                              placeholder="Search customers..."
+                              value={customerSearchTerm}
+                              onChange={(e) => setCustomerSearchTerm(e.target.value)}
+                              className="h-8"
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          </div>
+                          <div className="max-h-[200px] overflow-y-auto">
+                            {customers
+                              .filter(customer => 
+                                customer.name.toLowerCase().includes(customerSearchTerm.toLowerCase()) ||
+                                customer.code?.toLowerCase().includes(customerSearchTerm.toLowerCase())
+                              )
+                              .map(customer => {
+                                const isSelected = editForm.customerFacilityMappings.some(m => m.customerId === customer.id);
+                                return (
+                                  <DropdownMenuItem 
+                                    key={customer.id}
+                                    onSelect={(e) => {
+                                      e.preventDefault();
+                                      if (isSelected) {
+                                        setEditForm({ 
+                                          ...editForm, 
+                                          customerFacilityMappings: editForm.customerFacilityMappings.filter(m => m.customerId !== customer.id)
+                                        });
+                                      } else {
+                                        // 主账号：自动分配所有facility
+                                        const allFacilityIds = facilities.map(f => f.id);
+                                        setEditForm({ 
+                                          ...editForm, 
+                                          customerFacilityMappings: [
+                                            ...editForm.customerFacilityMappings,
+                                            { customerId: customer.id, facilityIds: allFacilityIds }
+                                          ]
+                                        });
+                                      }
+                                    }}
+                                    className={isSelected ? 'text-primary font-semibold' : ''}
+                                  >
+                                    {customer.name}
+                                  </DropdownMenuItem>
+                                );
+                              })}
+                            {customers.filter(customer => 
+                              customer.name.toLowerCase().includes(customerSearchTerm.toLowerCase()) ||
+                              customer.code?.toLowerCase().includes(customerSearchTerm.toLowerCase())
+                            ).length === 0 && (
+                              <div className="p-2 text-sm text-muted-foreground text-center">
+                                No customers found
+                              </div>
+                            )}
+                          </div>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
@@ -958,12 +995,12 @@ const PortalAdminAccountManagement: React.FC = () => {
                       <div className="flex flex-col gap-3">
                         {editForm.customerFacilityMappings.map((mapping, index) => {
                           const customer = customers.find(c => c.id === mapping.customerId);
-                          if (!customer) return null;
+                          const customerName = customer ? customer.name : mapping.customerId;
                           
                           return (
                             <div key={mapping.customerId} className="p-3 bg-muted/30 rounded-lg border">
                               <div className="flex justify-between items-center mb-2">
-                                <Badge variant="secondary">{customer.name}</Badge>
+                                <Badge variant="secondary">{customerName}</Badge>
                                 <Button
                                   variant="ghost"
                                   size="icon"
@@ -980,69 +1017,30 @@ const PortalAdminAccountManagement: React.FC = () => {
                               </div>
                               
                               <Label className="text-xs text-muted-foreground mb-2 block">
-                                Facilities for {customer.name}
+                                Facilities for {customerName} (All facilities assigned)
                               </Label>
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="outline" size="sm" className="w-full justify-between text-xs">
-                                    {mapping.facilityIds.length === 0 
-                                      ? 'Select facilities'
-                                      : `${mapping.facilityIds.length} facility(ies) selected`
-                                    }
-                                    <ChevronDown className="w-3 h-3" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent className="w-[280px] max-h-[180px] overflow-y-auto">
-                                  {facilities.map(facility => {
-                                    const isFacilitySelected = mapping.facilityIds.includes(facility.id);
-                                    return (
-                                      <DropdownMenuItem 
-                                        key={facility.id}
-                                        onSelect={(e) => {
-                                          e.preventDefault();
-                                          const newMappings = [...editForm.customerFacilityMappings];
-                                          const currentMapping = newMappings[index];
-                                          
-                                          if (isFacilitySelected) {
-                                            currentMapping.facilityIds = currentMapping.facilityIds.filter(id => id !== facility.id);
-                                          } else {
-                                            currentMapping.facilityIds = [...currentMapping.facilityIds, facility.id];
-                                          }
-                                          
-                                          setEditForm({ ...editForm, customerFacilityMappings: newMappings });
-                                        }}
-                                        className={isFacilitySelected ? 'text-primary font-semibold text-xs' : 'text-xs'}
-                                      >
-                                        {facility.name}
-                                      </DropdownMenuItem>
-                                    );
-                                  })}
-                                </DropdownMenuContent>
-                              </DropdownMenu>
                               
-                              {/* 显示选中的facility标签 */}
-                              {mapping.facilityIds.length > 0 && (
+                              {/* 主账号：只显示已分配的facility，不允许修改 */}
+                              <div className="p-2 bg-muted/50 rounded border text-xs text-muted-foreground">
+                                All facilities are automatically assigned to main accounts
+                              </div>
+                              
+                              {/* 显示所有facility标签（只读） */}
+                              {mapping.facilityIds && mapping.facilityIds.length > 0 ? (
                                 <div className="mt-2 flex flex-wrap gap-1">
                                   {mapping.facilityIds.map(facilityId => {
                                     const facility = facilities.find(f => f.id === facilityId);
-                                    return facility ? (
-                                      <Badge key={facilityId} variant="outline" className="text-xs px-2 py-0.5 flex items-center gap-1">
-                                        {facility.name}
-                                        <Button
-                                          variant="ghost"
-                                          size="icon"
-                                          className="h-3 w-3 p-0"
-                                          onClick={() => {
-                                            const newMappings = [...editForm.customerFacilityMappings];
-                                            newMappings[index].facilityIds = newMappings[index].facilityIds.filter(id => id !== facilityId);
-                                            setEditForm({ ...editForm, customerFacilityMappings: newMappings });
-                                          }}
-                                        >
-                                          <X className="w-2 h-2" />
-                                        </Button>
+                                    const facilityName = facility ? facility.name : facilityId;
+                                    return (
+                                      <Badge key={facilityId} variant="outline" className="text-xs px-2 py-0.5">
+                                        {facilityName}
                                       </Badge>
-                                    ) : null;
+                                    );
                                   })}
+                                </div>
+                              ) : (
+                                <div className="mt-2 text-xs text-muted-foreground italic">
+                                  No facilities assigned
                                 </div>
                               )}
                             </div>
@@ -1181,7 +1179,6 @@ const PortalAdminAccountManagement: React.FC = () => {
               <Input
                 value={subAccountForm.phone}
                 onChange={(e) => setSubAccountForm({ ...subAccountForm, phone: e.target.value })}
-                placeholder="Enter phone number (optional)"
               />
             </div>
             <div>
@@ -1189,7 +1186,6 @@ const PortalAdminAccountManagement: React.FC = () => {
               <Input
                 value={subAccountForm.firstName}
                 onChange={(e) => setSubAccountForm({ ...subAccountForm, firstName: e.target.value })}
-                placeholder="Enter first name"
               />
               {subAccountFormErrors.firstName && (
                 <span className="text-sm text-danger">{subAccountFormErrors.firstName}</span>
@@ -1200,7 +1196,6 @@ const PortalAdminAccountManagement: React.FC = () => {
               <Input
                 value={subAccountForm.lastName}
                 onChange={(e) => setSubAccountForm({ ...subAccountForm, lastName: e.target.value })}
-                placeholder="Enter last name"
               />
               {subAccountFormErrors.lastName && (
                 <span className="text-sm text-danger">{subAccountFormErrors.lastName}</span>
@@ -1274,7 +1269,6 @@ const PortalAdminAccountManagement: React.FC = () => {
                     <TableHead>Email</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Last Login</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1282,7 +1276,35 @@ const PortalAdminAccountManagement: React.FC = () => {
                     <TableRow key={subAccount.id}>
                       <TableCell className="font-medium">{subAccount.username}</TableCell>
                       <TableCell>{subAccount.email}</TableCell>
-                      <TableCell>{getStatusBadge(subAccount.status)}</TableCell>
+                      <TableCell>
+                        <Switch
+                          checked={subAccount.status === 'ACTIVE'}
+                          onCheckedChange={(checked) => {
+                            const newStatus = checked ? 'ACTIVE' : 'INACTIVE';
+                            
+                            // 更新本地状态
+                            if (selectedMainAccount) {
+                              const updatedSubAccounts = selectedMainAccount.subAccounts?.map(sa => 
+                                sa.id === subAccount.id ? { ...sa, status: newStatus } : sa
+                              );
+                              
+                              const updatedMainAccount = {
+                                ...selectedMainAccount,
+                                subAccounts: updatedSubAccounts
+                              };
+                              
+                              setSelectedMainAccount(updatedMainAccount);
+                              
+                              // 同时更新accounts列表中的数据
+                              setAccounts(accounts.map(acc => 
+                                acc.id === selectedMainAccount.id ? updatedMainAccount : acc
+                              ));
+                              
+                              toast.success('Status updated successfully');
+                            }
+                          }}
+                        />
+                      </TableCell>
                       <TableCell>
                         {subAccount.lastLoginAt ? (
                           <span className="text-sm text-muted-foreground">
@@ -1291,35 +1313,6 @@ const PortalAdminAccountManagement: React.FC = () => {
                         ) : (
                           <span className="text-muted-foreground">Never</span>
                         )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <MoreHorizontal className="w-4 h-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => {
-                              setShowSubAccountsDialog(false);
-                              handleEdit(subAccount);
-                            }}>
-                              <Pencil className="w-4 h-4 mr-2" />
-                              Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              onClick={() => {
-                                setAccountToDelete(subAccount);
-                                setDeleteDialogVisible(true);
-                                setShowSubAccountsDialog(false);
-                              }}
-                              className="text-danger"
-                            >
-                              <Trash2 className="w-4 h-4 mr-2" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   ))}

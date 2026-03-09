@@ -2,22 +2,9 @@ import React, { useState, useCallback } from 'react';
 import {
   ChevronRight,
   ChevronDown,
-  Eye,
-  Plus,
-  Pencil,
-  Trash2,
 } from 'lucide-react';
 import { Checkbox } from './ui/checkbox';
-import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { useLocale } from '../contexts/LocaleContext';
-
-// Operation icon mapping
-const OPERATION_ICONS: Record<string, React.ReactNode> = {
-  VIEW: <Eye size={16} />,
-  CREATE: <Plus size={16} />,
-  EDIT: <Pencil size={16} />,
-  DELETE: <Trash2 size={16} />,
-};
 
 interface ModulePage {
   code: string;
@@ -31,7 +18,7 @@ interface ModuleConfig {
   label: string;
 }
 
-interface PermissionsTreeProps {
+interface PermissionsTree3Props {
   modules: ModuleConfig[];
   modulePages: Record<string, ModulePage[]>;
   selectedPermissions: Record<string, Record<string, string[]>>;
@@ -42,7 +29,7 @@ interface PermissionsTreeProps {
   autoSelectAllOperations?: boolean;
 }
 
-const PermissionsTree: React.FC<PermissionsTreeProps> = ({
+const PermissionsTree3: React.FC<PermissionsTree3Props> = ({
   modules,
   modulePages,
   selectedPermissions,
@@ -54,6 +41,7 @@ const PermissionsTree: React.FC<PermissionsTreeProps> = ({
 }) => {
   const { t } = useLocale();
   const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set(modules.map(m => m.value)));
+  const [expandedPages, setExpandedPages] = useState<Set<string>>(new Set());
 
   const toggleModule = useCallback((moduleValue: string) => {
     setExpandedModules(prev => {
@@ -62,6 +50,18 @@ const PermissionsTree: React.FC<PermissionsTreeProps> = ({
         next.delete(moduleValue);
       } else {
         next.add(moduleValue);
+      }
+      return next;
+    });
+  }, []);
+
+  const togglePage = useCallback((pageKey: string) => {
+    setExpandedPages(prev => {
+      const next = new Set(prev);
+      if (next.has(pageKey)) {
+        next.delete(pageKey);
+      } else {
+        next.add(pageKey);
       }
       return next;
     });
@@ -175,8 +175,7 @@ const PermissionsTree: React.FC<PermissionsTreeProps> = ({
                 style={{ display: 'flex', alignItems: 'center', marginRight: 'var(--space-sm)' }}
               >
                 <Checkbox
-                  checked={moduleState === 'checked'}
-                  indeterminate={moduleState === 'indeterminate'}
+                  checked={moduleState === 'checked' ? true : moduleState === 'indeterminate' ? 'indeterminate' : false}
                   disabled={disabled}
                 />
               </div>
@@ -195,10 +194,12 @@ const PermissionsTree: React.FC<PermissionsTreeProps> = ({
               </span>
             </div>
 
-            {/* Features with Inline Operations */}
+            {/* Pages (二级菜单) */}
             {isExpanded && (
               <div style={{ backgroundColor: 'var(--bg-primary)' }}>
                 {pages.map((page, index) => {
+                  const pageKey = `${module.value}-${page.code}`;
+                  const isPageExpanded = expandedPages.has(pageKey);
                   const pageState = getPageCheckState(module.value, page.code, page.operations);
                   const selectedOps = selectedPermissions[module.value]?.[page.code] || [];
 
@@ -206,22 +207,34 @@ const PermissionsTree: React.FC<PermissionsTreeProps> = ({
                     <div
                       key={page.code}
                       style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        padding: 'var(--space-sm) var(--space-md)',
                         borderBottom: index < pages.length - 1 ? '1px solid var(--border-color-light)' : 'none',
-                        gap: 'var(--space-md)',
                       }}
                     >
-                      {/* Feature Name with Checkbox */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)', minWidth: 160 }}>
+                      {/* Page Header (二级菜单) */}
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          padding: 'var(--space-sm) var(--space-md)',
+                          paddingLeft: 'var(--space-xl)',
+                          gap: 'var(--space-sm)',
+                          cursor: 'pointer',
+                          backgroundColor: pageState !== 'unchecked' ? 'rgba(117, 59, 189, 0.03)' : 'transparent',
+                        }}
+                        onClick={() => togglePage(pageKey)}
+                      >
+                        <span style={{ color: 'var(--text-secondary)', marginRight: 'var(--space-xs)' }}>
+                          {isPageExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                        </span>
                         <div
-                          onClick={() => handlePageCheck(module.value, page, pageState)}
-                          style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handlePageCheck(module.value, page, pageState);
+                          }}
+                          style={{ display: 'flex', alignItems: 'center' }}
                         >
                           <Checkbox
-                            checked={pageState === 'checked'}
-                            indeterminate={pageState === 'indeterminate'}
+                            checked={pageState === 'checked' ? true : pageState === 'indeterminate' ? 'indeterminate' : false}
                             disabled={disabled}
                           />
                         </div>
@@ -229,73 +242,66 @@ const PermissionsTree: React.FC<PermissionsTreeProps> = ({
                           color: pageState !== 'unchecked' ? 'var(--text-primary)' : 'var(--text-secondary)',
                           fontWeight: pageState !== 'unchecked' ? 'var(--font-medium)' : 'normal',
                           fontSize: 'var(--text-sm)',
-                          whiteSpace: 'nowrap',
+                          flex: 1,
                         }}>
                           {page.name}
                         </span>
+                        <span style={{ 
+                          fontSize: 'var(--text-xs)', 
+                          color: selectedOps.length > 0 ? 'var(--primary)' : 'var(--text-secondary)',
+                          backgroundColor: selectedOps.length > 0 ? 'rgba(117, 59, 189, 0.1)' : 'var(--bg-tertiary)',
+                          padding: '2px 6px',
+                          borderRadius: 'var(--radius-sm)',
+                        }}>
+                          {selectedOps.length}/{page.operations.length}
+                        </span>
                       </div>
 
-                      {/* Inline Operation Toggle Icons - Horizontal Row */}
-                      <div style={{ 
-                        display: 'flex', 
-                        gap: '6px', 
-                        alignItems: 'center',
-                        flex: 1,
-                        justifyContent: 'flex-end',
-                      }}>
-                        {page.operations
-                          .filter(op => ['VIEW', 'CREATE', 'EDIT', 'DELETE'].includes(op))
-                          .map(op => {
-                          const isChecked = selectedOps.includes(op);
-                          const icon = OPERATION_ICONS[op];
-                          const isPageSelected = pageState !== 'unchecked';
-                          const isOperationDisabled = disabled || (autoSelectAllOperations && isPageSelected);
+                      {/* Operations (功能按钮 - 下一级显示) */}
+                      {isPageExpanded && (
+                        <div style={{ 
+                          padding: 'var(--space-xs) var(--space-md)',
+                          paddingLeft: 'calc(var(--space-xl) * 2 + 20px)',
+                          backgroundColor: 'var(--bg-secondary)',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 'var(--space-xs)',
+                        }}>
+                          {page.operations.map(op => {
+                            const isChecked = selectedOps.includes(op);
+                            const isPageSelected = pageState !== 'unchecked';
+                            const isOperationDisabled = disabled || (autoSelectAllOperations && isPageSelected);
 
-                          return (
-                            <Tooltip key={op}>
-                              <TooltipTrigger asChild>
-                                <button
-                                  onClick={() => !isOperationDisabled && onPermissionChange(module.value, page.code, op, !isChecked)}
+                            return (
+                              <div
+                                key={op}
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 'var(--space-sm)',
+                                  padding: 'var(--space-xs)',
+                                  borderRadius: 'var(--radius-sm)',
+                                  cursor: isOperationDisabled ? 'not-allowed' : 'pointer',
+                                  opacity: isOperationDisabled ? 0.5 : 1,
+                                }}
+                                onClick={() => !isOperationDisabled && onPermissionChange(module.value, page.code, op, !isChecked)}
+                              >
+                                <Checkbox
+                                  checked={isChecked}
                                   disabled={isOperationDisabled}
-                                  style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    width: 28,
-                                    height: 28,
-                                    borderRadius: 'var(--radius-sm)',
-                                    border: 'none',
-                                    backgroundColor: isChecked ? 'var(--primary)' : 'var(--bg-tertiary)',
-                                    color: isChecked ? 'white' : 'var(--text-secondary)',
-                                    cursor: isOperationDisabled ? 'not-allowed' : 'pointer',
-                                    transition: 'all 0.15s ease',
-                                    opacity: isOperationDisabled ? 0.5 : 1,
-                                    flexShrink: 0,
-                                  }}
-                                  onMouseEnter={(e) => {
-                                    if (!isOperationDisabled && !isChecked) {
-                                      e.currentTarget.style.backgroundColor = 'rgba(117, 59, 189, 0.15)';
-                                      e.currentTarget.style.color = 'var(--primary)';
-                                    }
-                                  }}
-                                  onMouseLeave={(e) => {
-                                    if (!isOperationDisabled && !isChecked) {
-                                      e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)';
-                                      e.currentTarget.style.color = 'var(--text-secondary)';
-                                    }
-                                  }}
-                                >
-                                  {icon}
-                                </button>
-                              </TooltipTrigger>
-                              <TooltipContent side="top">
-                                <span>{t(`operation.${op}`)}</span>
-                              </TooltipContent>
-                            </Tooltip>
-                          );
-                        })}
-                      </div>
-
+                                />
+                                <span style={{
+                                  fontSize: 'var(--text-sm)',
+                                  color: isChecked ? 'var(--text-primary)' : 'var(--text-secondary)',
+                                  fontWeight: isChecked ? 'var(--font-medium)' : 'normal',
+                                }}>
+                                  {t(`operation.${op}`)}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -308,4 +314,4 @@ const PermissionsTree: React.FC<PermissionsTreeProps> = ({
   );
 };
 
-export default PermissionsTree;
+export default PermissionsTree3;

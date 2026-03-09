@@ -138,11 +138,6 @@ const AccountManagement: React.FC = () => {
   const [facilities, setFacilities] = useState<any[]>([]);
   const [roles, setRoles] = useState<any[]>([]);
   
-  // Bulk selection state
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [bulkStatusModalVisible, setBulkStatusModalVisible] = useState(false);
-  const [bulkStatus, setBulkStatus] = useState<string>('ACTIVE');
-  
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
@@ -168,6 +163,8 @@ const AccountManagement: React.FC = () => {
   // Select dropdown states
   const [customerSelectOpen, setCustomerSelectOpen] = useState(false);
   const [facilitySelectOpen, setFacilitySelectOpen] = useState(false);
+  const [customerSearchTerm, setCustomerSearchTerm] = useState('');
+  const [facilitySearchTerms, setFacilitySearchTerms] = useState<Record<string, string>>({});
   const [showPermissionsDialog, setShowPermissionsDialog] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
   const [roleSelectOpen, setRoleSelectOpen] = useState(false);
@@ -244,7 +241,6 @@ const AccountManagement: React.FC = () => {
         });
         
         setAccounts(processedAccounts);
-        setSelectedIds(new Set());
         setCurrentPage(1);
       }
     } catch (error) {
@@ -349,6 +345,8 @@ const AccountManagement: React.FC = () => {
     setCustomerSelectOpen(false);
     setFacilitySelectOpen(false);
     setRoleSelectOpen(false);
+    setCustomerSearchTerm('');
+    setFacilitySearchTerms({});
     setModalVisible(true);
   }, []);
   
@@ -366,7 +364,7 @@ const AccountManagement: React.FC = () => {
         t('account.lastName'),
         t('account.phone'),
         t('account.accountType'),
-        'Customer & Facility',
+        'Customer',
         t('account.roles'),
         t('common.status'),
         t('account.lastLogin'),
@@ -526,6 +524,8 @@ const AccountManagement: React.FC = () => {
     setCustomerSelectOpen(false);
     setFacilitySelectOpen(false);
     setRoleSelectOpen(false);
+    setCustomerSearchTerm('');
+    setFacilitySearchTerms({});
     setModalVisible(true);
   };
 
@@ -546,53 +546,6 @@ const AccountManagement: React.FC = () => {
     }
   };
 
-  // Bulk delete handler
-  const handleBulkDelete = async () => {
-    const selectedAccounts = accounts.filter(a => selectedIds.has(a.id));
-    const deletableAccounts = selectedAccounts.filter(a => a.accountType !== 'MAIN');
-    
-    if (deletableAccounts.length === 0) {
-      toast.warning(t('common.noData'));
-      return;
-    }
-
-    try {
-      await Promise.all(
-        deletableAccounts.map(account => api.delete(`/accounts/${account.id}`))
-      );
-      toast.success(t('account.bulkDeleteSuccess'));
-      setSelectedIds(new Set());
-      loadAccounts();
-    } catch (error) {
-      toast.error(t('account.deleteFailed'));
-    }
-  };
-
-  // Bulk status change handler
-  const handleBulkStatusChange = async () => {
-    const selectedAccounts = accounts.filter(a => selectedIds.has(a.id));
-    const updatableAccounts = selectedAccounts.filter(a => a.accountType !== 'MAIN');
-    
-    if (updatableAccounts.length === 0) {
-      toast.warning(t('common.noData'));
-      return;
-    }
-
-    try {
-      await Promise.all(
-        updatableAccounts.map(account => 
-          api.put(`/accounts/${account.id}`, { ...account, status: bulkStatus })
-        )
-      );
-      toast.success(t('account.bulkStatusChangeSuccess'));
-      setSelectedIds(new Set());
-      setBulkStatusModalVisible(false);
-      loadAccounts();
-    } catch (error) {
-      toast.error(t('account.saveFailed'));
-    }
-  };
-
   const validateForm = (): boolean => {
     const errors: Partial<Record<keyof FormData, string>> = {};
     
@@ -603,6 +556,12 @@ const AccountManagement: React.FC = () => {
       errors.email = t('account.emailRequired');
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       errors.email = t('account.emailRequired');
+    }
+    if (!editingAccount && !formData.firstName.trim()) {
+      errors.firstName = 'First Name is required';
+    }
+    if (!editingAccount && !formData.lastName.trim()) {
+      errors.lastName = 'Last Name is required';
     }
     if (!editingAccount && !formData.password) {
       errors.password = t('account.passwordRequired');
@@ -643,7 +602,6 @@ const AccountManagement: React.FC = () => {
       if (editingAccount) {
         const updatePayload = {
           email: formData.email,
-          phone: formData.phone || undefined,
           status: formData.status,
           accessibleCustomerIds,
           accessibleFacilityIds,
@@ -661,6 +619,8 @@ const AccountManagement: React.FC = () => {
         const payload: any = {
           username: formData.username,
           email: formData.email,
+          firstName: formData.firstName || undefined,
+          lastName: formData.lastName || undefined,
           phone: formData.phone || undefined,
           password: formData.password,
           status: formData.status,
@@ -682,25 +642,15 @@ const AccountManagement: React.FC = () => {
   };
 
   const getPermissionsCount = (account: Account) => {
-    // 计数规则：一条customer+一个Facility数据计一次数
+    // 只显示Customer数量
     if (account.customerFacilityMappings && account.customerFacilityMappings.length > 0) {
-      // 如果有映射关系，计算每个customer下的facility数量总和
-      return account.customerFacilityMappings.reduce((total, mapping) => {
-        return total + (mapping.facilityIds?.length || 0);
-      }, 0);
+      // 如果有映射关系，返回customer数量
+      return account.customerFacilityMappings.length;
     }
     
-    // 兼容旧数据：如果没有映射关系，使用customerIds和facilityIds
+    // 兼容旧数据：如果没有映射关系，使用customerIds
     const customerIds = account.customerIds || account.accessibleCustomerIds || [];
-    const facilityIds = account.facilityIds || account.accessibleFacilityIds || [];
-    
-    // 如果两者都有，返回customer数量 * facility数量（笛卡尔积）
-    if (customerIds.length > 0 && facilityIds.length > 0) {
-      return customerIds.length * facilityIds.length;
-    }
-    
-    // 如果只有其中一个，返回该数量
-    return customerIds.length + facilityIds.length;
+    return customerIds.length;
   };
 
   const handleViewPermissions = (account: Account) => {
@@ -744,29 +694,6 @@ const AccountManagement: React.FC = () => {
         )}
       </div>
     );
-  };
-
-  // Selection handlers
-  const toggleSelectAll = () => {
-    const selectableAccounts = accounts.filter(a => 
-      a.accountType !== 'MAIN' && a.id !== user?.id
-    );
-    
-    if (selectedIds.size === selectableAccounts.length) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(selectableAccounts.map(a => a.id)));
-    }
-  };
-
-  const toggleSelect = (id: string) => {
-    const newSelected = new Set(selectedIds);
-    if (newSelected.has(id)) {
-      newSelected.delete(id);
-    } else {
-      newSelected.add(id);
-    }
-    setSelectedIds(newSelected);
   };
 
   // Pagination
@@ -822,10 +749,6 @@ const AccountManagement: React.FC = () => {
     return <Badge variant={info.variant}>{info.text}</Badge>;
   };
 
-  const selectableCount = accounts.filter(a => a.accountType !== 'MAIN' && a.id !== user?.id).length;
-  const allSelected = selectableCount > 0 && selectedIds.size === selectableCount;
-  const someSelected = selectedIds.size > 0 && selectedIds.size < selectableCount;
-
   return (
     <TooltipProvider>
       <div>
@@ -840,21 +763,6 @@ const AccountManagement: React.FC = () => {
             {t('account.title')}
           </h2>
           <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
-            <DropdownMenu modal={false}>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" disabled={selectedIds.size === 0}>
-                  {t('common.bulkActions')} {selectedIds.size > 0 && `(${selectedIds.size})`} <ChevronDown size={14} style={{ marginLeft: 4 }} />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start">
-                <DropdownMenuItem onClick={() => setBulkStatusModalVisible(true)}>
-                  {t('account.bulkChangeStatus')}
-                </DropdownMenuItem>
-                <DropdownMenuItem danger onClick={handleBulkDelete}>
-                  {t('account.bulkDelete')}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button onClick={handleCreate}>
@@ -939,17 +847,10 @@ const AccountManagement: React.FC = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead style={{ width: 40 }}>
-                    <Checkbox
-                      checked={allSelected}
-                      onCheckedChange={toggleSelectAll}
-                      data-indeterminate={someSelected}
-                    />
-                  </TableHead>
                   <TableHead>{t('account.username')}</TableHead>
                   <TableHead>{t('account.email')}</TableHead>
                   <TableHead>{t('account.accountType')}</TableHead>
-                  <TableHead style={{ minWidth: 200 }}>Customer & Facility</TableHead>
+                  <TableHead style={{ minWidth: 200 }}>Customer</TableHead>
                   <TableHead>{t('account.roles')}</TableHead>
                   <TableHead>{t('common.status')}</TableHead>
                   <TableHead>{t('account.lastLogin')}</TableHead>
@@ -958,18 +859,8 @@ const AccountManagement: React.FC = () => {
               </TableHeader>
               <TableBody>
                 {paginatedAccounts.map((account) => {
-                  const isSelectable = account.accountType !== 'MAIN' && account.id !== user?.id;
-                  const isSelected = selectedIds.has(account.id);
-                  
                   return (
-                    <TableRow key={account.id} data-state={isSelected ? 'selected' : undefined}>
-                      <TableCell>
-                        <Checkbox
-                          checked={isSelected}
-                          onCheckedChange={() => toggleSelect(account.id)}
-                          disabled={!isSelectable}
-                        />
-                      </TableCell>
+                    <TableRow key={account.id}>
                       <TableCell>
                         <span style={{ fontWeight: 'var(--font-medium)', color: 'var(--text-primary)' }}>
                           {account.username}
@@ -1005,18 +896,15 @@ const AccountManagement: React.FC = () => {
                         )}
                       </TableCell>
                       <TableCell style={{ textAlign: 'center' }}>
-                        {!isSelectable ? (
-                          <span className="text-secondary">-</span>
-                        ) : (
-                          <DropdownMenu modal={false}>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
-                                <MoreHorizontal size={18} />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => handleEdit(account)}>
-                                <Pencil size={14} style={{ marginRight: 8 }} />
+                        <DropdownMenu modal={false}>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreHorizontal size={18} />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleEdit(account)}>
+                              <Pencil size={14} style={{ marginRight: 8 }} />
                                 {t('common.edit')}
                               </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => {
@@ -1042,7 +930,6 @@ const AccountManagement: React.FC = () => {
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
-                        )}
                       </TableCell>
                     </TableRow>
                   );
@@ -1108,32 +995,45 @@ const AccountManagement: React.FC = () => {
                 )}
               </div>
               
-              <div>
-                <Label>{t('account.firstName')}</Label>
-                <Input
-                  value={formData.firstName}
-                  onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                  placeholder={t('account.firstNameOptional')}
-                />
-              </div>
-              
-              <div>
-                <Label>{t('account.lastName')}</Label>
-                <Input
-                  value={formData.lastName}
-                  onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                  placeholder={t('account.lastNameOptional')}
-                />
-              </div>
-              
-              <div>
-                <Label>{t('account.phone')}</Label>
-                <Input
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  placeholder={t('account.phoneOptional')}
-                />
-              </div>
+              {!editingAccount && (
+                <>
+                  <div>
+                    <Label required>{t('account.firstName')}</Label>
+                    <Input
+                      value={formData.firstName}
+                      onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                      error={!!formErrors.firstName}
+                    />
+                    {formErrors.firstName && (
+                      <span className="text-sm" style={{ color: 'var(--danger)', marginTop: 4 }}>
+                        {formErrors.firstName}
+                      </span>
+                    )}
+                  </div>
+                  
+                  <div>
+                    <Label required>{t('account.lastName')}</Label>
+                    <Input
+                      value={formData.lastName}
+                      onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                      error={!!formErrors.lastName}
+                    />
+                    {formErrors.lastName && (
+                      <span className="text-sm" style={{ color: 'var(--danger)', marginTop: 4 }}>
+                        {formErrors.lastName}
+                      </span>
+                    )}
+                  </div>
+                  
+                  <div>
+                    <Label>{t('account.phone')}</Label>
+                    <Input
+                      value={formData.phone}
+                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    />
+                  </div>
+                </>
+              )}
               
               {!editingAccount && (
                 <>
@@ -1196,7 +1096,10 @@ const AccountManagement: React.FC = () => {
                   {/* Customer选择 */}
                   <div style={{ marginBottom: 'var(--space-md)' }}>
                     <Label style={{ fontSize: '14px', marginBottom: '8px', display: 'block' }}>Select Customers</Label>
-                    <DropdownMenu open={customerSelectOpen} onOpenChange={setCustomerSelectOpen}>
+                    <DropdownMenu open={customerSelectOpen} onOpenChange={(open) => {
+                      setCustomerSelectOpen(open);
+                      if (!open) setCustomerSearchTerm('');
+                    }}>
                       <DropdownMenuTrigger asChild>
                         <Button variant="outline" style={{ width: '100%', justifyContent: 'space-between' }}>
                           {formData.customerFacilityMappings.length === 0 
@@ -1206,40 +1109,64 @@ const AccountManagement: React.FC = () => {
                           <ChevronDown size={16} />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent style={{ width: '300px', maxHeight: '200px', overflowY: 'auto', backgroundColor: 'white' }}>
-                        {customers.map(customer => {
-                          const isSelected = formData.customerFacilityMappings.some(m => m.customerId === customer.id);
-                          return (
-                            <DropdownMenuItem 
-                              key={customer.id}
-                              onSelect={(e) => {
-                                e.preventDefault();
-                                if (isSelected) {
-                                  // 取消选择：移除该customer的mapping
-                                  setFormData({ 
-                                    ...formData, 
-                                    customerFacilityMappings: formData.customerFacilityMappings.filter(m => m.customerId !== customer.id)
-                                  });
-                                } else {
-                                  // 添加选择：添加新的mapping
-                                  setFormData({ 
-                                    ...formData, 
-                                    customerFacilityMappings: [
-                                      ...formData.customerFacilityMappings,
-                                      { customerId: customer.id, facilityIds: [] }
-                                    ]
-                                  });
-                                }
-                              }}
-                              style={{
-                                color: isSelected ? 'var(--primary)' : 'inherit',
-                                fontWeight: isSelected ? 'var(--font-bold)' : 'normal'
-                              }}
-                            >
-                              {customer.name}
-                            </DropdownMenuItem>
-                          );
-                        })}
+                      <DropdownMenuContent style={{ width: '300px', backgroundColor: 'white' }}>
+                        <div style={{ padding: '8px', borderBottom: '1px solid var(--border)' }}>
+                          <Input
+                            placeholder="Search customers..."
+                            value={customerSearchTerm}
+                            onChange={(e) => setCustomerSearchTerm(e.target.value)}
+                            style={{ height: '32px' }}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        </div>
+                        <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                          {customers
+                            .filter(customer => 
+                              customer.name.toLowerCase().includes(customerSearchTerm.toLowerCase()) ||
+                              customer.code?.toLowerCase().includes(customerSearchTerm.toLowerCase())
+                            )
+                            .map(customer => {
+                              const isSelected = formData.customerFacilityMappings.some(m => m.customerId === customer.id);
+                              return (
+                                <DropdownMenuItem 
+                                  key={customer.id}
+                                  onSelect={(e) => {
+                                    e.preventDefault();
+                                    if (isSelected) {
+                                      // 取消选择：移除该customer的mapping
+                                      setFormData({ 
+                                        ...formData, 
+                                        customerFacilityMappings: formData.customerFacilityMappings.filter(m => m.customerId !== customer.id)
+                                      });
+                                    } else {
+                                      // 添加选择：添加新的mapping
+                                      setFormData({ 
+                                        ...formData, 
+                                        customerFacilityMappings: [
+                                          ...formData.customerFacilityMappings,
+                                          { customerId: customer.id, facilityIds: [] }
+                                        ]
+                                      });
+                                    }
+                                  }}
+                                  style={{
+                                    color: isSelected ? 'var(--primary)' : 'inherit',
+                                    fontWeight: isSelected ? 'var(--font-bold)' : 'normal'
+                                  }}
+                                >
+                                  {customer.name}
+                                </DropdownMenuItem>
+                              );
+                            })}
+                          {customers.filter(customer => 
+                            customer.name.toLowerCase().includes(customerSearchTerm.toLowerCase()) ||
+                            customer.code?.toLowerCase().includes(customerSearchTerm.toLowerCase())
+                          ).length === 0 && (
+                            <div style={{ padding: '8px', fontSize: '14px', color: 'var(--text-secondary)', textAlign: 'center' }}>
+                              No customers found
+                            </div>
+                          )}
+                        </div>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
@@ -1286,7 +1213,11 @@ const AccountManagement: React.FC = () => {
                             <Label style={{ fontSize: '13px', marginBottom: '6px', display: 'block', color: 'var(--text-secondary)' }}>
                               Facilities for {customer.name}
                             </Label>
-                            <DropdownMenu>
+                            <DropdownMenu onOpenChange={(open) => {
+                              if (!open) {
+                                setFacilitySearchTerms(prev => ({ ...prev, [mapping.customerId]: '' }));
+                              }
+                            }}>
                               <DropdownMenuTrigger asChild>
                                 <Button variant="outline" size="sm" style={{ width: '100%', justifyContent: 'space-between', fontSize: '13px' }}>
                                   {mapping.facilityIds.length === 0 
@@ -1296,37 +1227,64 @@ const AccountManagement: React.FC = () => {
                                   <ChevronDown size={14} />
                                 </Button>
                               </DropdownMenuTrigger>
-                              <DropdownMenuContent style={{ width: '280px', maxHeight: '180px', overflowY: 'auto', backgroundColor: 'white' }}>
-                                {facilities.map(facility => {
-                                  const isFacilitySelected = mapping.facilityIds.includes(facility.id);
-                                  return (
-                                    <DropdownMenuItem 
-                                      key={facility.id}
-                                      onSelect={(e) => {
-                                        e.preventDefault();
-                                        const newMappings = [...formData.customerFacilityMappings];
-                                        const currentMapping = newMappings[index];
-                                        
-                                        if (isFacilitySelected) {
-                                          // 取消选择facility
-                                          currentMapping.facilityIds = currentMapping.facilityIds.filter(id => id !== facility.id);
-                                        } else {
-                                          // 添加facility
-                                          currentMapping.facilityIds = [...currentMapping.facilityIds, facility.id];
-                                        }
-                                        
-                                        setFormData({ ...formData, customerFacilityMappings: newMappings });
-                                      }}
-                                      style={{
-                                        color: isFacilitySelected ? 'var(--primary)' : 'inherit',
-                                        fontWeight: isFacilitySelected ? 'var(--font-bold)' : 'normal',
-                                        fontSize: '13px'
-                                      }}
-                                    >
-                                      {facility.name}
-                                    </DropdownMenuItem>
-                                  );
-                                })}
+                              <DropdownMenuContent style={{ width: '280px', backgroundColor: 'white' }}>
+                                <div style={{ padding: '8px', borderBottom: '1px solid var(--border)' }}>
+                                  <Input
+                                    placeholder="Search facilities..."
+                                    value={facilitySearchTerms[mapping.customerId] || ''}
+                                    onChange={(e) => setFacilitySearchTerms(prev => ({
+                                      ...prev,
+                                      [mapping.customerId]: e.target.value
+                                    }))}
+                                    style={{ height: '28px', fontSize: '13px' }}
+                                    onClick={(e) => e.stopPropagation()}
+                                  />
+                                </div>
+                                <div style={{ maxHeight: '180px', overflowY: 'auto' }}>
+                                  {facilities
+                                    .filter(facility => 
+                                      facility.name.toLowerCase().includes((facilitySearchTerms[mapping.customerId] || '').toLowerCase()) ||
+                                      facility.code?.toLowerCase().includes((facilitySearchTerms[mapping.customerId] || '').toLowerCase())
+                                    )
+                                    .map(facility => {
+                                      const isFacilitySelected = mapping.facilityIds.includes(facility.id);
+                                      return (
+                                        <DropdownMenuItem 
+                                          key={facility.id}
+                                          onSelect={(e) => {
+                                            e.preventDefault();
+                                            const newMappings = [...formData.customerFacilityMappings];
+                                            const currentMapping = newMappings[index];
+                                            
+                                            if (isFacilitySelected) {
+                                              // 取消选择facility
+                                              currentMapping.facilityIds = currentMapping.facilityIds.filter(id => id !== facility.id);
+                                            } else {
+                                              // 添加facility
+                                              currentMapping.facilityIds = [...currentMapping.facilityIds, facility.id];
+                                            }
+                                            
+                                            setFormData({ ...formData, customerFacilityMappings: newMappings });
+                                          }}
+                                          style={{
+                                            color: isFacilitySelected ? 'var(--primary)' : 'inherit',
+                                            fontWeight: isFacilitySelected ? 'var(--font-bold)' : 'normal',
+                                            fontSize: '13px'
+                                          }}
+                                        >
+                                          {facility.name}
+                                        </DropdownMenuItem>
+                                      );
+                                    })}
+                                  {facilities.filter(facility => 
+                                    facility.name.toLowerCase().includes((facilitySearchTerms[mapping.customerId] || '').toLowerCase()) ||
+                                    facility.code?.toLowerCase().includes((facilitySearchTerms[mapping.customerId] || '').toLowerCase())
+                                  ).length === 0 && (
+                                    <div style={{ padding: '8px', fontSize: '13px', color: 'var(--text-secondary)', textAlign: 'center' }}>
+                                      No facilities found
+                                    </div>
+                                  )}
+                                </div>
                               </DropdownMenuContent>
                             </DropdownMenu>
                             
@@ -1682,37 +1640,6 @@ const AccountManagement: React.FC = () => {
           </DialogContent>
         </Dialog>
 
-        {/* Bulk Status Change Dialog */}
-        <Dialog open={bulkStatusModalVisible} onOpenChange={setBulkStatusModalVisible}>
-          <DialogContent className="ui-dialog-content--sm">
-            <DialogHeader>
-              <DialogTitle>{t('account.bulkChangeStatus')}</DialogTitle>
-            </DialogHeader>
-            <p style={{ marginBottom: 'var(--space-md)' }}>
-              {t('common.selected', { count: selectedIds.size.toString() })}
-            </p>
-            <Select
-              value={bulkStatus}
-              onValueChange={setBulkStatus}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ACTIVE">{t('account.statusActive')}</SelectItem>
-                <SelectItem value="INACTIVE">{t('account.statusInactive')}</SelectItem>
-              </SelectContent>
-            </Select>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setBulkStatusModalVisible(false)}>
-                {t('common.cancel')}
-              </Button>
-              <Button onClick={handleBulkStatusChange}>
-                {t('common.confirm')}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
       </div>
     </TooltipProvider>
   );

@@ -133,5 +133,150 @@ router.post('/account/:accountId/assign', async (req: AuthRequest, res) => {
   }
 });
 
+// 创建菜单
+router.post('/', async (req: AuthRequest, res) => {
+  try {
+    const { name, code, path, parentId, icon, order, type, isExternal, visible, status, componentPath, routeParams } = req.body;
+    
+    // 验证必填字段
+    if (!name || !code) {
+      return res.status(400).json({
+        success: false,
+        error: '菜单名称和编码为必填项'
+      } as ApiResponse);
+    }
+    
+    // 检查编码是否已存在
+    const existingMenus = db.getAllMenus();
+    if (existingMenus.some(m => m.code === code)) {
+      return res.status(400).json({
+        success: false,
+        error: '菜单编码已存在'
+      } as ApiResponse);
+    }
+    
+    const newMenu: Menu = {
+      id: `menu-${Date.now()}`,
+      name,
+      code,
+      path: path || `/${code}`,
+      parentId,
+      icon,
+      order: order || 0,
+      type: type || 'MENU',
+      isExternal: isExternal || false,
+      visible: visible !== false,
+      status: status || 'NORMAL',
+      componentPath,
+      routeParams
+    };
+    
+    db.createMenu(newMenu);
+    
+    res.json({
+      success: true,
+      data: newMenu,
+      message: '菜单创建成功'
+    } as ApiResponse<Menu>);
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message || '创建菜单失败'
+    } as ApiResponse);
+  }
+});
+
+// 更新菜单
+router.put('/:id', async (req: AuthRequest, res) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+    
+    const menu = db.getMenu(id);
+    if (!menu) {
+      return res.status(404).json({
+        success: false,
+        error: '菜单不存在'
+      } as ApiResponse);
+    }
+    
+    // 检查编码是否冲突
+    if (updates.code && updates.code !== menu.code) {
+      const existingMenus = db.getAllMenus();
+      if (existingMenus.some(m => m.code === updates.code && m.id !== id)) {
+        return res.status(400).json({
+          success: false,
+          error: '菜单编码已存在'
+        } as ApiResponse);
+      }
+    }
+    
+    const success = db.updateMenu(id, updates);
+    
+    if (success) {
+      const updatedMenu = db.getMenu(id);
+      res.json({
+        success: true,
+        data: updatedMenu,
+        message: '菜单更新成功'
+      } as ApiResponse<Menu>);
+    } else {
+      res.status(500).json({
+        success: false,
+        error: '更新菜单失败'
+      } as ApiResponse);
+    }
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message || '更新菜单失败'
+    } as ApiResponse);
+  }
+});
+
+// 删除菜单
+router.delete('/:id', async (req: AuthRequest, res) => {
+  try {
+    const { id } = req.params;
+    
+    const menu = db.getMenu(id);
+    if (!menu) {
+      return res.status(404).json({
+        success: false,
+        error: '菜单不存在'
+      } as ApiResponse);
+    }
+    
+    // 检查是否有子菜单
+    const allMenus = db.getAllMenus();
+    const hasChildren = allMenus.some(m => m.parentId === id);
+    if (hasChildren) {
+      return res.status(400).json({
+        success: false,
+        error: '该菜单下有子菜单，无法删除'
+      } as ApiResponse);
+    }
+    
+    const success = db.deleteMenu(id);
+    
+    if (success) {
+      res.json({
+        success: true,
+        message: '菜单删除成功'
+      } as ApiResponse);
+    } else {
+      res.status(500).json({
+        success: false,
+        error: '删除菜单失败'
+      } as ApiResponse);
+    }
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message || '删除菜单失败'
+    } as ApiResponse);
+  }
+});
+
 export default router;
 

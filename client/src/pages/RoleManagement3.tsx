@@ -64,7 +64,7 @@ import {
   Pagination,
   Separator,
 } from '../components/ui';
-import PermissionsTree from '../components/PermissionsTree';
+import PermissionsTree3 from '../components/PermissionsTree3';
 
 interface Role {
   id: string;
@@ -90,7 +90,7 @@ interface Permission {
   };
 }
 
-const RoleManagement2: React.FC = () => {
+const RoleManagement3: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const params = useParams<{ id?: string }>();
@@ -99,7 +99,7 @@ const RoleManagement2: React.FC = () => {
   // 判断是否在Portal Admin中
   const isPortalAdmin = location.pathname.startsWith('/portal-admin');
   // 根据当前位置确定基础路径
-  const basePath = isPortalAdmin ? '/portal-admin/roles' : '/roles-2';
+  const basePath = isPortalAdmin ? '/portal-admin/roles' : '/roles-3';
   
   const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(false);
@@ -167,103 +167,103 @@ const RoleManagement2: React.FC = () => {
 
   const MODULE_PAGES: Record<string, Array<{ code: string; name: string; operations: string[]; tooltip?: string }>> = {
     DASHBOARDS: [
-      { code: 'kpi', name: 'KPI', operations: ['VIEW'] }
+      { code: 'kpi', name: 'KPI', operations: ['VIEW', 'button-1', 'button-2'] }
     ],
     PURCHASE_MANAGEMENT: [
-      { code: 'projects', name: 'Projects', operations: ['VIEW', 'CREATE'] },
-      { code: 'purchase-request', name: 'Purchase Request', operations: ['VIEW', 'CREATE'] },
-      { code: 'purchase-order', name: 'Purchase Order', operations: ['VIEW'] }
+      { code: 'projects', name: 'Projects', operations: ['VIEW', 'CREATE', 'button-1', 'button-2'] },
+      { code: 'purchase-request', name: 'Purchase Request', operations: ['VIEW', 'CREATE', 'button-1', 'button-2'] },
+      { code: 'purchase-order', name: 'Purchase Order', operations: ['VIEW', 'button-1', 'button-2'] }
     ],
     SALES_ORDER: [
-      { code: 'wholesale-orders', name: 'Wholesale Orders', operations: ['VIEW'] },
-      { code: 'retail-orders', name: 'Retail Orders', operations: ['VIEW'] }
+      { code: 'wholesale-orders', name: 'Wholesale Orders', operations: ['VIEW', 'button-1', 'button-2'] },
+      { code: 'retail-orders', name: 'Retail Orders', operations: ['VIEW', 'button-1', 'button-2'] }
     ],
     WORK_ORDER: [
-      { code: 'work-orders', name: 'Work Orders', operations: ['VIEW'] }
+      { code: 'work-orders', name: 'Work Orders', operations: ['VIEW', 'button-1', 'button-2'] }
     ],
     INBOUND: [
-      { code: 'inquiry', name: 'Inquiry', operations: ['VIEW', 'EDIT'] },
-      { code: 'schedule-summary', name: 'Schedule Summary', operations: ['VIEW'] },
-      { code: 'received-summary', name: 'Received Summary', operations: ['VIEW'] },
-      { code: 'receipt-entry', name: 'Receipt Entry', operations: ['CREATE'] },
-      { code: 'put-away-report', name: 'Put Away Report', operations: ['VIEW'] },
-      { code: 'make-appointment', name: 'Make Appointment', operations: ['CREATE'] },
-      { code: 'appointment-list', name: 'Appointment List', operations: ['VIEW', 'CREATE', 'EDIT'] }
+      { code: 'inquiry', name: 'Inquiry', operations: ['VIEW', 'EDIT', 'button-1', 'button-2'] },
+      { code: 'schedule-summary', name: 'Schedule Summary', operations: ['VIEW', 'button-1', 'button-2'] },
+      { code: 'received-summary', name: 'Received Summary', operations: ['VIEW', 'button-1', 'button-2'] },
+      { code: 'receipt-entry', name: 'Receipt Entry', operations: ['CREATE', 'button-1', 'button-2'] },
+      { code: 'put-away-report', name: 'Put Away Report', operations: ['VIEW', 'button-1', 'button-2'] },
+      { code: 'make-appointment', name: 'Make Appointment', operations: ['CREATE', 'button-1', 'button-2'] },
+      { code: 'appointment-list', name: 'Appointment List', operations: ['VIEW', 'CREATE', 'EDIT', 'button-1', 'button-2'] }
     ],
     INVENTORY: [
-      { code: 'sn-look-up', name: 'SN Look Up', operations: ['VIEW'] },
-      { code: 'inventory-activity', name: 'Inventory Activity', operations: ['VIEW'] },
-      { code: 'inventory-adjustment', name: 'Inventory Adjustment', operations: ['VIEW'] },
-      { code: 'inventory-status', name: 'Inventory Status', operations: ['VIEW', 'EDIT'] },
-      { code: 'item-master', name: 'Item Master', operations: ['VIEW'] },
-      { code: 'current-onhand', name: 'Current Onhand Inventory Aging Report', operations: ['VIEW'] },
-      { code: 'historical-inventory-aging', name: 'Historical Inventory Aging Report', operations: ['VIEW'] },
-      { code: 'warehouse-projects', name: 'Warehouse Projects', operations: ['VIEW'] }
+      { code: 'sn-look-up', name: 'SN Look Up', operations: ['VIEW', 'button-1', 'button-2'] },
+      { code: 'inventory-activity', name: 'Inventory Activity', operations: ['VIEW', 'button-1', 'button-2'] },
+      { code: 'inventory-adjustment', name: 'Inventory Adjustment', operations: ['VIEW', 'button-1', 'button-2'] },
+      { code: 'inventory-status', name: 'Inventory Status', operations: ['VIEW', 'EDIT', 'button-1', 'button-2'] },
+      { code: 'item-master', name: 'Item Master', operations: ['VIEW', 'button-1', 'button-2'] },
+      { code: 'current-onhand', name: 'Current Onhand Inventory Aging Report', operations: ['VIEW', 'button-1', 'button-2'] },
+      { code: 'historical-inventory-aging', name: 'Historical Inventory Aging Report', operations: ['VIEW', 'button-1', 'button-2'] },
+      { code: 'warehouse-projects', name: 'Warehouse Projects', operations: ['VIEW', 'button-1', 'button-2'] }
     ],
     OUTBOUND: [
-      { code: 'inquiry', name: 'Inquiry', operations: ['VIEW'] },
-      { code: 'schedule-summary', name: 'Schedule Summary', operations: ['VIEW'] },
-      { code: 'shipped-summary', name: 'Shipped Summary', operations: ['VIEW'] },
-      { code: 'order-carrier-update', name: 'Order Carrier Update', operations: ['VIEW'] },
-      { code: 'order-entry', name: 'Order Entry', operations: ['CREATE'] },
-      { code: 'small-parcel-tracking', name: 'Small Parcel Tracking Status', operations: ['VIEW'] },
-      { code: 'freight-quote', name: 'Freight Quote', operations: ['VIEW', 'CREATE'] }
+      { code: 'inquiry', name: 'Inquiry', operations: ['VIEW', 'button-1', 'button-2'] },
+      { code: 'schedule-summary', name: 'Schedule Summary', operations: ['VIEW', 'button-1', 'button-2'] },
+      { code: 'shipped-summary', name: 'Shipped Summary', operations: ['VIEW', 'button-1', 'button-2'] },
+      { code: 'order-carrier-update', name: 'Order Carrier Update', operations: ['VIEW', 'button-1', 'button-2'] },
+      { code: 'order-entry', name: 'Order Entry', operations: ['CREATE', 'button-1', 'button-2'] },
+      { code: 'small-parcel-tracking', name: 'Small Parcel Tracking Status', operations: ['VIEW', 'button-1', 'button-2'] },
+      { code: 'freight-quote', name: 'Freight Quote', operations: ['VIEW', 'CREATE', 'button-1', 'button-2'] }
     ],
     RETURNS: [
-      { code: 'rma', name: 'RMA', operations: ['VIEW', 'EDIT'] },
-      { code: 'traveler-id', name: 'Traveler ID', operations: ['VIEW'] },
-      { code: 'return-report', name: 'Return Report', operations: ['VIEW'] },
-      { code: 'restock-report', name: 'Restock Report', operations: ['VIEW'] },
-      { code: 'adjustment-report', name: 'Adjustment Report', operations: ['VIEW'] },
-      { code: 'scrap-report', name: 'Scrap Report', operations: ['VIEW'] },
-      { code: 'service-claim-report', name: 'Service Claim Report', operations: ['VIEW'] }
+      { code: 'rma', name: 'RMA', operations: ['VIEW', 'EDIT', 'button-1', 'button-2'] },
+      { code: 'traveler-id', name: 'Traveler ID', operations: ['VIEW', 'button-1', 'button-2'] },
+      { code: 'return-report', name: 'Return Report', operations: ['VIEW', 'button-1', 'button-2'] },
+      { code: 'restock-report', name: 'Restock Report', operations: ['VIEW', 'button-1', 'button-2'] },
+      { code: 'adjustment-report', name: 'Adjustment Report', operations: ['VIEW', 'button-1', 'button-2'] },
+      { code: 'scrap-report', name: 'Scrap Report', operations: ['VIEW', 'button-1', 'button-2'] },
+      { code: 'service-claim-report', name: 'Service Claim Report', operations: ['VIEW', 'button-1', 'button-2'] }
     ],
     YARD_MANAGEMENT: [
-      { code: 'equipment-history-report', name: 'Equipment History Report', operations: ['VIEW'] },
-      { code: 'equipment-report', name: 'Equipment Report', operations: ['VIEW'] },
-      { code: 'yard-status-report', name: 'Yard Status Report', operations: ['VIEW'] },
-      { code: 'yard-check-report', name: 'Yard Check Report', operations: ['VIEW'] }
+      { code: 'equipment-history-report', name: 'Equipment History Report', operations: ['VIEW', 'button-1', 'button-2'] },
+      { code: 'equipment-report', name: 'Equipment Report', operations: ['VIEW', 'button-1', 'button-2'] },
+      { code: 'yard-status-report', name: 'Yard Status Report', operations: ['VIEW', 'button-1', 'button-2'] },
+      { code: 'yard-check-report', name: 'Yard Check Report', operations: ['VIEW', 'button-1', 'button-2'] }
     ],
     SUPPLY_CHAIN: [
-      { code: 'damaged-box-detection', name: 'Damaged Box Detection', operations: ['VIEW', 'EDIT'] },
-      { code: 'routing-report', name: 'Routing Report', operations: ['VIEW'] },
-      { code: 'walmart-shipments', name: 'Walmart Shipments', operations: ['VIEW'] },
-      { code: 'target-shipments', name: 'Target Shipments', operations: ['VIEW'] },
-      { code: 'shipments', name: 'Shipments', operations: ['VIEW', 'CREATE'] },
-      { code: 'tracking', name: 'Tracking', operations: ['VIEW', 'EDIT'] },
-      { code: 'automated-order-entry', name: 'Automated Order Entry', operations: ['CREATE'] }
+      { code: 'damaged-box-detection', name: 'Damaged Box Detection', operations: ['VIEW', 'EDIT', 'button-1', 'button-2'] },
+      { code: 'routing-report', name: 'Routing Report', operations: ['VIEW', 'button-1', 'button-2'] },
+      { code: 'walmart-shipments', name: 'Walmart Shipments', operations: ['VIEW', 'button-1', 'button-2'] },
+      { code: 'target-shipments', name: 'Target Shipments', operations: ['VIEW', 'button-1', 'button-2'] },
+      { code: 'shipments', name: 'Shipments', operations: ['VIEW', 'CREATE', 'button-1', 'button-2'] },
+      { code: 'tracking', name: 'Tracking', operations: ['VIEW', 'EDIT', 'button-1', 'button-2'] },
+      { code: 'automated-order-entry', name: 'Automated Order Entry', operations: ['CREATE', 'button-1', 'button-2'] }
     ],
     FINANCE: [
-      { code: 'invoice', name: 'Invoice', operations: ['VIEW', 'EDIT'] },
-      { code: 'card-and-balance', name: 'Card and Balance', operations: ['VIEW', 'CREATE', 'EDIT'] },
-      { code: 'history', name: 'History', operations: ['VIEW'] },
-      { code: 'cost-calculator', name: 'Cost Calculator', operations: ['VIEW'] },
-      { code: 'claim', name: 'Claim', operations: ['VIEW', 'CREATE', 'EDIT'] }
+      { code: 'invoice', name: 'Invoice', operations: ['VIEW', 'EDIT', 'button-1', 'button-2'] },
+      { code: 'card-and-balance', name: 'Card and Balance', operations: ['VIEW', 'CREATE', 'EDIT', 'button-1', 'button-2'] },
+      { code: 'history', name: 'History', operations: ['VIEW', 'button-1', 'button-2'] },
+      { code: 'cost-calculator', name: 'Cost Calculator', operations: ['VIEW', 'button-1', 'button-2'] },
+      { code: 'claim', name: 'Claim', operations: ['VIEW', 'CREATE', 'EDIT', 'button-1', 'button-2'] }
     ],
     SYSTEM_MANAGEMENT: [
-      { code: 'address-book', name: 'Address Book', operations: ['VIEW', 'CREATE', 'EDIT', 'DELETE'] },
-      { code: 'settings', name: 'Settings', operations: ['VIEW', 'CREATE', 'EDIT'] }
+      { code: 'address-book', name: 'Address Book', operations: ['VIEW', 'CREATE', 'EDIT', 'DELETE', 'button-1', 'button-2'] },
+      { code: 'settings', name: 'Settings', operations: ['VIEW', 'CREATE', 'EDIT', 'button-1', 'button-2'] }
     ],
     PERMISSION_MANAGEMENT: [
       { 
         code: 'account-management', 
         name: 'Account Management', 
-        operations: ['VIEW', 'CREATE', 'EDIT', 'DELETE'] 
+        operations: ['VIEW', 'CREATE', 'EDIT', 'DELETE', 'button-1', 'button-2'] 
       },
       { 
         code: 'role-management', 
         name: 'Role Management', 
-        operations: ['VIEW', 'CREATE', 'EDIT', 'DELETE'] 
+        operations: ['VIEW', 'CREATE', 'EDIT', 'DELETE', 'button-1', 'button-2'] 
       },
       { 
         code: 'permission-view', 
         name: 'Permission View', 
-        operations: ['VIEW'] 
+        operations: ['VIEW', 'button-1', 'button-2'] 
       },
       { 
         code: 'audit-log', 
         name: 'Audit Log', 
-        operations: ['VIEW'] 
+        operations: ['VIEW', 'button-1', 'button-2'] 
       }
     ]
   };
@@ -977,7 +977,7 @@ const RoleManagement2: React.FC = () => {
 
               {/* Permissions Tree Content */}
               <div style={{ flex: 1, overflowY: 'auto', padding: 'var(--space-lg)' }}>
-                <PermissionsTree
+                <PermissionsTree3
                   modules={MODULES}
                   modulePages={MODULE_PAGES}
                   selectedPermissions={selectedPermissions}
@@ -1012,4 +1012,4 @@ const RoleManagement2: React.FC = () => {
   );
 };
 
-export default RoleManagement2;
+export default RoleManagement3;

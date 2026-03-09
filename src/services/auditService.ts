@@ -71,9 +71,6 @@ class AuditService {
       case ActionType.ROLE_UPDATED:
         return this.generateRoleUpdatedDescription(targetName, changes);
       
-      case ActionType.ROLE_COPIED:
-        return this.generateRoleCopiedDescription(previousValue, newValue);
-      
       case ActionType.ROLE_DELETED:
         return `Role deleted: ${targetName} (${previousValue?.id || ''})`;
       
@@ -326,13 +323,6 @@ class AuditService {
     };
 
     return operations.map(op => operationMap[op] || op).join(', ');
-  }
-
-  /**
-   * 生成复制角色描述
-   */
-  private generateRoleCopiedDescription(sourceRole: Role, newRole: Role): string {
-    return `Role copied: ${sourceRole.name} (${sourceRole.id}), created role: ${newRole.name} (${newRole.id})`;
   }
 
   /**

@@ -808,7 +808,7 @@ export const initTestData = async () => {
     log4Timestamp
   );
 
-  // 模拟操作记录5：复制角色（10分钟前）
+  // 模拟操作记录5：复制角色（10分钟前）- 记录为创建
   const log5Timestamp = new Date(Date.now() - 10 * 60 * 1000).toISOString();
   const copiedRole = {
     id: 'ROLE-004',
@@ -819,11 +819,11 @@ export const initTestData = async () => {
   };
   auditService.log(
     mockActor2,
-    ActionType.ROLE_COPIED,
+    ActionType.ROLE_CREATED,
     TargetType.ROLE,
     copiedRole.id,
     copiedRole.name,
-    customerAdminRole,
+    undefined,
     copiedRole,
     undefined,
     '192.168.1.104',
@@ -1102,7 +1102,7 @@ export const initTestData = async () => {
   console.log('  2. Account updated: john.smith modified email and roles (45 minutes ago)');
   console.log('  3. Account created: jane.doe (30 minutes ago)');
   console.log('  4. Role updated: Customer Administrator modified description and permissions (20 minutes ago)');
-  console.log('  5. Role copied: Customer Administrator -> Customer Administrator (Copy) (10 minutes ago)');
+  console.log('  5. Role created: Customer Administrator (Copy) - duplicated from Customer Administrator (10 minutes ago)');
   console.log('Total: 1 main account + 7 sub-accounts = 8 accounts');
   console.log('✅ Main account (admin) assigned ONLY Super Administrator role (ROLE-000)');
 };

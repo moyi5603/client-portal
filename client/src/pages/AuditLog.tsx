@@ -63,10 +63,8 @@ const AuditLogPage: React.FC = () => {
   const ACTION_TYPE_MAP: Record<string, { label: string; variant: 'success' | 'info' | 'destructive' | 'secondary' | 'warning' }> = {
     'ACCOUNT_CREATED': { label: t('actionType.ACCOUNT_CREATED'), variant: 'success' },
     'ACCOUNT_UPDATED': { label: t('actionType.ACCOUNT_UPDATED'), variant: 'info' },
-    'ACCOUNT_DELETED': { label: t('actionType.ACCOUNT_DELETED'), variant: 'destructive' },
     'ROLE_CREATED': { label: t('actionType.ROLE_CREATED'), variant: 'success' },
     'ROLE_UPDATED': { label: t('actionType.ROLE_UPDATED'), variant: 'info' },
-    'ROLE_COPIED': { label: t('actionType.ROLE_COPIED'), variant: 'secondary' },
     'ROLE_DELETED': { label: t('actionType.ROLE_DELETED'), variant: 'destructive' }
   };
 
@@ -85,11 +83,15 @@ const AuditLogPage: React.FC = () => {
       const saved = localStorage.getItem(FILTER_STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
+        // 验证actionType是否有效，如果无效则重置为'ALL'
+        const validActionType = parsed.actionType && ACTION_TYPE_MAP[parsed.actionType] 
+          ? parsed.actionType 
+          : 'ALL';
         return {
           dateRange: parsed.dateRange 
             ? { from: new Date(parsed.dateRange.from), to: new Date(parsed.dateRange.to) }
             : undefined,
-          actionType: parsed.actionType || 'ALL',
+          actionType: validActionType,
           targetType: parsed.targetType || 'ALL',
           actorName: parsed.actorName || '',
           targetName: parsed.targetName || ''

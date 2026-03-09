@@ -743,7 +743,6 @@ const RoleManagement: React.FC = () => {
                         <div style={{ fontWeight: 'var(--font-medium)', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 'var(--space-xs)' }}>
                           {role.name}
                         </div>
-                        <div className="text-xs text-secondary">{role.id}</div>
                       </TableCell>
                       <TableCell style={{ maxWidth: 200 }}>
                         <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -907,12 +906,6 @@ const RoleManagement: React.FC = () => {
                   error={!!formErrors.name}
                 />
                 {formErrors.name && <span className="text-sm" style={{ color: 'var(--danger)' }}>{formErrors.name}</span>}
-              </div>
-
-              {/* Role ID */}
-              <div style={{ marginBottom: 'var(--space-md)' }}>
-                <Label>{t('role.id')}</Label>
-                <Input value={editingRole?.id || t('role.idAuto')} disabled />
               </div>
 
               {/* Description */}

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import {
   User, Users, Shield, Menu, LogOut, List, Globe, FileText, Sun, Moon, ChevronDown, ChevronRight, Edit, Layout
 } from 'lucide-react';
@@ -18,7 +18,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import Breadcrumb from './Breadcrumb';
 
 interface MainLayoutProps {
-  children: React.ReactNode;
+  // No props needed when using Outlet
 }
 
 interface NavItem {
@@ -29,7 +29,7 @@ interface NavItem {
   children?: NavItem[];
 }
 
-const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
+const MainLayout: React.FC<MainLayoutProps> = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [expandedMenus, setExpandedMenus] = useState<string[]>(['account-management']);
   const [clickCounts, setClickCounts] = useState<Record<string, number>>({});
@@ -42,11 +42,11 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
   // Auto-expand parent menu based on current path
   React.useEffect(() => {
-    if (['/accounts', '/roles', '/roles-2', '/permissions', '/permissions-2', '/audit-logs'].includes(location.pathname)) {
+    if (['/accounts', '/roles', '/roles-2', '/roles-3', '/permissions', '/permissions-2', '/audit-logs'].includes(location.pathname)) {
       if (!expandedMenus.includes('account-management')) {
         setExpandedMenus([...expandedMenus, 'account-management']);
       }
-    } else if (['/portal-admin/accounts', '/portal-admin/roles', '/portal-admin/permissions', '/portal-admin/audit-logs'].includes(location.pathname)) {
+    } else if (['/portal-admin/accounts', '/portal-admin/roles', '/portal-admin/menus', '/portal-admin/permissions', '/portal-admin/audit-logs'].includes(location.pathname)) {
       if (!expandedMenus.includes('portal-admin')) {
         setExpandedMenus([...expandedMenus, 'portal-admin']);
       }
@@ -80,6 +80,12 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           icon: <Shield className="w-4 h-4" />,
           label: 'Role Management-2',
           path: '/roles-2'
+        },
+        {
+          key: '/roles-3',
+          icon: <Shield className="w-4 h-4" />,
+          label: 'Role Management-3',
+          path: '/roles-3'
         },
         {
           key: '/permissions',
@@ -117,6 +123,12 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           icon: <Shield className="w-4 h-4" />,
           label: t('nav.roleManagement'),
           path: '/portal-admin/roles'
+        },
+        {
+          key: '/portal-admin/menus',
+          icon: <Menu className="w-4 h-4" />,
+          label: 'Menu Management',
+          path: '/portal-admin/menus'
         },
         {
           key: '/portal-admin/permissions',
@@ -380,7 +392,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             }}
           >
             <Breadcrumb />
-            {children}
+            <Outlet />
           </div>
         </main>
       </div>

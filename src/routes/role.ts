@@ -235,14 +235,14 @@ router.post('/:id/copy', requireAccountType('MAIN'), async (req: AuthRequest, re
 
     db.createRole(newRole);
 
-    // 记录审计日志
+    // 记录审计日志 - 角色复制记录为创建
     auditService.log(
       req.user!,
-      ActionType.ROLE_COPIED,
+      ActionType.ROLE_CREATED,
       TargetType.ROLE,
       newRole.id,
       newRole.name,
-      sourceRole,
+      undefined,
       newRole
     );
 

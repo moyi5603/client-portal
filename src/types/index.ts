@@ -96,7 +96,6 @@ export enum ActionType {
   // 角色相关
   ROLE_CREATED = 'ROLE_CREATED',
   ROLE_UPDATED = 'ROLE_UPDATED',
-  ROLE_COPIED = 'ROLE_COPIED',
   ROLE_DELETED = 'ROLE_DELETED',
   // IDP映射相关
   IDP_MAPPING_CREATED = 'IDP_MAPPING_CREATED',
@@ -225,6 +224,12 @@ export interface Menu {
   parentId?: string;
   icon?: string;
   order: number;
+  type?: 'DIRECTORY' | 'MENU' | 'BUTTON';  // 菜单类型：目录、菜单、按钮
+  isExternal?: boolean;  // 是否外链
+  visible?: boolean;  // 显示状态
+  status?: 'NORMAL' | 'DISABLED';  // 菜单状态
+  componentPath?: string;  // 组件路径
+  routeParams?: string;  // 路由参数
   children?: Menu[];
 }
 

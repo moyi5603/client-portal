@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Eye, Plus, Edit2, Trash2, Download, 
-  RefreshCw, CheckCircle, Info, ArrowLeftRight, X, UserCircle
+  RefreshCw, CheckCircle, Info, UserCircle
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -128,10 +128,6 @@ const PermissionView: React.FC = () => {
   const AVAILABLE_OPERATIONS = [
     'VIEW', 'CREATE', 'EDIT', 'DELETE'
   ];
-  
-  // Role comparison state
-  const [comparisonMode, setComparisonMode] = useState(false);
-  const [selectedRolesForComparison, setSelectedRolesForComparison] = useState<string[]>([]);
 
   useEffect(() => {
     loadData();
@@ -288,80 +284,8 @@ const PermissionView: React.FC = () => {
     });
     setRoleNameFilter('');
     setViewMode('matrix');
-    setComparisonMode(false);
-    setSelectedRolesForComparison([]);
     setCurrentPage(1);
   };
-
-  // Get permissions for a role as a Set of strings
-  const getRolePermissionSet = (roleId: string): Set<string> => {
-    const role = roles.find(r => r.id === roleId);
-    if (!role) return new Set();
-    
-    const permSet = new Set<string>();
-    role.permissions.forEach(perm => {
-      perm.operations.forEach(op => {
-        permSet.add(`${perm.module}:${perm.pageCode}:${op}`);
-      });
-    });
-    return permSet;
-  };
-
-  // Comparison data for the comparison view
-  const comparisonData = useMemo(() => {
-    if (selectedRolesForComparison.length < 2) return [];
-    
-    const roleSets = selectedRolesForComparison.map(id => ({
-      id,
-      role: roles.find(r => r.id === id),
-      permissions: getRolePermissionSet(id)
-    }));
-
-    const allComparisonModules = new Set<string>();
-    const modulePages: Record<string, Set<string>> = {};
-    
-    roleSets.forEach(({ role }) => {
-      if (role) {
-        role.permissions.forEach(perm => {
-          allComparisonModules.add(perm.module);
-          if (!modulePages[perm.module]) {
-            modulePages[perm.module] = new Set();
-          }
-          modulePages[perm.module].add(perm.pageCode);
-        });
-      }
-    });
-
-    const data: any[] = [];
-    MODULE_ORDER.filter(module => allComparisonModules.has(module)).forEach(module => {
-      const pages = Array.from(modulePages[module] || []);
-      pages.forEach(pageCode => {
-        const row: any = {
-          key: `${module}-${pageCode}`,
-          module,
-          moduleName: MODULE_CONFIG[module]?.name || module,
-          pageCode,
-        };
-
-        const allOps = new Set<string>();
-        roleSets.forEach(({ role }) => {
-          const perm = role?.permissions.find(p => p.module === module && p.pageCode === pageCode);
-          perm?.operations.forEach(op => allOps.add(op));
-        });
-
-        row.operations = Array.from(allOps);
-        
-        roleSets.forEach(({ id, role }) => {
-          const perm = role?.permissions.find(p => p.module === module && p.pageCode === pageCode);
-          row[`role_${id}`] = perm?.operations || [];
-        });
-
-        data.push(row);
-      });
-    });
-
-    return data;
-  }, [selectedRolesForComparison, roles]);
 
   // Render operation badge
   const renderOperationBadge = (op: string, isUnique?: boolean) => {
@@ -483,7 +407,6 @@ const PermissionView: React.FC = () => {
                   setFilters({ ...filters, module: value });
                   setCurrentPage(1);
                 }}
-                disabled={comparisonMode}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -507,7 +430,6 @@ const PermissionView: React.FC = () => {
                   setFilters({ ...filters, operation: value });
                   setCurrentPage(1);
                 }}
-                disabled={comparisonMode}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -532,7 +454,6 @@ const PermissionView: React.FC = () => {
                   setRoleNameFilter(e.target.value);
                   setCurrentPage(1);
                 }}
-                disabled={comparisonMode}
               />
             </div>
             
@@ -540,78 +461,10 @@ const PermissionView: React.FC = () => {
               <Button variant="outline" onClick={handleReset}>
                 {t('common.reset')}
               </Button>
-              <Button disabled={comparisonMode}>
+              <Button>
                 {t('common.search')}
               </Button>
             </div>
-          </div>
-
-          {/* Role Comparison Mode */}
-          <Separator className="my-6" />
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
-            <div className="md:col-span-3 flex items-center gap-3">
-              <ArrowLeftRight className="w-4 h-4" />
-              <span className="font-medium">{t('permission.compareRoles')}</span>
-              <Switch 
-                checked={comparisonMode} 
-                onCheckedChange={(checked) => {
-                  setComparisonMode(checked);
-                  if (!checked) {
-                    setSelectedRolesForComparison([]);
-                  }
-                }} 
-              />
-            </div>
-            {comparisonMode && (
-              <>
-                <div className="md:col-span-7">
-                  <Select
-                    value={selectedRolesForComparison.join(',')}
-                    onValueChange={(value) => {
-                      const currentValues = selectedRolesForComparison;
-                      if (currentValues.includes(value)) {
-                        setSelectedRolesForComparison(currentValues.filter(v => v !== value));
-                      } else if (currentValues.length < 3) {
-                        setSelectedRolesForComparison([...currentValues, value]);
-                      }
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={t('permission.selectRolesToCompare')}>
-                        {selectedRolesForComparison.length > 0 
-                          ? selectedRolesForComparison.map(id => roles.find(r => r.id === id)?.name).join(', ')
-                          : t('permission.selectRolesToCompare')
-                        }
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {roles.filter(r => r.status === 'ACTIVE' && r.permissions.length > 0).map(role => (
-                        <SelectItem key={role.id} value={role.id}>
-                          <div className="flex items-center gap-2">
-                            {selectedRolesForComparison.includes(role.id) && (
-                              <CheckCircle className="w-3 h-3 text-success" />
-                            )}
-                            {role.name}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                {selectedRolesForComparison.length > 0 && (
-                  <div className="md:col-span-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => setSelectedRolesForComparison([])}
-                    >
-                      <X className="w-4 h-4 mr-1" />
-                      {t('permission.clearComparison')}
-                    </Button>
-                  </div>
-                )}
-              </>
-            )}
           </div>
         </CardContent>
       </Card>
@@ -643,87 +496,8 @@ const PermissionView: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Comparison View */}
-      {comparisonMode && selectedRolesForComparison.length >= 2 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('permission.comparisonView')}</CardTitle>
-            <p className="text-sm text-muted">
-              {selectedRolesForComparison.map(id => roles.find(r => r.id === id)?.name).join(' vs ')}
-            </p>
-          </CardHeader>
-          <CardContent>
-            <div className="flex gap-6 p-3 bg-muted rounded-lg mb-4">
-              <div className="flex items-center gap-2">
-                <Badge variant="warning" className="border-dashed">Example</Badge>
-                <span className="text-sm text-muted">{t('permission.onlyInRole')}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Badge variant="success">Example</Badge>
-                <span className="text-sm text-muted">{t('permission.inBothRoles')}</span>
-              </div>
-            </div>
-            <div className="rounded-md border overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="sticky left-0 bg-background">{t('role.module')}</TableHead>
-                    <TableHead>{t('role.feature')}</TableHead>
-                    {selectedRolesForComparison.map(roleId => {
-                      const role = roles.find(r => r.id === roleId);
-                      return <TableHead key={roleId}>{role?.name || roleId}</TableHead>;
-                    })}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {loading ? (
-                    <TableRow>
-                      <TableCell colSpan={2 + selectedRolesForComparison.length} className="text-center py-8">
-                        {t('common.loading')}
-                      </TableCell>
-                    </TableRow>
-                  ) : comparisonData.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={2 + selectedRolesForComparison.length} className="text-center py-8 text-muted">
-                        {t('common.noData')}
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    comparisonData.map(row => (
-                      <TableRow key={row.key}>
-                        <TableCell className="font-medium sticky left-0 bg-background">{row.moduleName}</TableCell>
-                        <TableCell>{row.pageCode}</TableCell>
-                        {selectedRolesForComparison.map(roleId => {
-                          const roleOps = row[`role_${roleId}`] || [];
-                          if (roleOps.length === 0) {
-                            return <TableCell key={roleId}><span className="text-muted">-</span></TableCell>;
-                          }
-                          return (
-                            <TableCell key={roleId}>
-                              <div className="flex flex-wrap gap-1">
-                                {roleOps.map((op: string) => {
-                                  const otherRolesHaveOp = selectedRolesForComparison
-                                    .filter(id => id !== roleId)
-                                    .some(id => (row[`role_${id}`] || []).includes(op));
-                                  const isUnique = !otherRolesHaveOp;
-                                  return renderOperationBadge(op, isUnique);
-                                })}
-                              </div>
-                            </TableCell>
-                          );
-                        })}
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       {/* View Toggle and Table */}
-      <Card className={comparisonMode && selectedRolesForComparison.length >= 2 ? 'hidden' : ''}>
+      <Card>
         <CardHeader>
           <div className="flex justify-between items-center">
             <CardTitle>

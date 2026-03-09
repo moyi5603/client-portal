@@ -1,109 +1,53 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { 
-  RefreshCw, ChevronRight, Folder, FileText, CheckCircle, XCircle, 
-  User, Users, Search, ChevronDown, ChevronUp, Info
-} from 'lucide-react';
+import { Plus, Edit, Trash2, MoreHorizontal, ChevronRight, ChevronDown } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
-import { Label } from '../components/ui/label';
 import { Badge } from '../components/ui/badge';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog';
+import { Label } from '../components/ui/label';
+import { Input } from '../components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-import { Alert, AlertDescription, AlertTitle } from '../components/ui/alert';
-import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../components/ui/tooltip';
-import { Avatar, AvatarFallback } from '../components/ui/avatar';
-import { Tree, TreeNode as TreeNodeType } from '../components/ui/tree';
-import { Empty } from '../components/ui/empty';
-import { useToast } from '../components/ui/use-toast';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../components/ui/dropdown-menu';
+import { toast } from 'sonner';
 import api from '../utils/api';
-import { useLocale } from '../contexts/LocaleContext';
-import { useDebounce } from '../hooks/useDebounce';
 
 interface Menu {
   id: string;
   name: string;
   code: string;
   path: string;
+  order: number;
+  type?: string;
+  visible?: boolean;
+  status?: string;
+  parentId?: string;
   children?: Menu[];
 }
 
-interface Role {
-  id: string;
-  name: string;
-  status: 'ACTIVE' | 'DEPRECATED';
-  permissions: Array<{
-    module: string;
-    pageCode: string;
-  }>;
-}
-
-interface Account {
-  id: string;
-  username: string;
-  accountType: string;
-  roles: string[];
-}
-
 const MenuManagement: React.FC = () => {
-  const { t } = useLocale();
-  const navigate = useNavigate();
-  const { toast } = useToast();
   const [menus, setMenus] = useState<Menu[]>([]);
-  const [selectedAccountId, setSelectedAccountId] = useState<string>('');
-  const [accountMenus, setAccountMenus] = useState<string[]>([]);
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [editingMenu, setEditingMenu] = useState<Menu | null>(null);
+  const [deletingMenu, setDeletingMenu] = useState<Menu | null>(null);
+  const [parentMenuForAdd, setParentMenuForAdd] = useState<string>('');
+  const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set());
+  const [expandedParentMenus, setExpandedParentMenus] = useState<Set<string>>(new Set());
+  const [isParentMenuOpen, setIsParentMenuOpen] = useState(false);
   
-  // Role-based view state
-  const [viewMode, setViewMode] = useState<'account' | 'role'>('account');
-  const [selectedRoleId, setSelectedRoleId] = useState<string>('');
-  const [selectedRole, setSelectedRole] = useState<Role | null>(null);
-  const [roleMenus, setRoleMenus] = useState<string[]>([]);
-  
-  // Search and expand state
-  const [searchText, setSearchText] = useState('');
-  const debouncedSearch = useDebounce(searchText, 300);
-  const [expandedKeys, setExpandedKeys] = useState<string[]>([]);
+  // Form fields
+  const [menuType, setMenuType] = useState<string>('MENU');
+  const [parentId, setParentId] = useState<string>('');
+  const [menuName, setMenuName] = useState<string>('');
+  const [menuCode, setMenuCode] = useState<string>('');
+  const [menuPath, setMenuPath] = useState<string>('');
+  const [menuOrder, setMenuOrder] = useState<number>(0);
+  const [menuStatus, setMenuStatus] = useState<string>('NORMAL');
 
   useEffect(() => {
     loadMenus();
-    loadAccounts();
-    loadRoles();
   }, []);
-
-  useEffect(() => {
-    if (selectedAccountId) {
-      const account = accounts.find(a => a.id === selectedAccountId);
-      setSelectedAccount(account || null);
-      loadAccountMenus(selectedAccountId);
-    } else {
-      setSelectedAccount(null);
-      setAccountMenus([]);
-    }
-  }, [selectedAccountId, accounts]);
-
-  useEffect(() => {
-    if (selectedRoleId) {
-      const role = roles.find(r => r.id === selectedRoleId);
-      setSelectedRole(role || null);
-      if (role) {
-        const menuIds = role.permissions.map(p => p.pageCode);
-        setRoleMenus(menuIds);
-      }
-    } else {
-      setSelectedRole(null);
-      setRoleMenus([]);
-    }
-  }, [selectedRoleId, roles]);
-
-  // Get accounts that have a specific role
-  const getAccountsWithRole = (roleId: string): Account[] => {
-    return accounts.filter(account => account.roles.includes(roleId));
-  };
 
   const loadMenus = async () => {
     setLoading(true);
@@ -111,509 +55,518 @@ const MenuManagement: React.FC = () => {
       const response = await api.get('/menus');
       if (response.data.success) {
         setMenus(response.data.data || []);
+        // 默认收起所有菜单（不设置任何展开状态）
+        setExpandedMenus(new Set());
       }
     } catch (error) {
-      toast({
-        title: t('common.error'),
-        description: t('menu.loadMenusFailed'),
-        variant: 'destructive',
-      });
+      toast.error('Failed to load menus');
     } finally {
       setLoading(false);
     }
   };
 
-  const loadAccounts = async () => {
-    try {
-      const response = await api.get('/accounts');
-      if (response.data.success) {
-        setAccounts(response.data.data.items || []);
+  const toggleExpand = (menuId: string) => {
+    setExpandedMenus(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(menuId)) {
+        newSet.delete(menuId);
+      } else {
+        newSet.add(menuId);
       }
-    } catch (error) {
-      console.error(t('menu.loadAccountsFailed'));
-    }
-  };
-
-  const loadRoles = async () => {
-    try {
-      const response = await api.get('/roles', { params: { page: 1, pageSize: 1000 } });
-      if (response.data.success) {
-        setRoles(response.data.data.items || []);
-      }
-    } catch (error) {
-      console.error('Failed to load roles');
-    }
-  };
-
-  const loadAccountMenus = async (accountId: string) => {
-    try {
-      const response = await api.get(`/menus/account/${accountId}`);
-      if (response.data.success) {
-        const menuIds = response.data.data.map((menu: Menu) => menu.id);
-        setAccountMenus(menuIds);
-      }
-    } catch (error) {
-      toast({
-        title: t('common.error'),
-        description: t('menu.loadAccountMenusFailed'),
-        variant: 'destructive',
-      });
-    }
-  };
-
-  // Get role names for an account
-  const getAccountRoleNames = (account: Account): string[] => {
-    if (account.accountType === 'MAIN') {
-      return [t('account.allPermissions')];
-    }
-    return account.roles
-      .map(roleId => roles.find(r => r.id === roleId)?.name)
-      .filter(Boolean) as string[];
-  };
-
-  // Get all menu keys for expand/collapse
-  const getAllMenuKeys = (menuList: Menu[]): string[] => {
-    let keys: string[] = [];
-    menuList.forEach(menu => {
-      keys.push(menu.id);
-      if (menu.children) {
-        keys = keys.concat(getAllMenuKeys(menu.children));
-      }
+      return newSet;
     });
-    return keys;
   };
 
-  // Expand all menus
-  const handleExpandAll = () => {
-    setExpandedKeys(getAllMenuKeys(menus));
+  const toggleParentMenuExpand = (menuId: string) => {
+    setExpandedParentMenus(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(menuId)) {
+        newSet.delete(menuId);
+      } else {
+        newSet.add(menuId);
+      }
+      return newSet;
+    });
   };
 
-  // Collapse all menus
-  const handleCollapseAll = () => {
-    setExpandedKeys([]);
-  };
-
-  // Find parent keys for search matching
-  const getParentKey = (key: string, tree: Menu[]): string | undefined => {
-    let parentKey: string | undefined;
-    for (let i = 0; i < tree.length; i++) {
-      const node = tree[i];
-      if (node.children) {
-        if (node.children.some(child => child.id === key)) {
-          parentKey = node.id;
-        } else {
-          const result = getParentKey(key, node.children);
-          if (result) {
-            parentKey = result;
-          }
+  const getParentMenuName = (id: string) => {
+    if (!id || id === '__none__') return 'None (Root Level)';
+    const findMenu = (items: Menu[]): string | null => {
+      for (const item of items) {
+        if (item.id === id) return item.name;
+        if (item.children) {
+          const found = findMenu(item.children);
+          if (found) return found;
         }
       }
-    }
-    return parentKey;
+      return null;
+    };
+    return findMenu(menus) || id;
   };
 
-  // Flatten menu tree for searching
-  const flattenMenus = (menuList: Menu[]): Menu[] => {
-    let result: Menu[] = [];
+  const openDialog = () => {
+    // Reset form
+    setEditingMenu(null);
+    setMenuType('MENU');
+    setParentId(parentMenuForAdd);
+    setMenuName('');
+    setMenuCode('');
+    setMenuPath('');
+    setMenuOrder(0);
+    setIsDialogOpen(true);
+  };
+
+  const openAddDialog = (parentMenuId: string = '') => {
+    setParentMenuForAdd(parentMenuId);
+    setEditingMenu(null);
+    setMenuType('MENU');
+    setParentId(parentMenuId);
+    setMenuName('');
+    setMenuCode('');
+    setMenuPath('');
+    setMenuOrder(0);
+    setMenuStatus('NORMAL');
+    setIsDialogOpen(true);
+  };
+
+  const openEditDialog = (menu: Menu) => {
+    setEditingMenu(menu);
+    setMenuType(menu.type || 'MENU');
+    setParentId(menu.parentId || '');
+    setMenuName(menu.name);
+    setMenuCode(menu.code || '');
+    setMenuPath(menu.path || '');
+    setMenuOrder(menu.order);
+    // 处理状态值：兼容多种格式
+    let status = menu.status || 'NORMAL';
+    // 如果是旧格式，转换为新格式
+    if (status === 'ACTIVE') status = 'NORMAL';
+    if (status === 'INACTIVE') status = 'DISABLED';
+    setMenuStatus(status);
+    // 默认展开所有父菜单选项
+    const allIds = new Set<string>();
+    const collectIds = (items: Menu[]) => {
+      items.forEach(item => {
+        if (item.children && item.children.some(c => c.type !== 'BUTTON')) {
+          allIds.add(item.id);
+          collectIds(item.children);
+        }
+      });
+    };
+    collectIds(menus);
+    setExpandedParentMenus(allIds);
+    setIsDialogOpen(true);
+  };
+
+  const openDeleteDialog = (menu: Menu) => {
+    setDeletingMenu(menu);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const closeDialog = () => {
+    setIsDialogOpen(false);
+    setEditingMenu(null);
+    setParentMenuForAdd('');
+  };
+
+  const closeDeleteDialog = () => {
+    setIsDeleteDialogOpen(false);
+    setDeletingMenu(null);
+  };
+
+  const handleSubmit = async () => {
+    if (!menuName) {
+      toast.error('Please fill in menu name');
+      return;
+    }
+    
+    if (menuType !== 'DIRECTORY' && !menuCode) {
+      toast.error('Please fill in menu code');
+      return;
+    }
+
+    try {
+      const payload = {
+        name: menuName,
+        code: menuType === 'DIRECTORY' ? undefined : menuCode,
+        path: menuPath,
+        type: menuType,
+        parentId: (parentId && parentId !== '__none__') ? parentId : undefined,
+        order: menuOrder,
+        status: menuStatus
+      };
+      
+      if (editingMenu) {
+        await api.put(`/menus/${editingMenu.id}`, payload);
+        toast.success('Menu updated successfully');
+      } else {
+        await api.post('/menus', payload);
+        toast.success('Menu created successfully');
+      }
+      
+      closeDialog();
+      loadMenus();
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || `Failed to ${editingMenu ? 'update' : 'create'} menu`);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deletingMenu) return;
+
+    try {
+      await api.delete(`/menus/${deletingMenu.id}`);
+      toast.success('Menu deleted successfully');
+      closeDeleteDialog();
+      loadMenus();
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Failed to delete menu');
+    }
+  };
+
+  const flattenMenus = (menuList: Menu[], level = 0): Array<Menu & { level: number }> => {
+    let result: Array<Menu & { level: number }> = [];
     menuList.forEach(menu => {
-      result.push(menu);
-      if (menu.children) {
-        result = result.concat(flattenMenus(menu.children));
+      result.push({ ...menu, level });
+      if (menu.children && menu.children.length > 0 && expandedMenus.has(menu.id)) {
+        result = result.concat(flattenMenus(menu.children, level + 1));
       }
     });
     return result;
   };
 
-  // Auto-expand when searching
-  useEffect(() => {
-    if (debouncedSearch) {
-      const flatMenus = flattenMenus(menus);
-      const matchedKeys = flatMenus
-        .filter(menu => 
-          menu.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-          menu.code.toLowerCase().includes(debouncedSearch.toLowerCase())
-        )
-        .map(menu => menu.id);
-      
-      const expandKeys: string[] = [];
-      matchedKeys.forEach(key => {
-        let parentKey = getParentKey(key, menus);
-        while (parentKey) {
-          if (!expandKeys.includes(parentKey)) {
-            expandKeys.push(parentKey);
-          }
-          parentKey = getParentKey(parentKey, menus);
-        }
-      });
-      
-      setExpandedKeys([...expandKeys, ...matchedKeys]);
-    } else {
-      setExpandedKeys(getAllMenuKeys(menus));
-    }
-  }, [debouncedSearch, menus]);
-
-  // Initialize expanded keys when menus load
-  useEffect(() => {
-    if (menus.length > 0) {
-      setExpandedKeys(getAllMenuKeys(menus));
-    }
-  }, [menus]);
-
-  // Highlight search text in menu name
-  const highlightText = (text: string, search: string) => {
-    if (!search) return text;
-    const index = text.toLowerCase().indexOf(search.toLowerCase());
-    if (index === -1) return text;
-    
-    const before = text.slice(0, index);
-    const match = text.slice(index, index + search.length);
-    const after = text.slice(index + search.length);
-    
-    return (
-      <>
-        {before}
-        <span className="bg-warning/30 text-foreground px-0.5 rounded-sm">
-          {match}
-        </span>
-        {after}
-      </>
-    );
-  };
-
-  // Build tree data with access indicators
-  const buildTreeData = (menuList: Menu[], showAccess: boolean): TreeNodeType[] => {
-    return menuList.map(menu => {
-      let hasAccess = false;
-      if (showAccess) {
-        if (viewMode === 'account') {
-          hasAccess = selectedAccount?.accountType === 'MAIN' || accountMenus.includes(menu.id);
-        } else {
-          hasAccess = roleMenus.includes(menu.code) || 
-            (selectedRole?.permissions.some(p => p.pageCode === menu.code) ?? false);
+  // 用于父菜单选择的扁平化函数（根据展开状态）
+  const flattenParentMenus = (menuList: Menu[], level = 0): Array<Menu & { level: number }> => {
+    let result: Array<Menu & { level: number }> = [];
+    menuList.forEach(menu => {
+      // 只包含非 BUTTON 类型的菜单
+      if (menu.type !== 'BUTTON') {
+        result.push({ ...menu, level });
+        if (menu.children && menu.children.length > 0 && expandedParentMenus.has(menu.id)) {
+          result = result.concat(flattenParentMenus(menu.children, level + 1));
         }
       }
-
-      const isMatch = debouncedSearch && (
-        menu.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-        menu.code.toLowerCase().includes(debouncedSearch.toLowerCase())
-      );
-      
-      return {
-        id: menu.id,
-        label: (
-          <div className={`flex items-center gap-2 py-1 ${isMatch ? 'bg-primary/10 rounded px-1' : ''}`}>
-            {menu.children && menu.children.length > 0 ? (
-              <Folder className="w-4 h-4 text-primary" />
-            ) : (
-              <FileText className="w-4 h-4 text-muted" />
-            )}
-            <span className={`${showAccess ? (hasAccess ? 'text-foreground' : 'text-muted') : 'text-foreground'} ${menu.children ? 'font-medium' : ''}`}>
-              {highlightText(menu.name, debouncedSearch)}
-            </span>
-            <Badge variant="default" className="text-xs">
-              {highlightText(menu.code, debouncedSearch)}
-            </Badge>
-            {showAccess && (
-              hasAccess ? (
-                <CheckCircle className="w-4 h-4 text-success ml-auto" />
-              ) : (
-                <XCircle className="w-4 h-4 text-muted ml-auto" />
-              )
-            )}
-          </div>
-        ),
-        children: menu.children ? buildTreeData(menu.children, showAccess) : undefined,
-      };
     });
+    return result;
   };
 
-  const matchCount = flattenMenus(menus).filter(m => 
-    m.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-    m.code.toLowerCase().includes(debouncedSearch.toLowerCase())
-  ).length;
+  const flatMenus = flattenMenus(menus);
+  const parentMenuOptions = flattenParentMenus(menus);
+
+  const hasChildren = (menu: Menu) => {
+    return menu.children && menu.children.length > 0;
+  };
+
+  const hasNonButtonChildren = (menu: Menu) => {
+    return menu.children && menu.children.some(child => child.type !== 'BUTTON');
+  };
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-primary">
-          {t('menu.title')}
-        </h2>
-        <Button variant="outline" onClick={loadMenus} disabled={loading}>
-          <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-          {t('menu.refresh')}
+        <h2 className="text-2xl font-bold text-primary">Menu Management</h2>
+        <Button type="button" onClick={openDialog}>
+          <Plus className="w-4 h-4 mr-2" />
+          Add Menu
         </Button>
       </div>
+      
+      <Card>
+        <CardHeader>
+          <CardTitle>Menu List ({flatMenus.length})</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="text-center py-8">Loading...</div>
+          ) : flatMenus.length === 0 ? (
+            <div className="text-center py-8 text-muted">No menus found</div>
+          ) : (
+            <table className="w-full">
+              <thead>
+                <tr className="border-b">
+                  <th className="p-3 text-left">Name</th>
+                  <th className="p-3 text-left">Code</th>
+                  <th className="p-3 text-left">Type</th>
+                  <th className="p-3 text-center">Order</th>
+                  <th className="p-3 text-center">Status</th>
+                  <th className="p-3 text-center">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {flatMenus.map(menu => (
+                  <tr key={menu.id} className="border-b hover:bg-muted/50">
+                    <td className="p-3">
+                      <div className="flex items-center" style={{ paddingLeft: `${menu.level * 20}px` }}>
+                        {hasChildren(menu) ? (
+                          <button
+                            type="button"
+                            onClick={() => toggleExpand(menu.id)}
+                            className="mr-2 p-0 border-0 bg-transparent cursor-pointer"
+                          >
+                            {expandedMenus.has(menu.id) ? (
+                              <ChevronDown className="w-4 h-4" />
+                            ) : (
+                              <ChevronRight className="w-4 h-4" />
+                            )}
+                          </button>
+                        ) : (
+                          <span className="w-4 h-4 mr-2 inline-block" />
+                        )}
+                        <span>{menu.name}</span>
+                      </div>
+                    </td>
+                    <td className="p-3 text-muted">{menu.code || '-'}</td>
+                    <td className="p-3">
+                      <Badge variant={
+                        menu.type === 'DIRECTORY' ? 'default' : 
+                        menu.type === 'MENU' ? 'success' : 
+                        menu.type === 'BUTTON' ? 'warning' : 
+                        'secondary'
+                      }>
+                        {menu.type || 'MENU'}
+                      </Badge>
+                    </td>
+                    <td className="p-3 text-center">{menu.order}</td>
+                    <td className="p-3 text-center">
+                      <Badge variant={
+                        (menu.status === 'ACTIVE' || menu.status === 'NORMAL' || !menu.status) ? 'success' : 'secondary'
+                      }>
+                        {(menu.status === 'ACTIVE' || menu.status === 'NORMAL' || !menu.status) ? 'Enabled' : 'Disabled'}
+                      </Badge>
+                    </td>
+                    <td className="p-3">
+                      <div className="flex justify-center">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button type="button" size="sm" variant="ghost">
+                              <MoreHorizontal className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            {menu.type !== 'BUTTON' && (
+                              <DropdownMenuItem onClick={() => openAddDialog(menu.id)}>
+                                <Plus className="w-4 h-4 mr-2" />
+                                Add
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuItem onClick={() => openEditDialog(menu)}>
+                              <Edit className="w-4 h-4 mr-2" />
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => openDeleteDialog(menu)}>
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </CardContent>
+      </Card>
 
-      {/* Info Alert */}
-      <Alert>
-        <Info className="w-4 h-4" />
-        <AlertTitle>{t('menu.menuPermissionThroughRoles')}</AlertTitle>
-        <AlertDescription className="space-y-2">
-          <p>{t('menu.menuPermissionTip')}</p>
-          <Button 
-            size="sm" 
-            onClick={() => navigate('/roles')}
-          >
-            <ChevronRight className="w-4 h-4 mr-1" />
-            {t('menu.gotoRoleManagement')}
-          </Button>
-        </AlertDescription>
-      </Alert>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* System Menu Structure */}
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex justify-between items-center">
-              <CardTitle className="font-medium">{t('menu.systemMenuList')}</CardTitle>
-              <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'account' | 'role')}>
-                <TabsList className="h-8">
-                  <TabsTrigger value="account" className="text-xs px-2">
-                    <User className="w-3 h-3 mr-1" />
-                    {t('account.title')}
-                  </TabsTrigger>
-                  <TabsTrigger value="role" className="text-xs px-2">
-                    <Users className="w-3 h-3 mr-1" />
-                    {t('menu.viewByRole')}
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Search and Expand/Collapse Controls */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{editingMenu ? 'Edit Menu' : 'Add New Menu'}</DialogTitle>
+            <DialogDescription>
+              {editingMenu ? 'Update menu information' : 'Create a new menu item, directory, or button'}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
             <div className="space-y-2">
+              <Label>Type *</Label>
+              <div className="flex gap-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="menuType"
+                    value="DIRECTORY"
+                    checked={menuType === 'DIRECTORY'}
+                    onChange={(e) => setMenuType(e.target.value)}
+                    className="w-4 h-4"
+                  />
+                  <span>Directory</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="menuType"
+                    value="MENU"
+                    checked={menuType === 'MENU'}
+                    onChange={(e) => setMenuType(e.target.value)}
+                    className="w-4 h-4"
+                  />
+                  <span>Menu</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="menuType"
+                    value="BUTTON"
+                    checked={menuType === 'BUTTON'}
+                    onChange={(e) => setMenuType(e.target.value)}
+                    className="w-4 h-4"
+                  />
+                  <span>Button</span>
+                </label>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Parent Menu</Label>
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
+                <button
+                  type="button"
+                  onClick={() => setIsParentMenuOpen(!isParentMenuOpen)}
+                  className="w-full flex items-center justify-between px-3 py-2 border border-gray-300 rounded-md bg-white hover:bg-gray-50"
+                >
+                  <span className="text-sm">{getParentMenuName(parentId)}</span>
+                  <ChevronDown className="w-4 h-4" />
+                </button>
+                {isParentMenuOpen && (
+                  <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+                    <div
+                      className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm"
+                      onClick={() => {
+                        setParentId('');
+                        setIsParentMenuOpen(false);
+                      }}
+                    >
+                      None (Root Level)
+                    </div>
+                    {parentMenuOptions.map(menu => (
+                      <div
+                        key={menu.id}
+                        className="flex items-center px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm"
+                        style={{ paddingLeft: `${12 + menu.level * 20}px` }}
+                      >
+                        {hasNonButtonChildren(menu) ? (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleParentMenuExpand(menu.id);
+                            }}
+                            className="mr-2 p-0 border-0 bg-transparent"
+                          >
+                            {expandedParentMenus.has(menu.id) ? (
+                              <ChevronDown className="w-4 h-4" />
+                            ) : (
+                              <ChevronRight className="w-4 h-4" />
+                            )}
+                          </button>
+                        ) : (
+                          <span className="w-4 h-4 mr-2 inline-block" />
+                        )}
+                        <span
+                          onClick={() => {
+                            setParentId(menu.id);
+                            setIsParentMenuOpen(false);
+                          }}
+                          className="flex-1"
+                        >
+                          {menu.name}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Menu Name *</Label>
+              <Input
+                value={menuName}
+                onChange={(e) => setMenuName(e.target.value)}
+                placeholder="Enter menu name"
+              />
+            </div>
+            
+            {menuType !== 'DIRECTORY' && (
+              <div className="space-y-2">
+                <Label>Menu Code *</Label>
                 <Input
-                  placeholder={t('menu.searchMenuPlaceholder') || 'Search menus by name or code...'}
-                  value={searchText}
-                  onChange={(e) => setSearchText(e.target.value)}
-                  className="pl-9"
+                  value={menuCode}
+                  onChange={(e) => setMenuCode(e.target.value)}
+                  placeholder="Enter menu code (e.g., menu-1)"
                 />
               </div>
-              <div className="flex items-center gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={handleExpandAll}
-                >
-                  <ChevronDown className="w-3 h-3 mr-1" />
-                  {t('menu.expandAll') || 'Expand All'}
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={handleCollapseAll}
-                >
-                  <ChevronUp className="w-3 h-3 mr-1" />
-                  {t('menu.collapseAll') || 'Collapse All'}
-                </Button>
-                {debouncedSearch && (
-                  <span className="text-xs text-muted">
-                    {matchCount} {t('common.results') || 'results'}
-                  </span>
-                )}
+            )}
+
+            <div className="space-y-2">
+              <Label>Display Order</Label>
+              <Input
+                type="number"
+                value={menuOrder}
+                onChange={(e) => setMenuOrder(parseInt(e.target.value) || 0)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Status *</Label>
+              <div className="flex gap-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="menuStatus"
+                    value="NORMAL"
+                    checked={menuStatus === 'NORMAL'}
+                    onChange={(e) => setMenuStatus(e.target.value)}
+                    className="w-4 h-4"
+                  />
+                  <span>Enabled</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="menuStatus"
+                    value="DISABLED"
+                    checked={menuStatus === 'DISABLED'}
+                    onChange={(e) => setMenuStatus(e.target.value)}
+                    className="w-4 h-4"
+                  />
+                  <span>Disabled</span>
+                </label>
               </div>
             </div>
-            
-            <p className="text-sm text-muted">{t('menu.systemMenuTip')}</p>
-            
-            {menus.length > 0 ? (
-              <Tree
-                data={buildTreeData(menus, false)}
-                expandedIds={expandedKeys}
-                onExpandedChange={setExpandedKeys}
-              />
-            ) : (
-              <Empty description={t('common.noData')} />
-            )}
-          </CardContent>
-        </Card>
+          </div>
 
-        {/* Account/Role Menu Access */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="font-medium">
-              {viewMode === 'account' ? t('menu.accountVisibleMenus') : t('menu.roleVisibleMenus')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {viewMode === 'account' ? (
-              <>
-                {/* Account Selector */}
-                <div className="space-y-2">
-                  <Label className="font-medium">{t('menu.selectAccount')}</Label>
-                  <Select
-                    value={selectedAccountId}
-                    onValueChange={setSelectedAccountId}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={t('menu.selectAccountPlaceholder')} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {accounts.map(account => (
-                        <SelectItem key={account.id} value={account.id}>
-                          <div className="flex items-center gap-2">
-                            {account.username}
-                            <Badge 
-                              variant={account.accountType === 'MAIN' ? 'danger' : account.accountType === 'CUSTOMER' ? 'default' : 'success'}
-                              className="text-xs"
-                            >
-                              {account.accountType === 'MAIN' ? t('account.typeMain') : 
-                               account.accountType === 'CUSTOMER' ? t('account.typeCustomer') : 
-                               t('account.typePartner')}
-                            </Badge>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={closeDialog}>
+              Cancel
+            </Button>
+            <Button type="button" onClick={handleSubmit}>
+              {editingMenu ? 'Update' : 'Create'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-                {/* Selected Account Info */}
-                {selectedAccount && (
-                  <div className="p-3 bg-muted/50 rounded-lg space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="font-medium">{selectedAccount.username}</span>
-                      <Badge 
-                        variant={selectedAccount.accountType === 'MAIN' ? 'danger' : selectedAccount.accountType === 'CUSTOMER' ? 'default' : 'success'}
-                      >
-                        {selectedAccount.accountType === 'MAIN' ? t('account.typeMain') : 
-                         selectedAccount.accountType === 'CUSTOMER' ? t('account.typeCustomer') : 
-                         t('account.typePartner')}
-                      </Badge>
-                    </div>
-                    <div>
-                      <span className="text-sm text-muted">{t('account.roles')}: </span>
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {getAccountRoleNames(selectedAccount).map((name, idx) => (
-                          <Badge key={idx} variant="default" className="bg-primary/20 text-primary">
-                            {name}
-                          </Badge>
-                        ))}
-                        {selectedAccount.accountType !== 'MAIN' && selectedAccount.roles.length === 0 && (
-                          <span className="text-sm text-muted">{t('account.noRoles')}</span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Menu Tree with Access Indicators */}
-                {selectedAccountId ? (
-                  menus.length > 0 ? (
-                    <Tree
-                      data={buildTreeData(menus, true)}
-                      expandedIds={expandedKeys}
-                      onExpandedChange={setExpandedKeys}
-                    />
-                  ) : (
-                    <Empty description={t('common.noData')} />
-                  )
-                ) : (
-                  <Empty 
-                    description={t('menu.selectAccountFirst')}
-                  />
-                )}
-              </>
-            ) : (
-              <>
-                {/* Role Selector */}
-                <div className="space-y-2">
-                  <Label className="font-medium">{t('menu.selectRole')}</Label>
-                  <Select
-                    value={selectedRoleId}
-                    onValueChange={setSelectedRoleId}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={t('menu.selectRolePlaceholder')} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {roles.filter(r => r.status === 'ACTIVE').map(role => (
-                        <SelectItem key={role.id} value={role.id}>
-                          {role.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Selected Role Info */}
-                {selectedRole && (
-                  <div className="p-3 bg-muted/50 rounded-lg space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="font-medium">{selectedRole.name}</span>
-                      <Badge variant="default" className="bg-primary/20 text-primary">
-                        {t('role.title')}
-                      </Badge>
-                    </div>
-                    <div>
-                      <span className="text-sm text-muted">{t('menu.usersWithThisRole')}: </span>
-                      <div className="flex flex-wrap items-center gap-1 mt-1">
-                        {getAccountsWithRole(selectedRole.id).slice(0, 5).map((account) => (
-                          <TooltipProvider key={account.id}>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <span>
-                                  <Avatar className="w-6 h-6">
-                                    <AvatarFallback className="bg-primary text-primary-foreground text-xs">
-                                      <User className="w-3 h-3" />
-                                    </AvatarFallback>
-                                  </Avatar>
-                                </span>
-                              </TooltipTrigger>
-                              <TooltipContent>{account.username}</TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        ))}
-                        {getAccountsWithRole(selectedRole.id).length > 5 && (
-                          <Badge variant="default">+{getAccountsWithRole(selectedRole.id).length - 5}</Badge>
-                        )}
-                        {getAccountsWithRole(selectedRole.id).length === 0 && (
-                          <span className="text-sm text-muted">{t('role.noUsersWithRole')}</span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Menu Tree for Role */}
-                {selectedRoleId ? (
-                  menus.length > 0 ? (
-                    <Tree
-                      data={buildTreeData(menus, true)}
-                      expandedIds={expandedKeys}
-                      onExpandedChange={setExpandedKeys}
-                    />
-                  ) : (
-                    <Empty description={t('common.noData')} />
-                  )
-                ) : (
-                  <Empty 
-                    description={t('menu.selectRoleFirst')}
-                  />
-                )}
-              </>
-            )}
-
-            {/* Legend */}
-            {(selectedAccountId || selectedRoleId) && (
-              <div className="p-3 bg-muted/50 rounded-lg flex justify-center gap-6">
-                <div className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-success" />
-                  <span className="text-sm text-muted">{t('common.active')}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <XCircle className="w-4 h-4 text-muted" />
-                  <span className="text-sm text-muted">{t('menu.noAccess')}</span>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete Menu</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete "{deletingMenu?.name}"? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={closeDeleteDialog}>
+              Cancel
+            </Button>
+            <Button type="button" variant="destructive" onClick={handleDelete}>
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

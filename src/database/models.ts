@@ -207,6 +207,23 @@ class Database {
     return this.menus.get(id);
   }
 
+  createMenu(menu: Menu): void {
+    this.menus.set(menu.id, menu);
+  }
+
+  updateMenu(id: string, updates: Partial<Menu>): boolean {
+    const menu = this.menus.get(id);
+    if (!menu) return false;
+
+    this.menus.set(id, { ...menu, ...updates });
+    return true;
+  }
+
+  deleteMenu(id: string): boolean {
+    return this.menus.delete(id);
+  }
+
+
   // 功能权限操作
   getAllFunctionPermissions(): FunctionPermission[] {
     return Array.from(this.functionPermissions.values());
