@@ -6,7 +6,6 @@ import { Badge } from '../components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog';
 import { Label } from '../components/ui/label';
 import { Input } from '../components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../components/ui/dropdown-menu';
 import { toast } from 'sonner';
 import api from '../utils/api';
@@ -44,6 +43,35 @@ const MenuManagement: React.FC = () => {
   const [menuPath, setMenuPath] = useState<string>('');
   const [menuOrder, setMenuOrder] = useState<number>(0);
   const [menuStatus, setMenuStatus] = useState<string>('NORMAL');
+
+  // 中英文翻译映射
+  const translateMenuName = (name: string): string => {
+    const translations: Record<string, string> = {
+      '工作台': 'Dashboard',
+      '采购管理': 'Purchase Management',
+      '销售订单': 'Sales Order',
+      '订单管理': 'Order Management',
+      '工单管理': 'Work Order',
+      '入库管理': 'Inbound',
+      '库存管理': 'Inventory',
+      '出库管理': 'Outbound',
+      '退货管理': 'Returns',
+      '场地管理': 'Yard Management',
+      '运输管理': 'Transportation Management',
+      '供应链': 'Supply Chain',
+      '财务管理': 'Finance',
+      '系统管理': 'System Management',
+      '权限管理': 'Permission Management',
+      '账号管理': 'Account Management',
+      '角色管理': 'Role Management',
+      '权限查看': 'Permission View',
+      '操作记录': 'Audit Log',
+      '菜单管理': 'Menu Management',
+      '用户页面管理': 'User Page Management',
+      '页面设计器': 'Page Designer',
+    };
+    return translations[name] || name;
+  };
 
   useEffect(() => {
     loadMenus();
@@ -312,7 +340,7 @@ const MenuManagement: React.FC = () => {
                         ) : (
                           <span className="w-4 h-4 mr-2 inline-block" />
                         )}
-                        <span>{menu.name}</span>
+                        <span>{translateMenuName(menu.name)}</span>
                       </div>
                     </td>
                     <td className="p-3 text-muted">{menu.code || '-'}</td>
@@ -471,7 +499,7 @@ const MenuManagement: React.FC = () => {
                           }}
                           className="flex-1"
                         >
-                          {menu.name}
+                          {translateMenuName(menu.name)}
                         </span>
                       </div>
                     ))}
@@ -554,7 +582,7 @@ const MenuManagement: React.FC = () => {
           <DialogHeader>
             <DialogTitle>Delete Menu</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete "{deletingMenu?.name}"? This action cannot be undone.
+              Are you sure you want to delete "{deletingMenu ? translateMenuName(deletingMenu.name) : ''}"? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

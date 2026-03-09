@@ -30,6 +30,8 @@ const App: React.FC = () => {
                 <Route index element={<Navigate to="/accounts" replace />} />
                 <Route path="accounts" element={<AccountManagement />} />
                 <Route path="roles" element={<RoleManagement />} />
+                <Route path="roles/create" element={<RoleManagement />} />
+                <Route path="roles/:id/edit" element={<RoleManagement />} />
                 <Route path="roles-2" element={<RoleManagement2 />} />
                 <Route path="roles-2/create" element={<RoleManagement2 />} />
                 <Route path="roles-2/:id/edit" element={<RoleManagement2 />} />
@@ -40,7 +42,9 @@ const App: React.FC = () => {
                 <Route path="permissions-2" element={<PermissionView2 />} />
                 <Route path="audit-logs" element={<AuditLog />} />
                 <Route path="portal-admin/accounts" element={<PortalAdminAccountManagement />} />
-                <Route path="portal-admin/roles" element={<RoleManagement />} />
+                <Route path="portal-admin/roles" element={<RoleManagement3 />} />
+                <Route path="portal-admin/roles/create" element={<RoleManagement3 />} />
+                <Route path="portal-admin/roles/:id/edit" element={<RoleManagement3 />} />
                 <Route path="portal-admin/menus" element={<MenuManagement />} />
                 <Route path="portal-admin/permissions" element={<PermissionView />} />
                 <Route path="portal-admin/audit-logs" element={<AuditLog />} />
