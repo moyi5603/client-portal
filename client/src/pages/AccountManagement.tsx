@@ -5,7 +5,6 @@ import {
   Pencil,
   Trash2,
   ChevronDown,
-  KeyRound,
   Download,
   MoreHorizontal,
   Search,
@@ -125,12 +124,7 @@ const AccountManagement: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
-  const [resetPasswordDialogVisible, setResetPasswordDialogVisible] = useState(false);
   const [accountToDelete, setAccountToDelete] = useState<Account | null>(null);
-  const [accountToResetPassword, setAccountToResetPassword] = useState<Account | null>(null);
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmNewPassword, setConfirmNewPassword] = useState('');
-  const [passwordErrors, setPasswordErrors] = useState<{ newPassword?: string; confirmPassword?: string }>({});
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof FormData, string>>>({});
@@ -438,51 +432,6 @@ const AccountManagement: React.FC = () => {
       toast.error(t('common.exportFailed'));
     } finally {
       setExporting(false);
-    }
-  };
-
-  // Reset password handler
-  const handleResetPassword = async () => {
-    if (!accountToResetPassword) return;
-    
-    // 验证密码
-    const errors: { newPassword?: string; confirmPassword?: string } = {};
-    
-    if (!newPassword) {
-      errors.newPassword = t('account.passwordRequired');
-    } else if (newPassword.length < 8) {
-      errors.newPassword = t('account.passwordRequirements');
-    } else if (!/[a-z]/.test(newPassword)) {
-      errors.newPassword = t('account.passwordRequirements');
-    } else if (!/[A-Z]/.test(newPassword)) {
-      errors.newPassword = t('account.passwordRequirements');
-    } else if (!/[0-9]/.test(newPassword)) {
-      errors.newPassword = t('account.passwordRequirements');
-    } else if (!/[^a-zA-Z0-9]/.test(newPassword)) {
-      errors.newPassword = t('account.passwordRequirements');
-    }
-    
-    if (!confirmNewPassword) {
-      errors.confirmPassword = t('account.confirmPasswordRequired');
-    } else if (newPassword !== confirmNewPassword) {
-      errors.confirmPassword = t('account.passwordMismatch');
-    }
-    
-    setPasswordErrors(errors);
-    if (Object.keys(errors).length > 0) return;
-    
-    try {
-      await api.post(`/accounts/${accountToResetPassword.id}/reset-password`, {
-        newPassword: newPassword
-      });
-      toast.success(t('account.resetPasswordSuccess'));
-      setResetPasswordDialogVisible(false);
-      setAccountToResetPassword(null);
-      setNewPassword('');
-      setConfirmNewPassword('');
-      setPasswordErrors({});
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || t('account.resetPasswordFailed'));
     }
   };
 
@@ -906,16 +855,6 @@ const AccountManagement: React.FC = () => {
                             <DropdownMenuItem onClick={() => handleEdit(account)}>
                               <Pencil size={14} style={{ marginRight: 8 }} />
                                 {t('common.edit')}
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => {
-                                setAccountToResetPassword(account);
-                                setNewPassword('');
-                                setConfirmNewPassword('');
-                                setPasswordErrors({});
-                                setResetPasswordDialogVisible(true);
-                              }}>
-                                <KeyRound size={14} style={{ marginRight: 8 }} />
-                                {t('account.resetPassword')}
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem 
@@ -1567,74 +1506,6 @@ const AccountManagement: React.FC = () => {
               </Button>
               <Button variant="destructive" onClick={handleDelete}>
                 {t('common.delete')}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        {/* Reset Password Dialog */}
-        <Dialog open={resetPasswordDialogVisible} onOpenChange={(open) => {
-          setResetPasswordDialogVisible(open);
-          if (!open) {
-            setNewPassword('');
-            setConfirmNewPassword('');
-            setPasswordErrors({});
-          }
-        }}>
-          <DialogContent className="ui-dialog-content--sm">
-            <DialogHeader>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
-                <KeyRound size={20} style={{ color: 'var(--warning)' }} />
-                <DialogTitle>{t('account.resetPassword')}</DialogTitle>
-              </div>
-              <DialogDescription>
-                {accountToResetPassword && `Reset password for: ${accountToResetPassword.username}`}
-              </DialogDescription>
-            </DialogHeader>
-            
-            <div style={{ display: 'grid', gap: 'var(--space-md)', marginTop: 'var(--space-md)' }}>
-              <div>
-                <Label required>{t('account.newPassword')}</Label>
-                <Input
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  error={!!passwordErrors.newPassword}
-                />
-                <div className="mt-1">
-                  <span className="text-xs text-muted">
-                    Password must contain: lowercase • uppercase • number • special char • 8+ chars
-                  </span>
-                </div>
-                {passwordErrors.newPassword && (
-                  <span className="text-sm" style={{ color: 'var(--danger)', marginTop: 4 }}>
-                    {passwordErrors.newPassword}
-                  </span>
-                )}
-              </div>
-              
-              <div>
-                <Label required>{t('account.confirmPassword')}</Label>
-                <Input
-                  type="password"
-                  value={confirmNewPassword}
-                  onChange={(e) => setConfirmNewPassword(e.target.value)}
-                  error={!!passwordErrors.confirmPassword}
-                />
-                {passwordErrors.confirmPassword && (
-                  <span className="text-sm" style={{ color: 'var(--danger)', marginTop: 4 }}>
-                    {passwordErrors.confirmPassword}
-                  </span>
-                )}
-              </div>
-            </div>
-            
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setResetPasswordDialogVisible(false)}>
-                {t('common.cancel')}
-              </Button>
-              <Button onClick={handleResetPassword}>
-                {t('common.confirm')}
               </Button>
             </DialogFooter>
           </DialogContent>

@@ -20,7 +20,7 @@ dotenv.config();
 initTestData();
 
 const app = express();
-const PORT = process.env.PORT || 3002;
+const PORT = process.env.PORT || 3003;
 
 // 中间件
 app.use(cors());
