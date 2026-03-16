@@ -1,16 +1,3 @@
 {
-  "version": 2,
-  "routes": [
-    {
-      "src": "/",
-      "dest": "/portal-app.html"
-    },
-    {
-      "handle": "filesystem"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/portal-app.html"
-    }
-  ]
+  "version": 2
 }

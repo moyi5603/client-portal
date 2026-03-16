@@ -1,17 +1,656 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Client Portal 权限管理系统</title>
-    <!-- Satoshi Font - Primary Typeface -->
-    <link href="https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,700,900&display=swap" rel="stylesheet">
-    <!-- Favicon -->
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <script type="module" crossorigin src="/assets/index-yUDMRNhy.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-B6CBH6PA.css">
-  </head>
-  <body>
-    <div id="root"></div>
-  </body>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Client Portal - 权限管理系统</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/antd/5.12.0/reset.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/antd/5.12.0/antd.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/antd@5.12.0/dist/antd.min.js"></script>
+    <script src="client-mock-data.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f0f2f5;
+            min-height: 100vh;
+        }
+        
+        .login-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .login-box {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            width: 400px;
+            text-align: center;
+        }
+        
+        .login-title {
+            font-size: 28px;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 8px;
+        }
+        
+        .login-subtitle {
+            color: #6b7280;
+            margin-bottom: 32px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #374151;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .login-btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .login-btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .app-container {
+            display: none;
+        }
+        
+        .app-header {
+            background: white;
+            padding: 0 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 64px;
+        }
+        
+        .app-logo {
+            font-size: 20px;
+            font-weight: 600;
+            color: #1f2937;
+        }
+        
+        .app-user {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .app-layout {
+            display: flex;
+            min-height: calc(100vh - 64px);
+        }
+        
+        .app-sidebar {
+            width: 256px;
+            background: white;
+            border-right: 1px solid #e5e7eb;
+            padding: 24px 0;
+        }
+        
+        .menu-item {
+            padding: 12px 24px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            border-left: 3px solid transparent;
+        }
+        
+        .menu-item:hover {
+            background: #f3f4f6;
+        }
+        
+        .menu-item.active {
+            background: #eff6ff;
+            border-left-color: #3b82f6;
+            color: #3b82f6;
+        }
+        
+        .app-content {
+            flex: 1;
+            padding: 24px;
+        }
+        
+        .page-header {
+            margin-bottom: 24px;
+        }
+        
+        .page-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 8px;
+        }
+        
+        .page-description {
+            color: #6b7280;
+        }
+        
+        .content-card {
+            background: white;
+            border-radius: 8px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .data-table th,
+        .data-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .data-table th {
+            background: #f9fafb;
+            font-weight: 600;
+            color: #374151;
+        }
+        
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .status-active {
+            background: #dcfce7;
+            color: #166534;
+        }
+        
+        .status-inactive {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 8px;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+        
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+        
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 32px;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 8px;
+        }
+        
+        .stat-label {
+            color: #6b7280;
+            font-size: 14px;
+        }
+        
+        .error-message {
+            color: #ef4444;
+            font-size: 14px;
+            margin-top: 8px;
+        }
+        
+        .success-message {
+            color: #10b981;
+            font-size: 14px;
+            margin-top: 8px;
+        }
+    </style>
+</head>
+<body>
+    <!-- 登录页面 -->
+    <div id="loginPage" class="login-container">
+        <div class="login-box">
+            <h1 class="login-title">Client Portal</h1>
+            <p class="login-subtitle">权限管理系统</p>
+            
+            <form id="loginForm">
+                <div class="form-group">
+                    <label class="form-label">用户名</label>
+                    <input type="text" id="username" class="form-input" placeholder="请输入用户名" value="admin">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">密码</label>
+                    <input type="password" id="password" class="form-input" placeholder="请输入密码" value="admin123">
+                </div>
+                
+                <button type="submit" class="login-btn">登录</button>
+                <div id="loginError" class="error-message" style="display: none;"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 主应用页面 -->
+    <div id="appPage" class="app-container">
+        <!-- 头部 -->
+        <header class="app-header">
+            <div class="app-logo">Client Portal</div>
+            <div class="app-user">
+                <span id="currentUser">admin</span>
+                <button class="btn btn-secondary" onclick="logout()">退出</button>
+            </div>
+        </header>
+
+        <!-- 主体布局 -->
+        <div class="app-layout">
+            <!-- 侧边栏 -->
+            <nav class="app-sidebar">
+                <div class="menu-item active" onclick="showPage('dashboard')">
+                    📊 仪表盘
+                </div>
+                <div class="menu-item" onclick="showPage('accounts')">
+                    👥 账号管理
+                </div>
+                <div class="menu-item" onclick="showPage('roles')">
+                    🔐 角色管理
+                </div>
+                <div class="menu-item" onclick="showPage('menus')">
+                    📋 菜单管理
+                </div>
+                <div class="menu-item" onclick="showPage('audit')">
+                    📝 审计日志
+                </div>
+            </nav>
+
+            <!-- 内容区域 -->
+            <main class="app-content">
+                <!-- 仪表盘页面 -->
+                <div id="dashboardPage" class="page-content">
+                    <div class="page-header">
+                        <h1 class="page-title">仪表盘</h1>
+                        <p class="page-description">系统概览和统计信息</p>
+                    </div>
+                    
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-number" id="accountsCount">0</div>
+                            <div class="stat-label">用户账号</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number" id="rolesCount">0</div>
+                            <div class="stat-label">系统角色</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number" id="menusCount">0</div>
+                            <div class="stat-label">菜单项目</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number" id="auditCount">0</div>
+                            <div class="stat-label">审计记录</div>
+                        </div>
+                    </div>
+                    
+                    <div class="content-card">
+                        <h3 style="margin-bottom: 16px;">系统状态</h3>
+                        <p>✅ 所有服务运行正常</p>
+                        <p>✅ Mock数据已加载</p>
+                        <p>✅ 权限系统正常</p>
+                    </div>
+                </div>
+
+                <!-- 账号管理页面 -->
+                <div id="accountsPage" class="page-content" style="display: none;">
+                    <div class="page-header">
+                        <h1 class="page-title">账号管理</h1>
+                        <p class="page-description">管理系统用户账号</p>
+                    </div>
+                    
+                    <div class="content-card">
+                        <div style="margin-bottom: 16px;">
+                            <button class="btn btn-primary">新增账号</button>
+                        </div>
+                        
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>用户名</th>
+                                    <th>邮箱</th>
+                                    <th>账号类型</th>
+                                    <th>状态</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="accountsTableBody">
+                                <!-- 动态加载 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 角色管理页面 -->
+                <div id="rolesPage" class="page-content" style="display: none;">
+                    <div class="page-header">
+                        <h1 class="page-title">角色管理</h1>
+                        <p class="page-description">管理系统角色和权限</p>
+                    </div>
+                    
+                    <div class="content-card">
+                        <div style="margin-bottom: 16px;">
+                            <button class="btn btn-primary">新增角色</button>
+                        </div>
+                        
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>角色名称</th>
+                                    <th>描述</th>
+                                    <th>使用人数</th>
+                                    <th>状态</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="rolesTableBody">
+                                <!-- 动态加载 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 菜单管理页面 -->
+                <div id="menusPage" class="page-content" style="display: none;">
+                    <div class="page-header">
+                        <h1 class="page-title">菜单管理</h1>
+                        <p class="page-description">管理系统菜单结构</p>
+                    </div>
+                    
+                    <div class="content-card">
+                        <div style="margin-bottom: 16px;">
+                            <button class="btn btn-primary">新增菜单</button>
+                        </div>
+                        
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>菜单名称</th>
+                                    <th>菜单代码</th>
+                                    <th>类型</th>
+                                    <th>排序</th>
+                                    <th>状态</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="menusTableBody">
+                                <!-- 动态加载 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 审计日志页面 -->
+                <div id="auditPage" class="page-content" style="display: none;">
+                    <div class="page-header">
+                        <h1 class="page-title">审计日志</h1>
+                        <p class="page-description">查看系统操作记录</p>
+                    </div>
+                    
+                    <div class="content-card">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>时间</th>
+                                    <th>操作人</th>
+                                    <th>操作类型</th>
+                                    <th>目标</th>
+                                    <th>描述</th>
+                                </tr>
+                            </thead>
+                            <tbody id="auditTableBody">
+                                <!-- 动态加载 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        // 当前用户信息
+        let currentUser = null;
+        
+        // 登录处理
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const errorDiv = document.getElementById('loginError');
+            
+            // 使用Mock数据验证登录
+            const result = window.mockData.mockAPI.auth(username, password);
+            
+            if (result.success) {
+                currentUser = result.data.user;
+                document.getElementById('currentUser').textContent = currentUser.username;
+                
+                // 隐藏登录页面，显示应用页面
+                document.getElementById('loginPage').style.display = 'none';
+                document.getElementById('appPage').style.display = 'block';
+                
+                // 加载数据
+                loadDashboardData();
+                loadAccountsData();
+                loadRolesData();
+                loadMenusData();
+                loadAuditData();
+                
+                errorDiv.style.display = 'none';
+            } else {
+                errorDiv.textContent = '用户名或密码错误';
+                errorDiv.style.display = 'block';
+            }
+        });
+        
+        // 退出登录
+        function logout() {
+            currentUser = null;
+            document.getElementById('loginPage').style.display = 'flex';
+            document.getElementById('appPage').style.display = 'none';
+            document.getElementById('username').value = 'admin';
+            document.getElementById('password').value = 'admin123';
+        }
+        
+        // 页面切换
+        function showPage(pageId) {
+            // 隐藏所有页面
+            const pages = document.querySelectorAll('.page-content');
+            pages.forEach(page => page.style.display = 'none');
+            
+            // 移除所有菜单项的active状态
+            const menuItems = document.querySelectorAll('.menu-item');
+            menuItems.forEach(item => item.classList.remove('active'));
+            
+            // 显示目标页面
+            document.getElementById(pageId + 'Page').style.display = 'block';
+            
+            // 设置对应菜单项为active
+            event.target.classList.add('active');
+        }
+        
+        // 加载仪表盘数据
+        function loadDashboardData() {
+            document.getElementById('accountsCount').textContent = window.mockData.accounts.length;
+            document.getElementById('rolesCount').textContent = window.mockData.roles.length;
+            document.getElementById('menusCount').textContent = window.mockData.menus.length;
+            document.getElementById('auditCount').textContent = window.mockData.auditLogs.length;
+        }
+        
+        // 加载账号数据
+        function loadAccountsData() {
+            const tbody = document.getElementById('accountsTableBody');
+            tbody.innerHTML = '';
+            
+            window.mockData.accounts.forEach(account => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${account.username}</td>
+                    <td>${account.email}</td>
+                    <td>${account.accountType === 'MAIN' ? '主账号' : '子账号'}</td>
+                    <td><span class="status-badge status-${account.status.toLowerCase()}">${account.status === 'ACTIVE' ? '激活' : '禁用'}</span></td>
+                    <td>
+                        <button class="btn btn-primary">编辑</button>
+                        <button class="btn btn-danger">删除</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+        
+        // 加载角色数据
+        function loadRolesData() {
+            const tbody = document.getElementById('rolesTableBody');
+            tbody.innerHTML = '';
+            
+            window.mockData.roles.forEach(role => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${role.name}</td>
+                    <td>${role.description}</td>
+                    <td>${role.usageCount}</td>
+                    <td><span class="status-badge status-${role.status.toLowerCase()}">${role.status === 'ACTIVE' ? '激活' : '禁用'}</span></td>
+                    <td>
+                        <button class="btn btn-primary">编辑</button>
+                        <button class="btn btn-danger">删除</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+        
+        // 加载菜单数据
+        function loadMenusData() {
+            const tbody = document.getElementById('menusTableBody');
+            tbody.innerHTML = '';
+            
+            window.mockData.menus.forEach(menu => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${menu.name}</td>
+                    <td>${menu.code}</td>
+                    <td>${menu.type === 'DIRECTORY' ? '目录' : '菜单'}</td>
+                    <td>${menu.order}</td>
+                    <td><span class="status-badge status-${menu.status === 'NORMAL' ? 'active' : 'inactive'}">${menu.status === 'NORMAL' ? '启用' : '禁用'}</span></td>
+                    <td>
+                        <button class="btn btn-primary">编辑</button>
+                        <button class="btn btn-danger">删除</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+        
+        // 加载审计日志数据
+        function loadAuditData() {
+            const tbody = document.getElementById('auditTableBody');
+            tbody.innerHTML = '';
+            
+            window.mockData.auditLogs.forEach(log => {
+                const row = document.createElement('tr');
+                const date = new Date(log.timestamp);
+                row.innerHTML = `
+                    <td>${date.toLocaleString()}</td>
+                    <td>${log.actor.username}</td>
+                    <td>${log.actionType}</td>
+                    <td>${log.targetName}</td>
+                    <td>${log.description}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+    </script>
+</body>
 </html>
