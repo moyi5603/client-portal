@@ -27,49 +27,72 @@ if (useMockData) {
         const { username, password } = config.data;
         try {
           const result = await mockAuth.login(username, password);
-          throw { response: { data: result } };
+          // 直接返回成功的响应，不要抛出错误
+          return Promise.reject({ 
+            response: { 
+              data: result, 
+              status: 200,
+              statusText: 'OK'
+            } 
+          });
         } catch (error) {
-          throw { response: { data: error, status: 401 } };
+          return Promise.reject({ 
+            response: { 
+              data: error, 
+              status: 401,
+              statusText: 'Unauthorized'
+            } 
+          });
         }
       }
       
       // 菜单接口
       if (method === 'get' && url === '/menus') {
-        throw { 
+        return Promise.reject({ 
           response: { 
             data: { success: true, data: mockMenus },
-            status: 200 
+            status: 200,
+            statusText: 'OK'
           } 
-        };
+        });
       }
       
       // 角色接口
       if (method === 'get' && url === '/roles') {
-        throw { 
+        return Promise.reject({ 
           response: { 
             data: { 
               success: true, 
               data: { items: mockRoles, total: mockRoles.length } 
             },
-            status: 200 
+            status: 200,
+            statusText: 'OK'
           } 
-        };
+        });
       }
       
       // 账号接口
       if (method === 'get' && url === '/accounts') {
-        throw { 
+        return Promise.reject({ 
           response: { 
             data: { 
               success: true, 
               data: { items: mockAccounts, total: mockAccounts.length } 
             },
-            status: 200 
+            status: 200,
+            statusText: 'OK'
           } 
-        };
+        });
       }
       
-      return config;
+      // 如果没有匹配的Mock接口，返回404
+      return Promise.reject({
+        response: {
+          data: { success: false, error: 'API not found' },
+          status: 404,
+          statusText: 'Not Found'
+        }
+      });
     },
     error => Promise.reject(error)
   );
