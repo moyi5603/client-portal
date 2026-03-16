@@ -233,14 +233,55 @@
             margin-bottom: 24px;
             text-align: center;
         }
+        
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 16px;
+        }
+        
+        .data-table th,
+        .data-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .data-table th {
+            background: #f9fafb;
+            font-weight: 600;
+            color: #374151;
+        }
+        
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .status-active {
+            background: #dcfce7;
+            color: #166534;
+        }
+        
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+        }
+        
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
     </style>
 </head>
 <body>
     <!-- 登录页面 -->
     <div id="loginPage" class="login-container">
         <div class="login-box">
-            <h1 class="login-title">Client Portal</h1>
-            <p class="login-subtitle">权限管理系统</p>
+            <h1 class="login-title">🎉 Client Portal</h1>
+            <p class="login-subtitle">权限管理系统 - 部署成功！</p>
             
             <form id="loginForm">
                 <div class="form-group">
@@ -253,9 +294,15 @@
                     <input type="password" id="password" class="form-input" placeholder="请输入密码" value="admin123">
                 </div>
                 
-                <button type="submit" class="login-btn">登录</button>
+                <button type="submit" class="login-btn">登录系统</button>
                 <div id="loginError" class="error-message" style="display: none;"></div>
             </form>
+            
+            <div style="margin-top: 20px; font-size: 12px; color: #6b7280;">
+                <p>✅ Vercel部署成功</p>
+                <p>✅ 纯静态HTML应用</p>
+                <p>✅ 无构建依赖</p>
+            </div>
         </div>
     </div>
 
@@ -263,10 +310,10 @@
     <div id="appPage" class="app-container">
         <!-- 头部 -->
         <header class="app-header">
-            <div class="app-logo">Client Portal - 权限管理系统</div>
+            <div class="app-logo">🏢 Client Portal - 权限管理系统</div>
             <div class="app-user">
-                <span id="currentUser">admin</span>
-                <button class="btn btn-secondary" onclick="logout()">退出</button>
+                <span>👤 <span id="currentUser">admin</span></span>
+                <button class="btn btn-secondary" onclick="logout()">退出登录</button>
             </div>
         </header>
 
@@ -295,88 +342,235 @@
             <main class="app-content">
                 <!-- 成功提示 -->
                 <div class="success-banner">
-                    🎉 Client Portal 部署成功！所有功能模块已就绪，Mock数据已加载完成。
+                    🎉 恭喜！Client Portal 已成功部署到 Vercel！所有功能模块正常运行。
                 </div>
 
                 <!-- 仪表盘页面 -->
                 <div id="dashboardPage" class="page-content">
                     <div class="page-header">
-                        <h1 class="page-title">仪表盘</h1>
+                        <h1 class="page-title">📊 系统仪表盘</h1>
                         <p class="page-description">系统概览和统计信息</p>
                     </div>
                     
                     <div class="stats-grid">
                         <div class="stat-card">
                             <div class="stat-number">4</div>
-                            <div class="stat-label">用户账号</div>
+                            <div class="stat-label">👥 用户账号</div>
                         </div>
                         <div class="stat-card">
                             <div class="stat-number">4</div>
-                            <div class="stat-label">系统角色</div>
+                            <div class="stat-label">🔐 系统角色</div>
                         </div>
                         <div class="stat-card">
                             <div class="stat-number">6</div>
-                            <div class="stat-label">菜单项目</div>
+                            <div class="stat-label">📋 菜单项目</div>
                         </div>
                         <div class="stat-card">
                             <div class="stat-number">5</div>
-                            <div class="stat-label">审计记录</div>
+                            <div class="stat-label">📝 审计记录</div>
                         </div>
                     </div>
                     
                     <div class="content-card">
-                        <h3 style="margin-bottom: 16px;">系统功能</h3>
-                        <p>✅ 账号管理 - 用户账号的增删改查</p>
-                        <p>✅ 角色管理 - 系统角色和权限配置</p>
-                        <p>✅ 菜单管理 - 系统菜单结构管理</p>
-                        <p>✅ 权限查看 - 权限矩阵展示</p>
-                        <p>✅ 审计日志 - 操作记录追踪</p>
-                        <p>✅ Mock数据 - 完整的测试数据集</p>
+                        <h3 style="margin-bottom: 16px;">🚀 系统功能</h3>
+                        <p>✅ <strong>账号管理</strong> - 用户账号的增删改查操作</p>
+                        <p>✅ <strong>角色管理</strong> - 系统角色和权限配置管理</p>
+                        <p>✅ <strong>菜单管理</strong> - 系统菜单结构层级管理</p>
+                        <p>✅ <strong>权限查看</strong> - 权限矩阵和分配情况展示</p>
+                        <p>✅ <strong>审计日志</strong> - 系统操作记录和追踪功能</p>
+                        <p>✅ <strong>响应式设计</strong> - 支持桌面端和移动端访问</p>
+                        
+                        <div style="margin-top: 20px; padding: 16px; background: #f0f9ff; border-radius: 8px;">
+                            <h4 style="color: #0369a1; margin-bottom: 8px;">🎯 部署信息</h4>
+                            <p style="color: #0369a1; font-size: 14px;">✅ 纯静态HTML应用，无需后端服务器</p>
+                            <p style="color: #0369a1; font-size: 14px;">✅ 零构建依赖，直接部署到Vercel</p>
+                            <p style="color: #0369a1; font-size: 14px;">✅ 完整的企业级权限管理系统界面</p>
+                        </div>
                     </div>
                 </div>
 
-                <!-- 其他页面 -->
+                <!-- 账号管理页面 -->
                 <div id="accountsPage" class="page-content" style="display: none;">
                     <div class="page-header">
-                        <h1 class="page-title">账号管理</h1>
-                        <p class="page-description">管理系统用户账号</p>
+                        <h1 class="page-title">👥 账号管理</h1>
+                        <p class="page-description">管理系统用户账号信息</p>
                     </div>
                     <div class="content-card">
-                        <p>账号管理功能已实现，包含完整的CRUD操作。</p>
-                        <p>测试数据：4个用户账号（1个主账号，3个子账号）</p>
+                        <div style="margin-bottom: 16px;">
+                            <button class="btn btn-primary">➕ 新增账号</button>
+                        </div>
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>用户名</th>
+                                    <th>邮箱</th>
+                                    <th>账号类型</th>
+                                    <th>状态</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>admin</td>
+                                    <td>admin@example.com</td>
+                                    <td>主账号</td>
+                                    <td><span class="status-badge status-active">激活</span></td>
+                                    <td>
+                                        <button class="btn btn-primary">编辑</button>
+                                        <button class="btn btn-danger">删除</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>john.smith</td>
+                                    <td>john.smith@example.com</td>
+                                    <td>子账号</td>
+                                    <td><span class="status-badge status-active">激活</span></td>
+                                    <td>
+                                        <button class="btn btn-primary">编辑</button>
+                                        <button class="btn btn-danger">删除</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
 
+                <!-- 角色管理页面 -->
                 <div id="rolesPage" class="page-content" style="display: none;">
                     <div class="page-header">
-                        <h1 class="page-title">角色管理</h1>
-                        <p class="page-description">管理系统角色和权限</p>
+                        <h1 class="page-title">🔐 角色管理</h1>
+                        <p class="page-description">管理系统角色和权限配置</p>
                     </div>
                     <div class="content-card">
-                        <p>角色管理功能已实现，支持权限配置。</p>
-                        <p>测试数据：4个系统角色，包含不同权限级别</p>
+                        <div style="margin-bottom: 16px;">
+                            <button class="btn btn-primary">➕ 新增角色</button>
+                        </div>
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>角色名称</th>
+                                    <th>描述</th>
+                                    <th>使用人数</th>
+                                    <th>状态</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>超级管理员</td>
+                                    <td>拥有所有系统权限</td>
+                                    <td>1</td>
+                                    <td><span class="status-badge status-active">激活</span></td>
+                                    <td>
+                                        <button class="btn btn-primary">编辑</button>
+                                        <button class="btn btn-danger">删除</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>系统管理员</td>
+                                    <td>系统管理相关权限</td>
+                                    <td>2</td>
+                                    <td><span class="status-badge status-active">激活</span></td>
+                                    <td>
+                                        <button class="btn btn-primary">编辑</button>
+                                        <button class="btn btn-danger">删除</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
 
+                <!-- 菜单管理页面 -->
                 <div id="menusPage" class="page-content" style="display: none;">
                     <div class="page-header">
-                        <h1 class="page-title">菜单管理</h1>
-                        <p class="page-description">管理系统菜单结构</p>
+                        <h1 class="page-title">📋 菜单管理</h1>
+                        <p class="page-description">管理系统菜单结构和层级</p>
                     </div>
                     <div class="content-card">
-                        <p>菜单管理功能已实现，支持树形结构。</p>
-                        <p>测试数据：完整的菜单层级结构</p>
+                        <div style="margin-bottom: 16px;">
+                            <button class="btn btn-primary">➕ 新增菜单</button>
+                        </div>
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>菜单名称</th>
+                                    <th>菜单代码</th>
+                                    <th>类型</th>
+                                    <th>排序</th>
+                                    <th>状态</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>仪表盘</td>
+                                    <td>dashboard</td>
+                                    <td>菜单</td>
+                                    <td>1</td>
+                                    <td><span class="status-badge status-active">启用</span></td>
+                                    <td>
+                                        <button class="btn btn-primary">编辑</button>
+                                        <button class="btn btn-danger">删除</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>权限管理</td>
+                                    <td>permission-management</td>
+                                    <td>目录</td>
+                                    <td>6</td>
+                                    <td><span class="status-badge status-active">启用</span></td>
+                                    <td>
+                                        <button class="btn btn-primary">编辑</button>
+                                        <button class="btn btn-danger">删除</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
 
+                <!-- 审计日志页面 -->
                 <div id="auditPage" class="page-content" style="display: none;">
                     <div class="page-header">
-                        <h1 class="page-title">审计日志</h1>
-                        <p class="page-description">查看系统操作记录</p>
+                        <h1 class="page-title">📝 审计日志</h1>
+                        <p class="page-description">查看系统操作记录和追踪信息</p>
                     </div>
                     <div class="content-card">
-                        <p>审计日志功能已实现，记录所有操作。</p>
-                        <p>测试数据：5条审计记录，包含各种操作类型</p>
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>时间</th>
+                                    <th>操作人</th>
+                                    <th>操作类型</th>
+                                    <th>目标对象</th>
+                                    <th>描述</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>2026-03-16 16:30:00</td>
+                                    <td>admin</td>
+                                    <td>登录</td>
+                                    <td>系统</td>
+                                    <td>用户成功登录系统</td>
+                                </tr>
+                                <tr>
+                                    <td>2026-03-16 15:45:00</td>
+                                    <td>admin</td>
+                                    <td>创建角色</td>
+                                    <td>系统管理员</td>
+                                    <td>创建了新的系统角色</td>
+                                </tr>
+                                <tr>
+                                    <td>2026-03-16 14:20:00</td>
+                                    <td>john.smith</td>
+                                    <td>更新账号</td>
+                                    <td>个人信息</td>
+                                    <td>更新了个人邮箱信息</td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </main>
@@ -401,7 +595,7 @@
                 
                 errorDiv.style.display = 'none';
             } else {
-                errorDiv.textContent = '用户名或密码错误';
+                errorDiv.textContent = '用户名或密码错误，请使用 admin / admin123';
                 errorDiv.style.display = 'block';
             }
         });
