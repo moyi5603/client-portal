@@ -20,7 +20,6 @@ dotenv.config();
 initTestData();
 
 const app = express();
-const PORT = process.env.PORT || 3003;
 
 // 中间件
 app.use(cors());
@@ -46,9 +45,13 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-app.listen(PORT, () => {
-  console.log(`服务器运行在 http://localhost:${PORT}`);
-});
+// 对于Vercel部署，导出app而不是启动服务器
+if (process.env.NODE_ENV !== 'production') {
+  const PORT = process.env.PORT || 3003;
+  app.listen(PORT, () => {
+    console.log(`服务器运行在 http://localhost:${PORT}`);
+  });
+}
 
 export default app;
 
