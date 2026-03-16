@@ -1,5 +1,5 @@
 // 菜单管理API
-const menus = [
+let menus = [
   {
     id: '1',
     name: '工作台',
@@ -162,56 +162,67 @@ export default function handler(req, res) {
     return;
   }
 
-  if (req.method === 'GET') {
-    res.status(200).json({
-      success: true,
-      data: menus
-    });
-  } else if (req.method === 'POST') {
-    const newMenu = req.body;
-    const id = String(menus.length + 1);
-    const menu = { ...newMenu, id };
-    menus.push(menu);
-    
-    res.status(201).json({
-      success: true,
-      data: menu
-    });
-  } else if (req.method === 'PUT') {
-    // 处理更新菜单
-    const { id } = req.query;
-    const updatedMenu = req.body;
-    const index = menus.findIndex(m => m.id === id);
-    
-    if (index !== -1) {
-      menus[index] = { ...menus[index], ...updatedMenu };
+  try {
+    if (req.method === 'GET') {
       res.status(200).json({
         success: true,
-        data: menus[index]
+        data: menus
       });
+    } else if (req.method === 'POST') {
+      const newMenu = req.body;
+      const id = String(Date.now()); // 使用时间戳作为ID
+      const menu = { ...newMenu, id };
+      menus.push(menu);
+      
+      res.status(201).json({
+        success: true,
+        data: menu
+      });
+    } else if (req.method === 'PUT') {
+      // 处理更新菜单
+      const { id } = req.query;
+      const updatedMenu = req.body;
+      const index = menus.findIndex(m => m.id === id);
+      
+      if (index !== -1) {
+        menus[index] = { ...menus[index], ...updatedMenu };
+        res.status(200).json({
+          success: true,
+          data: menus[index]
+        });
+      } else {
+        res.status(404).json({
+          success: false,
+          error: 'Menu not found'
+        });
+      }
+    } else if (req.method === 'DELETE') {
+      // 处理删除菜单
+      const { id } = req.query;
+      const index = menus.findIndex(m => m.id === id);
+      
+      if (index !== -1) {
+        menus.splice(index, 1);
+        res.status(200).json({
+          success: true
+        });
+      } else {
+        res.status(404).json({
+          success: false,
+          error: 'Menu not found'
+        });
+      }
     } else {
-      res.status(404).json({
+      res.status(405).json({ 
         success: false,
-        error: 'Menu not found'
+        error: 'Method not allowed' 
       });
     }
-  } else if (req.method === 'DELETE') {
-    // 处理删除菜单
-    const { id } = req.query;
-    const index = menus.findIndex(m => m.id === id);
-    
-    if (index !== -1) {
-      menus.splice(index, 1);
-      res.status(200).json({
-        success: true
-      });
-    } else {
-      res.status(404).json({
-        success: false,
-        error: 'Menu not found'
-      });
-    }
-  } else {
-    res.status(405).json({ error: 'Method not allowed' });
+  } catch (error) {
+    console.error('API Error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error'
+    });
   }
 }

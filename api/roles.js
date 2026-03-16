@@ -83,15 +83,26 @@ export default function handler(req, res) {
     return;
   }
 
-  if (req.method === 'GET') {
-    res.status(200).json({
-      success: true,
-      data: {
-        items: roles,
-        total: roles.length
-      }
+  try {
+    if (req.method === 'GET') {
+      res.status(200).json({
+        success: true,
+        data: {
+          items: roles,
+          total: roles.length
+        }
+      });
+    } else {
+      res.status(405).json({ 
+        success: false,
+        error: 'Method not allowed' 
+      });
+    }
+  } catch (error) {
+    console.error('API Error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error'
     });
-  } else {
-    res.status(405).json({ error: 'Method not allowed' });
   }
 }
