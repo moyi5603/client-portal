@@ -10,9 +10,10 @@
     "build": "npm run build:server && npm run build:client",
     "build:server": "tsc",
     "build:client": "cd client && npm run build",
-    "start": "node dist/server/index.js",
+    "start": "node server.js",
     "start:server": "tsx src/server/index.ts",
-    "start:railway": "node start.js"
+    "start:railway": "node server.js",
+    "start:simple": "node server.js"
   },
   "keywords": ["permission", "management", "portal"],
   "author": "",
