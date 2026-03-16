@@ -9,7 +9,7 @@
     "dev:client": "cd client && npm run dev",
     "build": "npm run build:client && node build.js",
     "build:server": "tsc",
-    "build:client": "cd client && npm run build",
+    "build:client": "cd client && npm install && npm run build",
     "start": "node dist/server/index.js",
     "vercel-build": "npm run build:client && node build.js"
   },
