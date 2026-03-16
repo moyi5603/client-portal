@@ -1,0 +1,12 @@
+client/
+node_modules/
+api/
+src/
+*.md
+*.sh
+*.bat
+.git/
+.github/
+.vscode/
+demo/
+PRD/
