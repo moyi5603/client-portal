@@ -422,7 +422,7 @@ const permissionMatrix = {
 };
 
 // 导出所有数据
-module.exports = {
+const mockData = {
   accounts,
   roles,
   menus,
@@ -436,6 +436,14 @@ module.exports = {
   getAccountById: (id) => accounts.find(acc => acc.id === id),
   getRoleById: (id) => roles.find(role => role.id === id),
   getMenuById: (id) => menus.find(menu => menu.id === id),
+  getCustomerById: (id) => customers.find(customer => customer.id === id),
+  getFacilityById: (id) => facilities.find(facility => facility.id === id),
+  getUserPagesByUserId: (userId) => userPages.filter(page => page.userId === userId),
+  getFacilitiesByStatus: (status) => facilities.filter(facility => facility.status === status),
+  getAuditLogsByTimeRange: (startTime, endTime) => auditLogs.filter(log => {
+    const logTime = new Date(log.timestamp);
+    return logTime >= new Date(startTime) && logTime <= new Date(endTime);
+  }),
   
   // 统计函数
   getAccountsCount: () => accounts.length,
@@ -446,3 +454,5 @@ module.exports = {
   getCustomersCount: () => customers.length,
   getFacilitiesCount: () => facilities.length
 };
+
+export default mockData;

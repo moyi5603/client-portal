@@ -1,7 +1,7 @@
 // 客户数据API
-const mockData = require('./mock-data');
+import mockData from './mock-data.js';
 
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
   // 设置CORS头
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
@@ -52,4 +52,4 @@ module.exports = async (req, res) => {
       error: 'Internal server error'
     });
   }
-};
+}

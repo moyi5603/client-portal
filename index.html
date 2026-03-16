@@ -21,6 +21,7 @@
         <h2>功能测试</h2>
         <button onclick="testAPI()">测试API连接</button>
         <button onclick="testLogin()">测试登录功能</button>
+        <button onclick="testAllAPIs()">测试所有API</button>
         
         <div id="result"></div>
         
@@ -121,6 +122,79 @@
                     </div>
                 `;
             }
+        }
+        
+        async function testAllAPIs() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '<p>正在测试所有API...</p>';
+            
+            const apis = [
+                '/api/test',
+                '/api/hello', 
+                '/api/accounts',
+                '/api/roles',
+                '/api/menus',
+                '/api/audit-logs',
+                '/api/customers',
+                '/api/facilities',
+                '/api/permission-matrix',
+                '/api/user-pages'
+            ];
+            
+            let results = [];
+            
+            for (const api of apis) {
+                try {
+                    const response = await fetch(api);
+                    const data = await response.json();
+                    results.push({
+                        api,
+                        status: 'success',
+                        statusCode: response.status,
+                        data: data
+                    });
+                } catch (error) {
+                    results.push({
+                        api,
+                        status: 'error',
+                        error: error.message
+                    });
+                }
+            }
+            
+            const successCount = results.filter(r => r.status === 'success').length;
+            const totalCount = results.length;
+            
+            let html = `
+                <div class="${successCount === totalCount ? 'success' : 'error'}">
+                    <h3>${successCount === totalCount ? '✅' : '⚠️'} API测试完成</h3>
+                    <p>成功: ${successCount}/${totalCount}</p>
+                </div>
+                <details>
+                    <summary>查看详细结果</summary>
+                    <div style="max-height: 400px; overflow-y: auto;">
+            `;
+            
+            results.forEach(result => {
+                if (result.status === 'success') {
+                    html += `
+                        <div style="margin: 10px 0; padding: 10px; background: #d4edda; border-radius: 4px;">
+                            <strong>✅ ${result.api}</strong> (${result.statusCode})
+                            <pre style="font-size: 12px; max-height: 100px; overflow-y: auto;">${JSON.stringify(result.data, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    html += `
+                        <div style="margin: 10px 0; padding: 10px; background: #f8d7da; border-radius: 4px;">
+                            <strong>❌ ${result.api}</strong><br>
+                            错误: ${result.error}
+                        </div>
+                    `;
+                }
+            });
+            
+            html += '</div></details>';
+            resultDiv.innerHTML = html;
         }
     </script>
 </body>
