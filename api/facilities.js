@@ -1,5 +1,5 @@
 // 设施数据API
-import mockData from './mock-data.js';
+import mockData from './mock-data';
 
 export default async function handler(req, res) {
   // 设置CORS头
