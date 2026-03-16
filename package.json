@@ -15,7 +15,10 @@
     "start:railway": "node server.js",
     "start:simple": "node server.js"
   },
-  "keywords": ["permission", "management", "portal"],
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
   "author": "",
   "license": "MIT",
   "dependencies": {
