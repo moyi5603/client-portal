@@ -2,13 +2,47 @@
 
 一个现代化的客户门户权限管理系统，支持菜单管理、角色管理和账号管理。
 
-## 🚀 快速部署
+## 🚀 超简单一键部署
 
-### 后端部署到 Railway
-[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/template/nodejs?referralCode=bonus)
+### 方法 1：运行部署脚本（推荐）
 
-### 前端部署到 Vercel
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/moyi5603/client-portal)
+**Windows 用户：**
+```bash
+# 双击运行或在命令行执行
+deploy.bat
+```
+
+**Mac/Linux 用户：**
+```bash
+# 给脚本执行权限
+chmod +x deploy.sh
+
+# 运行部署脚本
+./deploy.sh
+```
+
+### 方法 2：手动一键部署
+
+1. **部署后端**：点击 [![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/new/template/nodejs?referralCode=bonus)
+
+2. **部署前端**：点击 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/moyi5603/client-portal)
+
+### 方法 3：命令行部署
+
+```bash
+# 1. 安装工具
+npm install -g @railway/cli vercel
+
+# 2. 部署后端
+railway login
+railway init
+railway up
+
+# 3. 部署前端  
+cd client
+vercel login
+vercel --prod
+```
 
 ## 🏗️ 项目结构
 

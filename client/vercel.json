@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "name": "client-portal",
+  "name": "client-portal-frontend",
   "builds": [
     {
       "src": "package.json",
@@ -17,6 +17,11 @@
     }
   ],
   "env": {
-    "VITE_API_URL": "http://localhost:3003"
+    "VITE_API_URL": "@vite_api_url"
+  },
+  "build": {
+    "env": {
+      "VITE_API_URL": "@vite_api_url"
+    }
   }
 }
