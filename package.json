@@ -11,7 +11,8 @@
     "build:server": "tsc",
     "build:client": "cd client && npm run build",
     "start": "node dist/server/index.js",
-    "start:server": "tsx src/server/index.ts"
+    "start:server": "tsx src/server/index.ts",
+    "start:railway": "node start.js"
   },
   "keywords": ["permission", "management", "portal"],
   "author": "",
