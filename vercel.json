@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "name": "client-portal",
+  "name": "client-portal-admin",
   "builds": [
     {
       "src": "client/package.json",
