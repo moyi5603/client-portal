@@ -1,0 +1,1866 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Client Portal - 权限管理系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f0f2f5;
+            min-height: 100vh;
+        }
+        
+        .login-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .login-box {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            width: 400px;
+            text-align: center;
+        }
+        
+        .login-title {
+            font-size: 28px;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 8px;
+        }
+        
+        .login-subtitle {
+            color: #6b7280;
+            margin-bottom: 32px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #374151;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .login-btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .login-btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .app-container {
+            display: none;
+        }
+        
+        .app-header {
+            background: white;
+            padding: 0 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 64px;
+        }
+        
+        .app-logo {
+            font-size: 20px;
+            font-weight: 600;
+            color: #1f2937;
+        }
+        
+        .app-user {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .app-layout {
+            display: flex;
+            min-height: calc(100vh - 64px);
+        }
+        
+        .app-sidebar {
+            width: 256px;
+            background: white;
+            border-right: 1px solid #e5e7eb;
+            padding: 24px 0;
+        }
+        
+        .menu-item {
+            padding: 12px 24px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            border-left: 3px solid transparent;
+        }
+        
+        .menu-item:hover {
+            background: #f3f4f6;
+        }
+        
+        .menu-item.active {
+            background: #eff6ff;
+            border-left-color: #3b82f6;
+            color: #3b82f6;
+        }
+        
+        .app-content {
+            flex: 1;
+            padding: 24px;
+        }
+        
+        .page-header {
+            margin-bottom: 24px;
+        }
+        
+        .page-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 8px;
+        }
+        
+        .page-description {
+            color: #6b7280;
+        }
+        
+        .content-card {
+            background: white;
+            border-radius: 8px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 32px;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 8px;
+        }
+        
+        .stat-label {
+            color: #6b7280;
+            font-size: 14px;
+        }
+        
+        .error-message {
+            color: #ef4444;
+            font-size: 14px;
+            margin-top: 8px;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 8px;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+        
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+        
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+        
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #059669;
+        }
+        
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 16px;
+        }
+        
+        .data-table th,
+        .data-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .data-table th {
+            background: #f9fafb;
+            font-weight: 600;
+            color: #374151;
+        }
+        
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .status-active {
+            background: #dcfce7;
+            color: #166534;
+        }
+        
+        .status-inactive {
+            background: #f3f4f6;
+            color: #6b7280;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 24px;
+            border-radius: 8px;
+            width: 500px;
+            max-width: 90%;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .close {
+            font-size: 24px;
+            cursor: pointer;
+            color: #6b7280;
+        }
+        
+        .close:hover {
+            color: #374151;
+        }
+        
+        .form-row {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+        
+        .form-col {
+            flex: 1;
+        }
+        
+        .form-select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        .tree-item {
+            margin-left: 20px;
+            padding: 4px 0;
+        }
+        
+        .tree-toggle {
+            cursor: pointer;
+            margin-right: 8px;
+            color: #6b7280;
+        }
+        
+        .tree-node {
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            border-radius: 4px;
+            margin: 2px 0;
+        }
+        
+        .tree-node:hover {
+            background: #f3f4f6;
+        }
+        
+        .tree-node.selected {
+            background: #eff6ff;
+            color: #3b82f6;
+        }
+        
+        .actions-dropdown {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .actions-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+        
+        .actions-btn:hover {
+            background: #f3f4f6;
+        }
+        
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            right: 0;
+            background-color: white;
+            min-width: 120px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+            border-radius: 6px;
+            z-index: 1;
+        }
+        
+        .dropdown-content.show {
+            display: block;
+        }
+        
+        .dropdown-item {
+            padding: 8px 16px;
+            cursor: pointer;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+        }
+        
+        .dropdown-item:hover {
+            background: #f3f4f6;
+        }
+    </style>
+</head>
+<body>
+    <!-- 登录页面 -->
+    <div id="loginPage" class="login-container">
+        <div class="login-box">
+            <h1 class="login-title">🏢 Client Portal</h1>
+            <p class="login-subtitle">权限管理系统 - 完整版</p>
+            
+            <form id="loginForm">
+                <div class="form-group">
+                    <label class="form-label">用户名</label>
+                    <input type="text" id="username" class="form-input" placeholder="请输入用户名" value="admin">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">密码</label>
+                    <input type="password" id="password" class="form-input" placeholder="请输入密码" value="admin123">
+                </div>
+                
+                <button type="submit" class="login-btn">登录系统</button>
+                <div id="loginError" class="error-message" style="display: none;"></div>
+            </form>
+            
+            <div style="margin-top: 20px; font-size: 12px; color: #6b7280;">
+                <p>✅ 完整Mock数据</p>
+                <p>✅ CRUD功能</p>
+                <p>✅ 纯前端应用</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主应用页面 -->
+    <div id="appPage" class="app-container">
+        <!-- 头部 -->
+        <header class="app-header">
+            <div class="app-logo">🏢 Client Portal - 权限管理系统</div>
+            <div class="app-user">
+                <span>👤 <span id="currentUser">admin</span></span>
+                <button class="btn btn-secondary" onclick="logout()">退出登录</button>
+            </div>
+        </header>
+
+        <!-- 主体布局 -->
+        <div class="app-layout">
+            <!-- 侧边栏 -->
+            <nav class="app-sidebar">
+                <div class="menu-item active" onclick="showPage('dashboard')">
+                    📊 仪表盘
+                </div>
+                <div class="menu-item" onclick="showPage('accounts')">
+                    👥 账号管理
+                </div>
+                <div class="menu-item" onclick="showPage('roles')">
+                    🔐 角色管理
+                </div>
+                <div class="menu-item" onclick="showPage('menus')">
+                    📋 菜单管理
+                </div>
+                <div class="menu-item" onclick="showPage('audit')">
+                    📝 审计日志
+                </div>
+            </nav>
+
+            <!-- 内容区域 -->
+            <main class="app-content">
+                <!-- 仪表盘页面 -->
+                <div id="dashboardPage" class="page-content">
+                    <div class="page-header">
+                        <h1 class="page-title">📊 系统仪表盘</h1>
+                        <p class="page-description">系统概览和统计信息</p>
+                    </div>
+                    
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-number" id="accountCount">10</div>
+                            <div class="stat-label">👥 用户账号</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number" id="roleCount">7</div>
+                            <div class="stat-label">🔐 系统角色</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number" id="menuCount">14</div>
+                            <div class="stat-label">📋 菜单项目</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number" id="auditCount">25</div>
+                            <div class="stat-label">📝 审计记录</div>
+                        </div>
+                    </div>
+                    
+                    <div class="content-card">
+                        <h3 style="margin-bottom: 16px;">🚀 系统功能</h3>
+                        <p>✅ <strong>账号管理</strong> - 用户账号的增删改查操作</p>
+                        <p>✅ <strong>角色管理</strong> - 系统角色和权限配置管理</p>
+                        <p>✅ <strong>菜单管理</strong> - 系统菜单结构层级管理</p>
+                        <p>✅ <strong>审计日志</strong> - 系统操作记录和追踪功能</p>
+                        <p>✅ <strong>完整CRUD</strong> - 支持数据的增加、查询、修改、删除</p>
+                        <p>✅ <strong>Mock数据</strong> - 完整的模拟数据，无需后端服务</p>
+                        
+                        <div style="margin-top: 20px; padding: 16px; background: #f0f9ff; border-radius: 8px;">
+                            <h4 style="color: #0369a1; margin-bottom: 8px;">🎯 技术特点</h4>
+                            <p style="color: #0369a1; font-size: 14px;">✅ 纯前端应用，包含完整Mock数据</p>
+                            <p style="color: #0369a1; font-size: 14px;">✅ 支持完整的CRUD操作</p>
+                            <p style="color: #0369a1; font-size: 14px;">✅ 响应式设计，支持移动端</p>
+                            <p style="color: #0369a1; font-size: 14px;">✅ 企业级UI设计，专业美观</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 账号管理页面 -->
+                <div id="accountsPage" class="page-content" style="display: none;">
+                    <div class="page-header">
+                        <h1 class="page-title">👥 账号管理</h1>
+                        <p class="page-description">管理系统用户账号信息</p>
+                    </div>
+                    <div class="content-card">
+                        <div style="margin-bottom: 16px;">
+                            <button class="btn btn-primary" onclick="openAccountModal()">➕ 新增账号</button>
+                        </div>
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>用户名</th>
+                                    <th>邮箱</th>
+                                    <th>账号类型</th>
+                                    <th>角色</th>
+                                    <th>状态</th>
+                                    <th>创建时间</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="accountsTableBody">
+                                <!-- 动态生成 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <!-- 角色管理页面 -->
+                <div id="rolesPage" class="page-content" style="display: none;">
+                    <div class="page-header">
+                        <h1 class="page-title">🔐 角色管理</h1>
+                        <p class="page-description">管理系统角色和权限配置</p>
+                    </div>
+                    <div class="content-card">
+                        <div style="margin-bottom: 16px;">
+                            <button class="btn btn-primary" onclick="openRoleModal()">➕ 新增角色</button>
+                        </div>
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>角色名称</th>
+                                    <th>描述</th>
+                                    <th>权限数量</th>
+                                    <th>使用人数</th>
+                                    <th>状态</th>
+                                    <th>创建时间</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="rolesTableBody">
+                                <!-- 动态生成 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 菜单管理页面 -->
+                <div id="menusPage" class="page-content" style="display: none;">
+                    <div class="page-header">
+                        <h1 class="page-title">📋 菜单管理</h1>
+                        <p class="page-description">管理系统菜单结构和层级</p>
+                    </div>
+                    <div class="content-card">
+                        <div style="margin-bottom: 16px;">
+                            <button class="btn btn-primary" onclick="openMenuModal()">➕ 新增菜单</button>
+                        </div>
+                        <div id="menuTree">
+                            <!-- 动态生成菜单树 -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 审计日志页面 -->
+                <div id="auditPage" class="page-content" style="display: none;">
+                    <div class="page-header">
+                        <h1 class="page-title">📝 审计日志</h1>
+                        <p class="page-description">查看系统操作记录和追踪信息</p>
+                    </div>
+                    <div class="content-card">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>时间</th>
+                                    <th>操作人</th>
+                                    <th>操作类型</th>
+                                    <th>目标对象</th>
+                                    <th>描述</th>
+                                    <th>IP地址</th>
+                                </tr>
+                            </thead>
+                            <tbody id="auditTableBody">
+                                <!-- 动态生成 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+    <!-- 账号管理模态框 -->
+    <div id="accountModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="accountModalTitle">新增账号</h3>
+                <span class="close" onclick="closeAccountModal()">&times;</span>
+            </div>
+            <form id="accountForm">
+                <div class="form-row">
+                    <div class="form-col">
+                        <label class="form-label">用户名</label>
+                        <input type="text" id="accountUsername" class="form-input" required>
+                    </div>
+                    <div class="form-col">
+                        <label class="form-label">邮箱</label>
+                        <input type="email" id="accountEmail" class="form-input" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-col">
+                        <label class="form-label">账号类型</label>
+                        <select id="accountType" class="form-select">
+                            <option value="MAIN">主账号</option>
+                            <option value="SUB">子账号</option>
+                        </select>
+                    </div>
+                    <div class="form-col">
+                        <label class="form-label">状态</label>
+                        <select id="accountStatus" class="form-select">
+                            <option value="ACTIVE">激活</option>
+                            <option value="INACTIVE">停用</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">角色</label>
+                    <select id="accountRoles" class="form-select" multiple>
+                        <!-- 动态生成角色选项 -->
+                    </select>
+                </div>
+                <div style="text-align: right; margin-top: 20px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeAccountModal()">取消</button>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 角色管理模态框 -->
+    <div id="roleModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="roleModalTitle">新增角色</h3>
+                <span class="close" onclick="closeRoleModal()">&times;</span>
+            </div>
+            <form id="roleForm">
+                <div class="form-group">
+                    <label class="form-label">角色名称</label>
+                    <input type="text" id="roleName" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">描述</label>
+                    <textarea id="roleDescription" class="form-input" rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">状态</label>
+                    <select id="roleStatus" class="form-select">
+                        <option value="ACTIVE">激活</option>
+                        <option value="INACTIVE">停用</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">权限</label>
+                    <div id="permissionsList">
+                        <!-- 动态生成权限复选框 -->
+                    </div>
+                </div>
+                <div style="text-align: right; margin-top: 20px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeRoleModal()">取消</button>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <!-- 菜单管理模态框 -->
+    <div id="menuModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="menuModalTitle">新增菜单</h3>
+                <span class="close" onclick="closeMenuModal()">&times;</span>
+            </div>
+            <form id="menuForm">
+                <div class="form-row">
+                    <div class="form-col">
+                        <label class="form-label">菜单类型</label>
+                        <select id="menuType" class="form-select" onchange="onMenuTypeChange()">
+                            <option value="DIRECTORY">目录</option>
+                            <option value="MENU">菜单</option>
+                            <option value="BUTTON">按钮</option>
+                        </select>
+                    </div>
+                    <div class="form-col">
+                        <label class="form-label">父级菜单</label>
+                        <select id="menuParent" class="form-select">
+                            <option value="">无（顶级菜单）</option>
+                            <!-- 动态生成父级菜单选项 -->
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-col">
+                        <label class="form-label">菜单名称</label>
+                        <input type="text" id="menuName" class="form-input" required>
+                    </div>
+                    <div class="form-col">
+                        <label class="form-label">菜单代码</label>
+                        <input type="text" id="menuCode" class="form-input" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-col">
+                        <label class="form-label">路径</label>
+                        <input type="text" id="menuPath" class="form-input">
+                    </div>
+                    <div class="form-col">
+                        <label class="form-label">排序</label>
+                        <input type="number" id="menuOrder" class="form-input" value="1">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">状态</label>
+                    <select id="menuStatus" class="form-select">
+                        <option value="NORMAL">启用</option>
+                        <option value="DISABLED">禁用</option>
+                    </select>
+                </div>
+                <div style="text-align: right; margin-top: 20px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeMenuModal()">取消</button>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Mock 数据
+        let mockData = {
+            accounts: [
+                {
+                    id: 'ACC-001',
+                    username: 'admin',
+                    email: 'admin@example.com',
+                    accountType: 'MAIN',
+                    status: 'ACTIVE',
+                    roles: ['ROLE-001'],
+                    createdAt: '2024-01-01T00:00:00.000Z'
+                },
+                {
+                    id: 'ACC-002',
+                    username: 'john.smith',
+                    email: 'john.smith@example.com',
+                    accountType: 'SUB',
+                    status: 'ACTIVE',
+                    roles: ['ROLE-002'],
+                    createdAt: '2024-01-15T00:00:00.000Z'
+                },
+                {
+                    id: 'ACC-003',
+                    username: 'mary.johnson',
+                    email: 'mary.johnson@example.com',
+                    accountType: 'SUB',
+                    status: 'ACTIVE',
+                    roles: ['ROLE-003'],
+                    createdAt: '2024-02-01T00:00:00.000Z'
+                },
+                {
+                    id: 'ACC-004',
+                    username: 'david.wilson',
+                    email: 'david.wilson@example.com',
+                    accountType: 'SUB',
+                    status: 'ACTIVE',
+                    roles: ['ROLE-004'],
+                    createdAt: '2024-02-15T00:00:00.000Z'
+                },
+                {
+                    id: 'ACC-005',
+                    username: 'sarah.brown',
+                    email: 'sarah.brown@example.com',
+                    accountType: 'SUB',
+                    status: 'ACTIVE',
+                    roles: ['ROLE-005'],
+                    createdAt: '2024-03-01T00:00:00.000Z'
+                },
+                {
+                    id: 'ACC-006',
+                    username: 'mike.davis',
+                    email: 'mike.davis@example.com',
+                    accountType: 'SUB',
+                    status: 'ACTIVE',
+                    roles: ['ROLE-006'],
+                    createdAt: '2024-01-20T00:00:00.000Z'
+                },
+                {
+                    id: 'ACC-007',
+                    username: 'lisa.garcia',
+                    email: 'lisa.garcia@example.com',
+                    accountType: 'SUB',
+                    status: 'ACTIVE',
+                    roles: ['ROLE-003', 'ROLE-006'],
+                    createdAt: '2024-02-10T00:00:00.000Z'
+                },
+                {
+                    id: 'ACC-008',
+                    username: 'tom.martinez',
+                    email: 'tom.martinez@example.com',
+                    accountType: 'SUB',
+                    status: 'INACTIVE',
+                    roles: ['ROLE-006'],
+                    createdAt: '2024-01-25T00:00:00.000Z'
+                },
+                {
+                    id: 'ACC-009',
+                    username: 'anna.rodriguez',
+                    email: 'anna.rodriguez@example.com',
+                    accountType: 'SUB',
+                    status: 'ACTIVE',
+                    roles: ['ROLE-004', 'ROLE-006'],
+                    createdAt: '2024-02-20T00:00:00.000Z'
+                },
+                {
+                    id: 'ACC-010',
+                    username: 'james.lee',
+                    email: 'james.lee@example.com',
+                    accountType: 'SUB',
+                    status: 'ACTIVE',
+                    roles: ['ROLE-002', 'ROLE-006'],
+                    createdAt: '2024-03-05T00:00:00.000Z'
+                }
+            ],
+            roles: [
+                {
+                    id: 'ROLE-001',
+                    name: 'Super Administrator',
+                    description: 'Full system access with all permissions',
+                    status: 'ACTIVE',
+                    permissions: ['*'],
+                    usageCount: 1,
+                    createdAt: '2024-01-01T00:00:00.000Z'
+                },
+                {
+                    id: 'ROLE-002',
+                    name: 'System Administrator',
+                    description: 'System management access',
+                    status: 'ACTIVE',
+                    permissions: ['system.*', 'menu.*', 'role.*', 'account.*'],
+                    usageCount: 2,
+                    createdAt: '2024-01-15T00:00:00.000Z'
+                },
+                {
+                    id: 'ROLE-003',
+                    name: 'Purchase Manager',
+                    description: 'Purchase management permissions',
+                    status: 'ACTIVE',
+                    permissions: ['purchase.*', 'supplier.*'],
+                    usageCount: 2,
+                    createdAt: '2024-02-01T00:00:00.000Z'
+                },
+                {
+                    id: 'ROLE-004',
+                    name: 'Order Manager',
+                    description: 'Order management permissions',
+                    status: 'ACTIVE',
+                    permissions: ['order.*', 'order.view', 'order.create', 'order.edit'],
+                    usageCount: 2,
+                    createdAt: '2024-02-15T00:00:00.000Z'
+                },
+                {
+                    id: 'ROLE-005',
+                    name: 'Transport Manager',
+                    description: 'Transportation management permissions',
+                    status: 'ACTIVE',
+                    permissions: ['transport.*', 'vehicle.*'],
+                    usageCount: 1,
+                    createdAt: '2024-03-01T00:00:00.000Z'
+                },
+                {
+                    id: 'ROLE-006',
+                    name: 'Viewer',
+                    description: 'Read-only access to most modules',
+                    status: 'ACTIVE',
+                    permissions: ['*.view'],
+                    usageCount: 5,
+                    createdAt: '2024-01-20T00:00:00.000Z'
+                },
+                {
+                    id: 'ROLE-007',
+                    name: 'Disabled Role',
+                    description: 'This role is currently disabled',
+                    status: 'INACTIVE',
+                    permissions: [],
+                    usageCount: 0,
+                    createdAt: '2024-01-10T00:00:00.000Z'
+                }
+            ],
+            menus: [
+                {
+                    id: '1',
+                    name: '工作台',
+                    code: 'dashboard',
+                    path: '/dashboard',
+                    order: 1,
+                    type: 'MENU',
+                    status: 'NORMAL',
+                    parentId: null
+                },
+                {
+                    id: '2',
+                    name: '系统管理',
+                    code: 'system',
+                    path: '/system',
+                    order: 2,
+                    type: 'DIRECTORY',
+                    status: 'NORMAL',
+                    parentId: null
+                },
+                {
+                    id: '3',
+                    name: '菜单管理',
+                    code: 'menu-management',
+                    path: '/system/menus',
+                    order: 1,
+                    type: 'MENU',
+                    status: 'NORMAL',
+                    parentId: '2'
+                },
+                {
+                    id: '4',
+                    name: '角色管理',
+                    code: 'role-management',
+                    path: '/system/roles',
+                    order: 2,
+                    type: 'MENU',
+                    status: 'NORMAL',
+                    parentId: '2'
+                },
+                {
+                    id: '5',
+                    name: '账号管理',
+                    code: 'account-management',
+                    path: '/system/accounts',
+                    order: 3,
+                    type: 'MENU',
+                    status: 'NORMAL',
+                    parentId: '2'
+                },
+                {
+                    id: '6',
+                    name: '采购管理',
+                    code: 'purchase',
+                    path: '/purchase',
+                    order: 3,
+                    type: 'DIRECTORY',
+                    status: 'NORMAL',
+                    parentId: null
+                },
+                {
+                    id: '7',
+                    name: '采购订单',
+                    code: 'purchase-orders',
+                    path: '/purchase/orders',
+                    order: 1,
+                    type: 'MENU',
+                    status: 'NORMAL',
+                    parentId: '6'
+                },
+                {
+                    id: '8',
+                    name: '供应商管理',
+                    code: 'suppliers',
+                    path: '/purchase/suppliers',
+                    order: 2,
+                    type: 'MENU',
+                    status: 'NORMAL',
+                    parentId: '6'
+                },
+                {
+                    id: '9',
+                    name: '订单管理',
+                    code: 'orders',
+                    path: '/orders',
+                    order: 4,
+                    type: 'DIRECTORY',
+                    status: 'NORMAL',
+                    parentId: null
+                },
+                {
+                    id: '10',
+                    name: '订单列表',
+                    code: 'order-list',
+                    path: '/orders/list',
+                    order: 1,
+                    type: 'MENU',
+                    status: 'NORMAL',
+                    parentId: '9'
+                },
+                {
+                    id: '11',
+                    name: '订单统计',
+                    code: 'order-stats',
+                    path: '/orders/stats',
+                    order: 2,
+                    type: 'MENU',
+                    status: 'NORMAL',
+                    parentId: '9'
+                },
+                {
+                    id: '12',
+                    name: '运输管理',
+                    code: 'transport',
+                    path: '/transport',
+                    order: 5,
+                    type: 'DIRECTORY',
+                    status: 'NORMAL',
+                    parentId: null
+                },
+                {
+                    id: '13',
+                    name: '运输计划',
+                    code: 'transport-plan',
+                    path: '/transport/plan',
+                    order: 1,
+                    type: 'MENU',
+                    status: 'NORMAL',
+                    parentId: '12'
+                },
+                {
+                    id: '14',
+                    name: '车辆管理',
+                    code: 'vehicles',
+                    path: '/transport/vehicles',
+                    order: 2,
+                    type: 'MENU',
+                    status: 'NORMAL',
+                    parentId: '12'
+                }
+            ],
+            auditLogs: [
+                {
+                    id: 'AUDIT-001',
+                    timestamp: '2026-03-16T16:30:00.000Z',
+                    operator: 'admin',
+                    action: '登录',
+                    target: '系统',
+                    description: '用户成功登录系统',
+                    ipAddress: '192.168.1.100'
+                },
+                {
+                    id: 'AUDIT-002',
+                    timestamp: '2026-03-16T15:45:00.000Z',
+                    operator: 'admin',
+                    action: '创建角色',
+                    target: '系统管理员',
+                    description: '创建了新的系统角色',
+                    ipAddress: '192.168.1.100'
+                },
+                {
+                    id: 'AUDIT-003',
+                    timestamp: '2026-03-16T14:20:00.000Z',
+                    operator: 'john.smith',
+                    action: '更新账号',
+                    target: '个人信息',
+                    description: '更新了个人邮箱信息',
+                    ipAddress: '192.168.1.101'
+                },
+                {
+                    id: 'AUDIT-004',
+                    timestamp: '2026-03-16T13:15:00.000Z',
+                    operator: 'admin',
+                    action: '删除菜单',
+                    target: '测试菜单',
+                    description: '删除了测试用的菜单项',
+                    ipAddress: '192.168.1.100'
+                },
+                {
+                    id: 'AUDIT-005',
+                    timestamp: '2026-03-16T12:30:00.000Z',
+                    operator: 'mary.johnson',
+                    action: '查看报表',
+                    target: '采购报表',
+                    description: '查看了本月采购统计报表',
+                    ipAddress: '192.168.1.102'
+                },
+                {
+                    id: 'AUDIT-006',
+                    timestamp: '2026-03-16T11:45:00.000Z',
+                    operator: 'admin',
+                    action: '修改权限',
+                    target: 'Purchase Manager',
+                    description: '修改了采购管理员角色权限',
+                    ipAddress: '192.168.1.100'
+                },
+                {
+                    id: 'AUDIT-007',
+                    timestamp: '2026-03-16T10:20:00.000Z',
+                    operator: 'david.wilson',
+                    action: '创建订单',
+                    target: 'ORD-2026001',
+                    description: '创建了新的采购订单',
+                    ipAddress: '192.168.1.103'
+                },
+                {
+                    id: 'AUDIT-008',
+                    timestamp: '2026-03-16T09:15:00.000Z',
+                    operator: 'sarah.brown',
+                    action: '更新运输',
+                    target: 'TRP-2026001',
+                    description: '更新了运输计划状态',
+                    ipAddress: '192.168.1.104'
+                },
+                {
+                    id: 'AUDIT-009',
+                    timestamp: '2026-03-16T08:30:00.000Z',
+                    operator: 'admin',
+                    action: '系统备份',
+                    target: '数据库',
+                    description: '执行了系统数据备份',
+                    ipAddress: '192.168.1.100'
+                },
+                {
+                    id: 'AUDIT-010',
+                    timestamp: '2026-03-15T17:45:00.000Z',
+                    operator: 'mike.davis',
+                    action: '登录',
+                    target: '系统',
+                    description: '用户成功登录系统',
+                    ipAddress: '192.168.1.105'
+                },
+                {
+                    id: 'AUDIT-011',
+                    timestamp: '2026-03-15T16:20:00.000Z',
+                    operator: 'lisa.garcia',
+                    action: '查看供应商',
+                    target: 'SUP-001',
+                    description: '查看了供应商详细信息',
+                    ipAddress: '192.168.1.106'
+                },
+                {
+                    id: 'AUDIT-012',
+                    timestamp: '2026-03-15T15:10:00.000Z',
+                    operator: 'tom.martinez',
+                    action: '登录失败',
+                    target: '系统',
+                    description: '用户登录失败，密码错误',
+                    ipAddress: '192.168.1.107'
+                },
+                {
+                    id: 'AUDIT-013',
+                    timestamp: '2026-03-15T14:30:00.000Z',
+                    operator: 'anna.rodriguez',
+                    action: '修改订单',
+                    target: 'ORD-2026002',
+                    description: '修改了订单数量和金额',
+                    ipAddress: '192.168.1.108'
+                },
+                {
+                    id: 'AUDIT-014',
+                    timestamp: '2026-03-15T13:45:00.000Z',
+                    operator: 'james.lee',
+                    action: '导出数据',
+                    target: '账号列表',
+                    description: '导出了用户账号列表',
+                    ipAddress: '192.168.1.109'
+                },
+                {
+                    id: 'AUDIT-015',
+                    timestamp: '2026-03-15T12:20:00.000Z',
+                    operator: 'admin',
+                    action: '创建账号',
+                    target: 'test.user',
+                    description: '创建了新的测试用户账号',
+                    ipAddress: '192.168.1.100'
+                }
+            ]
+        };
+
+        // 当前编辑的项目
+        let currentEditItem = null;
+        let currentEditType = null;
+
+        // 登录处理
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const errorDiv = document.getElementById('loginError');
+            
+            if (username === 'admin' && password === 'admin123') {
+                document.getElementById('currentUser').textContent = username;
+                
+                // 隐藏登录页面，显示应用页面
+                document.getElementById('loginPage').style.display = 'none';
+                document.getElementById('appPage').style.display = 'block';
+                
+                // 初始化数据
+                initializeApp();
+                
+                errorDiv.style.display = 'none';
+            } else {
+                errorDiv.textContent = '用户名或密码错误，请使用 admin / admin123';
+                errorDiv.style.display = 'block';
+            }
+        });
+        
+        // 退出登录
+        function logout() {
+            document.getElementById('loginPage').style.display = 'flex';
+            document.getElementById('appPage').style.display = 'none';
+            document.getElementById('username').value = 'admin';
+            document.getElementById('password').value = 'admin123';
+        }
+        
+        // 页面切换
+        function showPage(pageId) {
+            // 隐藏所有页面
+            const pages = document.querySelectorAll('.page-content');
+            pages.forEach(page => page.style.display = 'none');
+            
+            // 移除所有菜单项的active状态
+            const menuItems = document.querySelectorAll('.menu-item');
+            menuItems.forEach(item => item.classList.remove('active'));
+            
+            // 显示目标页面
+            document.getElementById(pageId + 'Page').style.display = 'block';
+            
+            // 设置对应菜单项为active
+            event.target.classList.add('active');
+            
+            // 刷新页面数据
+            refreshPageData(pageId);
+        }
+        
+        // 初始化应用
+        function initializeApp() {
+            updateStats();
+            refreshPageData('dashboard');
+        }
+        
+        // 更新统计数据
+        function updateStats() {
+            document.getElementById('accountCount').textContent = mockData.accounts.length;
+            document.getElementById('roleCount').textContent = mockData.roles.length;
+            document.getElementById('menuCount').textContent = mockData.menus.length;
+            document.getElementById('auditCount').textContent = mockData.auditLogs.length;
+        }
+        
+        // 刷新页面数据
+        function refreshPageData(pageId) {
+            switch(pageId) {
+                case 'accounts':
+                    renderAccountsTable();
+                    break;
+                case 'roles':
+                    renderRolesTable();
+                    break;
+                case 'menus':
+                    renderMenuTree();
+                    break;
+                case 'audit':
+                    renderAuditTable();
+                    break;
+            }
+        }
+        
+        // 渲染账号表格
+        function renderAccountsTable() {
+            const tbody = document.getElementById('accountsTableBody');
+            tbody.innerHTML = '';
+            
+            mockData.accounts.forEach(account => {
+                const roleNames = account.roles.map(roleId => {
+                    const role = mockData.roles.find(r => r.id === roleId);
+                    return role ? role.name : roleId;
+                }).join(', ');
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${account.username}</td>
+                    <td>${account.email}</td>
+                    <td>${account.accountType === 'MAIN' ? '主账号' : '子账号'}</td>
+                    <td>${roleNames}</td>
+                    <td><span class="status-badge ${account.status === 'ACTIVE' ? 'status-active' : 'status-inactive'}">${account.status === 'ACTIVE' ? '激活' : '停用'}</span></td>
+                    <td>${new Date(account.createdAt).toLocaleDateString()}</td>
+                    <td>
+                        <button class="btn btn-primary" onclick="editAccount('${account.id}')">编辑</button>
+                        <button class="btn btn-danger" onclick="deleteAccount('${account.id}')">删除</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+        
+        // 渲染角色表格
+        function renderRolesTable() {
+            const tbody = document.getElementById('rolesTableBody');
+            tbody.innerHTML = '';
+            
+            mockData.roles.forEach(role => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${role.name}</td>
+                    <td>${role.description}</td>
+                    <td>${role.permissions.length}</td>
+                    <td>${role.usageCount}</td>
+                    <td><span class="status-badge ${role.status === 'ACTIVE' ? 'status-active' : 'status-inactive'}">${role.status === 'ACTIVE' ? '激活' : '停用'}</span></td>
+                    <td>${new Date(role.createdAt).toLocaleDateString()}</td>
+                    <td>
+                        <button class="btn btn-primary" onclick="editRole('${role.id}')">编辑</button>
+                        <button class="btn btn-danger" onclick="deleteRole('${role.id}')">删除</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+        
+        // 渲染菜单树
+        function renderMenuTree() {
+            const container = document.getElementById('menuTree');
+            container.innerHTML = '';
+            
+            // 构建树形结构
+            const tree = buildMenuTree(mockData.menus);
+            
+            tree.forEach(menu => {
+                const menuElement = createMenuTreeNode(menu);
+                container.appendChild(menuElement);
+            });
+        }
+        
+        // 构建菜单树形结构
+        function buildMenuTree(menus) {
+            const tree = [];
+            const menuMap = {};
+            
+            // 创建映射
+            menus.forEach(menu => {
+                menuMap[menu.id] = { ...menu, children: [] };
+            });
+            
+            // 构建树形结构
+            menus.forEach(menu => {
+                if (menu.parentId) {
+                    if (menuMap[menu.parentId]) {
+                        menuMap[menu.parentId].children.push(menuMap[menu.id]);
+                    }
+                } else {
+                    tree.push(menuMap[menu.id]);
+                }
+            });
+            
+            return tree;
+        }
+        
+        // 创建菜单树节点
+        function createMenuTreeNode(menu, level = 0) {
+            const div = document.createElement('div');
+            div.className = 'tree-item';
+            div.style.marginLeft = (level * 20) + 'px';
+            
+            const nodeDiv = document.createElement('div');
+            nodeDiv.className = 'tree-node';
+            
+            const hasChildren = menu.children && menu.children.length > 0;
+            const toggle = hasChildren ? '📁' : (menu.type === 'DIRECTORY' ? '📂' : (menu.type === 'MENU' ? '📄' : '🔘'));
+            
+            nodeDiv.innerHTML = `
+                <span class="tree-toggle">${toggle}</span>
+                <span>${menu.name} (${menu.code})</span>
+                <span style="margin-left: auto;">
+                    <span class="status-badge ${menu.status === 'NORMAL' ? 'status-active' : 'status-inactive'}">${menu.status === 'NORMAL' ? '启用' : '禁用'}</span>
+                    <div class="actions-dropdown" style="display: inline-block; margin-left: 8px;">
+                        <button class="actions-btn" onclick="toggleDropdown(event, '${menu.id}')">⋯</button>
+                        <div class="dropdown-content" id="dropdown-${menu.id}">
+                            ${menu.type !== 'BUTTON' ? `<button class="dropdown-item" onclick="addChildMenu('${menu.id}')">添加子菜单</button>` : ''}
+                            <button class="dropdown-item" onclick="editMenu('${menu.id}')">编辑</button>
+                            <button class="dropdown-item" onclick="deleteMenu('${menu.id}')">删除</button>
+                        </div>
+                    </div>
+                </span>
+            `;
+            
+            div.appendChild(nodeDiv);
+            
+            // 添加子菜单
+            if (hasChildren) {
+                menu.children.forEach(child => {
+                    const childElement = createMenuTreeNode(child, level + 1);
+                    div.appendChild(childElement);
+                });
+            }
+            
+            return div;
+        }
+        
+        // 渲染审计日志表格
+        function renderAuditTable() {
+            const tbody = document.getElementById('auditTableBody');
+            tbody.innerHTML = '';
+            
+            // 按时间倒序排列
+            const sortedLogs = [...mockData.auditLogs].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            
+            sortedLogs.forEach(log => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${new Date(log.timestamp).toLocaleString()}</td>
+                    <td>${log.operator}</td>
+                    <td>${log.action}</td>
+                    <td>${log.target}</td>
+                    <td>${log.description}</td>
+                    <td>${log.ipAddress}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+        
+        // 下拉菜单切换
+        function toggleDropdown(event, menuId) {
+            event.stopPropagation();
+            const dropdown = document.getElementById(`dropdown-${menuId}`);
+            
+            // 关闭其他下拉菜单
+            document.querySelectorAll('.dropdown-content').forEach(d => {
+                if (d.id !== `dropdown-${menuId}`) {
+                    d.classList.remove('show');
+                }
+            });
+            
+            dropdown.classList.toggle('show');
+        }
+        
+        // 点击其他地方关闭下拉菜单
+        document.addEventListener('click', function() {
+            document.querySelectorAll('.dropdown-content').forEach(d => {
+                d.classList.remove('show');
+            });
+        });
+        
+        // 账号管理相关函数
+        function openAccountModal(accountId = null) {
+            currentEditItem = accountId;
+            currentEditType = 'account';
+            
+            const modal = document.getElementById('accountModal');
+            const title = document.getElementById('accountModalTitle');
+            const form = document.getElementById('accountForm');
+            
+            if (accountId) {
+                title.textContent = '编辑账号';
+                const account = mockData.accounts.find(a => a.id === accountId);
+                if (account) {
+                    document.getElementById('accountUsername').value = account.username;
+                    document.getElementById('accountEmail').value = account.email;
+                    document.getElementById('accountType').value = account.accountType;
+                    document.getElementById('accountStatus').value = account.status;
+                    
+                    // 设置角色选择
+                    const roleSelect = document.getElementById('accountRoles');
+                    Array.from(roleSelect.options).forEach(option => {
+                        option.selected = account.roles.includes(option.value);
+                    });
+                }
+            } else {
+                title.textContent = '新增账号';
+                form.reset();
+            }
+            
+            // 填充角色选项
+            populateRoleOptions();
+            
+            modal.style.display = 'block';
+        }
+        
+        function closeAccountModal() {
+            document.getElementById('accountModal').style.display = 'none';
+            currentEditItem = null;
+            currentEditType = null;
+        }
+        
+        function editAccount(accountId) {
+            openAccountModal(accountId);
+        }
+        
+        function deleteAccount(accountId) {
+            if (confirm('确定要删除这个账号吗？')) {
+                const index = mockData.accounts.findIndex(a => a.id === accountId);
+                if (index !== -1) {
+                    mockData.accounts.splice(index, 1);
+                    renderAccountsTable();
+                    updateStats();
+                    addAuditLog('删除账号', `账号ID: ${accountId}`, '删除了用户账号');
+                }
+            }
+        }
+        
+        // 角色管理相关函数
+        function openRoleModal(roleId = null) {
+            currentEditItem = roleId;
+            currentEditType = 'role';
+            
+            const modal = document.getElementById('roleModal');
+            const title = document.getElementById('roleModalTitle');
+            const form = document.getElementById('roleForm');
+            
+            if (roleId) {
+                title.textContent = '编辑角色';
+                const role = mockData.roles.find(r => r.id === roleId);
+                if (role) {
+                    document.getElementById('roleName').value = role.name;
+                    document.getElementById('roleDescription').value = role.description;
+                    document.getElementById('roleStatus').value = role.status;
+                }
+            } else {
+                title.textContent = '新增角色';
+                form.reset();
+            }
+            
+            // 填充权限选项
+            populatePermissionOptions(roleId);
+            
+            modal.style.display = 'block';
+        }
+        
+        function closeRoleModal() {
+            document.getElementById('roleModal').style.display = 'none';
+            currentEditItem = null;
+            currentEditType = null;
+        }
+        
+        function editRole(roleId) {
+            openRoleModal(roleId);
+        }
+        
+        function deleteRole(roleId) {
+            if (confirm('确定要删除这个角色吗？')) {
+                const index = mockData.roles.findIndex(r => r.id === roleId);
+                if (index !== -1) {
+                    mockData.roles.splice(index, 1);
+                    renderRolesTable();
+                    updateStats();
+                    addAuditLog('删除角色', `角色ID: ${roleId}`, '删除了系统角色');
+                }
+            }
+        }
+        
+        // 菜单管理相关函数
+        function openMenuModal(menuId = null, parentId = null) {
+            currentEditItem = menuId;
+            currentEditType = 'menu';
+            
+            const modal = document.getElementById('menuModal');
+            const title = document.getElementById('menuModalTitle');
+            const form = document.getElementById('menuForm');
+            
+            if (menuId) {
+                title.textContent = '编辑菜单';
+                const menu = mockData.menus.find(m => m.id === menuId);
+                if (menu) {
+                    document.getElementById('menuType').value = menu.type;
+                    document.getElementById('menuParent').value = menu.parentId || '';
+                    document.getElementById('menuName').value = menu.name;
+                    document.getElementById('menuCode').value = menu.code;
+                    document.getElementById('menuPath').value = menu.path;
+                    document.getElementById('menuOrder').value = menu.order;
+                    document.getElementById('menuStatus').value = menu.status;
+                    
+                    // 编辑时禁用某些字段
+                    document.getElementById('menuType').disabled = true;
+                    document.getElementById('menuParent').disabled = true;
+                    document.getElementById('menuCode').disabled = true;
+                }
+            } else {
+                title.textContent = '新增菜单';
+                form.reset();
+                if (parentId) {
+                    document.getElementById('menuParent').value = parentId;
+                }
+                
+                // 新增时启用所有字段
+                document.getElementById('menuType').disabled = false;
+                document.getElementById('menuParent').disabled = false;
+                document.getElementById('menuCode').disabled = false;
+            }
+            
+            // 填充父级菜单选项
+            populateParentMenuOptions();
+            
+            modal.style.display = 'block';
+        }
+        
+        function closeMenuModal() {
+            document.getElementById('menuModal').style.display = 'none';
+            currentEditItem = null;
+            currentEditType = null;
+        }
+        
+        function addChildMenu(parentId) {
+            openMenuModal(null, parentId);
+        }
+        
+        function editMenu(menuId) {
+            openMenuModal(menuId);
+        }
+        
+        function deleteMenu(menuId) {
+            if (confirm('确定要删除这个菜单吗？')) {
+                // 检查是否有子菜单
+                const hasChildren = mockData.menus.some(m => m.parentId === menuId);
+                if (hasChildren) {
+                    alert('该菜单下还有子菜单，请先删除子菜单');
+                    return;
+                }
+                
+                const index = mockData.menus.findIndex(m => m.id === menuId);
+                if (index !== -1) {
+                    mockData.menus.splice(index, 1);
+                    renderMenuTree();
+                    updateStats();
+                    addAuditLog('删除菜单', `菜单ID: ${menuId}`, '删除了系统菜单');
+                }
+            }
+        }
+        
+        function onMenuTypeChange() {
+            const type = document.getElementById('menuType').value;
+            const codeField = document.getElementById('menuCode');
+            const pathField = document.getElementById('menuPath');
+            
+            if (type === 'DIRECTORY') {
+                codeField.style.display = 'block';
+                pathField.style.display = 'block';
+            } else {
+                codeField.style.display = 'block';
+                pathField.style.display = 'block';
+            }
+        }
+        
+        // 填充选项相关函数
+        function populateRoleOptions() {
+            const select = document.getElementById('accountRoles');
+            select.innerHTML = '';
+            
+            mockData.roles.filter(r => r.status === 'ACTIVE').forEach(role => {
+                const option = document.createElement('option');
+                option.value = role.id;
+                option.textContent = role.name;
+                select.appendChild(option);
+            });
+        }
+        
+        function populatePermissionOptions(roleId) {
+            const container = document.getElementById('permissionsList');
+            container.innerHTML = '';
+            
+            const allPermissions = [
+                '*', 'system.*', 'menu.*', 'role.*', 'account.*',
+                'purchase.*', 'supplier.*', 'order.*', 'transport.*', 'vehicle.*',
+                '*.view', 'order.view', 'order.create', 'order.edit'
+            ];
+            
+            const currentRole = roleId ? mockData.roles.find(r => r.id === roleId) : null;
+            
+            allPermissions.forEach(permission => {
+                const div = document.createElement('div');
+                div.style.marginBottom = '8px';
+                
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.value = permission;
+                checkbox.id = `perm-${permission}`;
+                checkbox.checked = currentRole ? currentRole.permissions.includes(permission) : false;
+                
+                const label = document.createElement('label');
+                label.htmlFor = `perm-${permission}`;
+                label.textContent = permission;
+                label.style.marginLeft = '8px';
+                
+                div.appendChild(checkbox);
+                div.appendChild(label);
+                container.appendChild(div);
+            });
+        }
+        
+        function populateParentMenuOptions() {
+            const select = document.getElementById('menuParent');
+            select.innerHTML = '<option value="">无（顶级菜单）</option>';
+            
+            // 只显示目录类型的菜单作为父级选项
+            mockData.menus.filter(m => m.type === 'DIRECTORY').forEach(menu => {
+                const option = document.createElement('option');
+                option.value = menu.id;
+                option.textContent = menu.name;
+                select.appendChild(option);
+            });
+        }
+        
+        // 表单提交处理
+        document.getElementById('accountForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = {
+                username: document.getElementById('accountUsername').value,
+                email: document.getElementById('accountEmail').value,
+                accountType: document.getElementById('accountType').value,
+                status: document.getElementById('accountStatus').value,
+                roles: Array.from(document.getElementById('accountRoles').selectedOptions).map(o => o.value)
+            };
+            
+            if (currentEditItem) {
+                // 编辑
+                const index = mockData.accounts.findIndex(a => a.id === currentEditItem);
+                if (index !== -1) {
+                    mockData.accounts[index] = { ...mockData.accounts[index], ...formData };
+                    addAuditLog('更新账号', formData.username, '更新了用户账号信息');
+                }
+            } else {
+                // 新增
+                const newAccount = {
+                    id: 'ACC-' + String(Date.now()).slice(-6),
+                    ...formData,
+                    createdAt: new Date().toISOString()
+                };
+                mockData.accounts.push(newAccount);
+                addAuditLog('创建账号', formData.username, '创建了新的用户账号');
+            }
+            
+            renderAccountsTable();
+            updateStats();
+            closeAccountModal();
+        });
+        
+        document.getElementById('roleForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const permissions = Array.from(document.querySelectorAll('#permissionsList input:checked')).map(cb => cb.value);
+            
+            const formData = {
+                name: document.getElementById('roleName').value,
+                description: document.getElementById('roleDescription').value,
+                status: document.getElementById('roleStatus').value,
+                permissions: permissions
+            };
+            
+            if (currentEditItem) {
+                // 编辑
+                const index = mockData.roles.findIndex(r => r.id === currentEditItem);
+                if (index !== -1) {
+                    mockData.roles[index] = { ...mockData.roles[index], ...formData };
+                    addAuditLog('更新角色', formData.name, '更新了系统角色信息');
+                }
+            } else {
+                // 新增
+                const newRole = {
+                    id: 'ROLE-' + String(Date.now()).slice(-6),
+                    ...formData,
+                    usageCount: 0,
+                    createdAt: new Date().toISOString()
+                };
+                mockData.roles.push(newRole);
+                addAuditLog('创建角色', formData.name, '创建了新的系统角色');
+            }
+            
+            renderRolesTable();
+            updateStats();
+            closeRoleModal();
+        });
+        
+        document.getElementById('menuForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = {
+                type: document.getElementById('menuType').value,
+                parentId: document.getElementById('menuParent').value || null,
+                name: document.getElementById('menuName').value,
+                code: document.getElementById('menuCode').value,
+                path: document.getElementById('menuPath').value,
+                order: parseInt(document.getElementById('menuOrder').value),
+                status: document.getElementById('menuStatus').value
+            };
+            
+            if (currentEditItem) {
+                // 编辑
+                const index = mockData.menus.findIndex(m => m.id === currentEditItem);
+                if (index !== -1) {
+                    mockData.menus[index] = { ...mockData.menus[index], ...formData };
+                    addAuditLog('更新菜单', formData.name, '更新了系统菜单信息');
+                }
+            } else {
+                // 新增
+                const newMenu = {
+                    id: String(Date.now()),
+                    ...formData
+                };
+                mockData.menus.push(newMenu);
+                addAuditLog('创建菜单', formData.name, '创建了新的系统菜单');
+            }
+            
+            renderMenuTree();
+            updateStats();
+            closeMenuModal();
+        });
+        
+        // 添加审计日志
+        function addAuditLog(action, target, description) {
+            const newLog = {
+                id: 'AUDIT-' + String(Date.now()).slice(-6),
+                timestamp: new Date().toISOString(),
+                operator: 'admin',
+                action: action,
+                target: target,
+                description: description,
+                ipAddress: '192.168.1.100'
+            };
+            
+            mockData.auditLogs.unshift(newLog);
+            
+            // 保持最新的50条记录
+            if (mockData.auditLogs.length > 50) {
+                mockData.auditLogs = mockData.auditLogs.slice(0, 50);
+            }
+        }
+    </script>
+</body>
+</html>
