@@ -1,6 +1,4 @@
 {
-  "version": 2,
-  "name": "client-portal",
   "builds": [
     {
       "src": "client/package.json",
@@ -8,23 +6,14 @@
       "config": {
         "distDir": "dist"
       }
-    },
-    {
-      "src": "api/*.js",
-      "use": "@vercel/node"
     }
   ],
   "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "/api/$1"
-    },
     {
       "src": "/(.*)",
       "dest": "/client/dist/index.html"
     }
   ],
   "installCommand": "cd client && npm install",
-  "buildCommand": "cd client && npm run build",
-  "outputDirectory": "client/dist"
+  "buildCommand": "cd client && npm run build"
 }
