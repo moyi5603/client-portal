@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Test - Client Portal</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .test-result { margin: 10px 0; padding: 10px; background: #f5f5f5; border-radius: 3px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        button { padding: 8px 16px; margin: 5px; cursor: pointer; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>Client Portal API Test</h1>
+    <p>测试所有Mock数据API端点</p>
+
+    <div class="test-section">
+        <h3>认证测试</h3>
+        <button onclick="testAuth()">测试登录 (admin/admin123)</button>
+        <div id="auth-result" class="test-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>账号管理测试</h3>
+        <button onclick="testAccounts()">获取所有账号</button>
+        <div id="accounts-result" class="test-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>角色管理测试</h3>
+        <button onclick="testRoles()">获取所有角色</button>
+        <div id="roles-result" class="test-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>菜单管理测试</h3>
+        <button onclick="testMenus()">获取所有菜单</button>
+        <div id="menus-result" class="test-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>审计日志测试</h3>
+        <button onclick="testAuditLogs()">获取审计日志</button>
+        <div id="audit-result" class="test-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>用户页面测试</h3>
+        <button onclick="testUserPages()">获取用户页面</button>
+        <div id="pages-result" class="test-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>客户数据测试</h3>
+        <button onclick="testCustomers()">获取客户数据</button>
+        <div id="customers-result" class="test-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>设施数据测试</h3>
+        <button onclick="testFacilities()">获取设施数据</button>
+        <div id="facilities-result" class="test-result"></div>
+    </div>
+
+    <script>
+        const API_BASE = '/api';
+
+        async function makeRequest(url, options = {}) {
+            try {
+                const response = await fetch(API_BASE + url, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...options.headers
+                    },
+                    ...options
+                });
+                const data = await response.json();
+                return { success: response.ok, data, status: response.status };
+            } catch (error) {
+                return { success: false, error: error.message };
+            }
+        }
+
+        function displayResult(elementId, result) {
+            const element = document.getElementById(elementId);
+            if (result.success) {
+                element.className = 'test-result success';
+                element.innerHTML = `
+                    <strong>✅ 成功</strong><br>
+                    <pre>${JSON.stringify(result.data, null, 2)}</pre>
+                `;
+            } else {
+                element.className = 'test-result error';
+                element.innerHTML = `
+                    <strong>❌ 失败</strong><br>
+                    错误: ${result.error || result.data?.error || '未知错误'}<br>
+                    状态码: ${result.status || 'N/A'}
+                `;
+            }
+        }
+
+        async function testAuth() {
+            const result = await makeRequest('/auth', {
+                method: 'POST',
+                body: JSON.stringify({
+                    username: 'admin',
+                    password: 'admin123'
+                })
+            });
+            displayResult('auth-result', result);
+        }
+
+        async function testAccounts() {
+            const result = await makeRequest('/accounts');
+            displayResult('accounts-result', result);
+        }
+
+        async function testRoles() {
+            const result = await makeRequest('/roles');
+            displayResult('roles-result', result);
+        }
+
+        async function testMenus() {
+            const result = await makeRequest('/menus');
+            displayResult('menus-result', result);
+        }
+
+        async function testAuditLogs() {
+            const result = await makeRequest('/audit-logs');
+            displayResult('audit-result', result);
+        }
+
+        async function testUserPages() {
+            const result = await makeRequest('/user-pages');
+            displayResult('pages-result', result);
+        }
+
+        async function testCustomers() {
+            const result = await makeRequest('/customers');
+            displayResult('customers-result', result);
+        }
+
+        async function testFacilities() {
+            const result = await makeRequest('/facilities');
+            displayResult('facilities-result', result);
+        }
+
+        // 页面加载时自动测试基本API
+        window.onload = function() {
+            console.log('API测试页面已加载');
+        };
+    </script>
+</body>
+</html>
