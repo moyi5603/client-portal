@@ -1,5 +1,12 @@
 import axios from 'axios';
-import { mockAuth, mockMenus, mockRoles, mockAccounts } from './mockApi';
+import { 
+  mockAuth, 
+  mockMenuApi, 
+  mockRoleApi, 
+  mockAccountApi, 
+  mockAuditApi, 
+  mockStatsApi 
+} from './mockApi';
 
 // 使用Mock数据确保稳定性
 const useMockData = true;
@@ -16,15 +23,12 @@ const api = axios.create({
 if (useMockData) {
   api.interceptors.request.use(
     async (config) => {
-      // 模拟网络延迟
-      await new Promise(resolve => setTimeout(resolve, 200));
+      const { method, url, data } = config;
       
-      const { method, url } = config;
-      
-      // 认证接口
-      if (method === 'post' && url === '/auth') {
-        const { username, password } = config.data;
-        try {
+      try {
+        // 认证接口
+        if (method === 'post' && url === '/auth') {
+          const { username, password } = data;
           const result = await mockAuth.login(username, password);
           return Promise.reject({ 
             response: { 
@@ -33,110 +37,194 @@ if (useMockData) {
               statusText: 'OK'
             } 
           });
-        } catch (error) {
+        }
+        
+        // 菜单接口
+        if (method === 'get' && url === '/menus') {
+          const result = await mockMenuApi.getMenus();
           return Promise.reject({ 
             response: { 
-              data: error, 
-              status: 401,
-              statusText: 'Unauthorized'
+              data: result,
+              status: 200,
+              statusText: 'OK'
             } 
           });
         }
-      }
-      
-      // 菜单接口
-      if (method === 'get' && url === '/menus') {
-        return Promise.reject({ 
-          response: { 
-            data: { success: true, data: mockMenus },
-            status: 200,
-            statusText: 'OK'
-          } 
-        });
-      }
-      
-      // 角色接口
-      if (method === 'get' && url === '/roles') {
-        return Promise.reject({ 
-          response: { 
-            data: { 
-              success: true, 
-              data: { items: mockRoles, total: mockRoles.length } 
-            },
-            status: 200,
-            statusText: 'OK'
-          } 
-        });
-      }
-      
-      // 账号接口
-      if (method === 'get' && url === '/accounts') {
-        return Promise.reject({ 
-          response: { 
-            data: { 
-              success: true, 
-              data: { items: mockAccounts, total: mockAccounts.length } 
-            },
-            status: 200,
-            statusText: 'OK'
-          } 
-        });
-      }
-      
-      // 菜单CRUD操作
-      if (method === 'post' && url === '/menus') {
-        const newMenu = config.data;
-        const id = String(Date.now());
-        const menu = { ...newMenu, id };
-        mockMenus.push(menu);
+        
+        if (method === 'post' && url === '/menus') {
+          const result = await mockMenuApi.createMenu(data);
+          return Promise.reject({
+            response: {
+              data: result,
+              status: 201,
+              statusText: 'Created'
+            }
+          });
+        }
+        
+        if (method === 'put' && url?.startsWith('/menus/')) {
+          const menuId = url.split('/')[2];
+          const result = await mockMenuApi.updateMenu(menuId, data);
+          return Promise.reject({
+            response: {
+              data: result,
+              status: 200,
+              statusText: 'OK'
+            }
+          });
+        }
+        
+        if (method === 'delete' && url?.startsWith('/menus/')) {
+          const menuId = url.split('/')[2];
+          const result = await mockMenuApi.deleteMenu(menuId);
+          return Promise.reject({
+            response: {
+              data: result,
+              status: 200,
+              statusText: 'OK'
+            }
+          });
+        }
+        
+        // 角色接口
+        if (method === 'get' && url === '/roles') {
+          const result = await mockRoleApi.getRoles();
+          return Promise.reject({ 
+            response: { 
+              data: result,
+              status: 200,
+              statusText: 'OK'
+            } 
+          });
+        }
+        
+        if (method === 'post' && url === '/roles') {
+          const result = await mockRoleApi.createRole(data);
+          return Promise.reject({
+            response: {
+              data: result,
+              status: 201,
+              statusText: 'Created'
+            }
+          });
+        }
+        
+        if (method === 'put' && url?.startsWith('/roles/')) {
+          const roleId = url.split('/')[2];
+          const result = await mockRoleApi.updateRole(roleId, data);
+          return Promise.reject({
+            response: {
+              data: result,
+              status: 200,
+              statusText: 'OK'
+            }
+          });
+        }
+        
+        if (method === 'delete' && url?.startsWith('/roles/')) {
+          const roleId = url.split('/')[2];
+          const result = await mockRoleApi.deleteRole(roleId);
+          return Promise.reject({
+            response: {
+              data: result,
+              status: 200,
+              statusText: 'OK'
+            }
+          });
+        }
+        
+        // 账号接口
+        if (method === 'get' && url === '/accounts') {
+          const result = await mockAccountApi.getAccounts();
+          return Promise.reject({ 
+            response: { 
+              data: result,
+              status: 200,
+              statusText: 'OK'
+            } 
+          });
+        }
+        
+        if (method === 'post' && url === '/accounts') {
+          const result = await mockAccountApi.createAccount(data);
+          return Promise.reject({
+            response: {
+              data: result,
+              status: 201,
+              statusText: 'Created'
+            }
+          });
+        }
+        
+        if (method === 'put' && url?.startsWith('/accounts/')) {
+          const accountId = url.split('/')[2];
+          const result = await mockAccountApi.updateAccount(accountId, data);
+          return Promise.reject({
+            response: {
+              data: result,
+              status: 200,
+              statusText: 'OK'
+            }
+          });
+        }
+        
+        if (method === 'delete' && url?.startsWith('/accounts/')) {
+          const accountId = url.split('/')[2];
+          const result = await mockAccountApi.deleteAccount(accountId);
+          return Promise.reject({
+            response: {
+              data: result,
+              status: 200,
+              statusText: 'OK'
+            }
+          });
+        }
+        
+        // 审计日志接口
+        if (method === 'get' && url === '/audit-logs') {
+          const params = new URLSearchParams(config.params);
+          const page = parseInt(params.get('page') || '1');
+          const pageSize = parseInt(params.get('pageSize') || '20');
+          const result = await mockAuditApi.getAuditLogs(page, pageSize);
+          return Promise.reject({
+            response: {
+              data: result,
+              status: 200,
+              statusText: 'OK'
+            }
+          });
+        }
+        
+        // 统计数据接口
+        if (method === 'get' && url === '/stats') {
+          const result = await mockStatsApi.getStats();
+          return Promise.reject({
+            response: {
+              data: result,
+              status: 200,
+              statusText: 'OK'
+            }
+          });
+        }
+        
+        // 如果没有匹配的Mock接口，返回404
         return Promise.reject({
           response: {
-            data: { success: true, data: menu },
-            status: 201,
-            statusText: 'Created'
+            data: { success: false, error: 'API not found' },
+            status: 404,
+            statusText: 'Not Found'
+          }
+        });
+        
+      } catch (error) {
+        return Promise.reject({
+          response: {
+            data: { success: false, error: error.message },
+            status: 500,
+            statusText: 'Internal Server Error'
           }
         });
       }
-      
-      if (method === 'put' && url?.startsWith('/menus/')) {
-        const menuId = url.split('/')[2];
-        const updatedMenu = config.data;
-        const index = mockMenus.findIndex(m => m.id === menuId);
-        if (index !== -1) {
-          mockMenus[index] = { ...mockMenus[index], ...updatedMenu };
-          return Promise.reject({
-            response: {
-              data: { success: true, data: mockMenus[index] },
-              status: 200,
-              statusText: 'OK'
-            }
-          });
-        }
-      }
-      
-      if (method === 'delete' && url?.startsWith('/menus/')) {
-        const menuId = url.split('/')[2];
-        const index = mockMenus.findIndex(m => m.id === menuId);
-        if (index !== -1) {
-          mockMenus.splice(index, 1);
-          return Promise.reject({
-            response: {
-              data: { success: true },
-              status: 200,
-              statusText: 'OK'
-            }
-          });
-        }
-      }
-      
-      // 如果没有匹配的Mock接口，返回404
-      return Promise.reject({
-        response: {
-          data: { success: false, error: 'API not found' },
-          status: 404,
-          statusText: 'Not Found'
-        }
-      });
     },
     error => Promise.reject(error)
   );

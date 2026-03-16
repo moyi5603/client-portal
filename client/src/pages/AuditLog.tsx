@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { Download, Calendar, Search } from 'lucide-react';
 import api from '../utils/api';
@@ -21,83 +21,169 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
   Empty,
   Skeleton,
   Pagination,
 } from '../components/ui';
-import { DateRangePicker } from '../components/ui/date-range-picker';
 import dayjs from 'dayjs';
 import 'dayjs/locale/zh-cn';
 
 interface AuditLog {
   id: string;
   timestamp: string;
-  actor: {
-    userId: string;
-    username: string;
-    email: string;
-  };
-  actionType: string;
-  targetType: string;
-  targetId: string;
-  targetName: string;
+  operator: string;
+  action: string;
+  target: string;
   description: string;
-  tenantId: string;
+  ipAddress: string;
 }
 
 const AuditLogPage: React.FC = () => {
   const { t, locale } = useLocale();
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(false);
-  const [exporting, setExporting] = useState(false);
-
-  // Pagination
   const [currentPage, setCurrentPage] = useState(1);
+  const [total, setTotal] = useState(0);
   const pageSize = 20;
 
-  // Action type mapping
-  const ACTION_TYPE_MAP: Record<string, { label: string; variant: 'success' | 'info' | 'destructive' | 'secondary' | 'warning' }> = {
-    'ACCOUNT_CREATED': { label: t('actionType.ACCOUNT_CREATED'), variant: 'success' },
-    'ACCOUNT_UPDATED': { label: t('actionType.ACCOUNT_UPDATED'), variant: 'info' },
-    'ROLE_CREATED': { label: t('actionType.ROLE_CREATED'), variant: 'success' },
-    'ROLE_UPDATED': { label: t('actionType.ROLE_UPDATED'), variant: 'info' },
-    'ROLE_DELETED': { label: t('actionType.ROLE_DELETED'), variant: 'destructive' }
-  };
+  useEffect(() => {
+    loadAuditLogs();
+  }, [currentPage]);
 
-  // Target type mapping
-  const TARGET_TYPE_MAP: Record<string, { label: string; variant: 'info' | 'default' }> = {
-    'ACCOUNT': { label: t('targetType.ACCOUNT'), variant: 'info' },
-    'ROLE': { label: t('targetType.ROLE'), variant: 'default' }
-  };
-
-  // LocalStorage key for filter persistence
-  const FILTER_STORAGE_KEY = 'auditLog_filters';
-
-  // Load saved filters from localStorage
-  const loadSavedFilters = () => {
+  const loadAuditLogs = async () => {
+    setLoading(true);
     try {
-      const saved = localStorage.getItem(FILTER_STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        // 验证actionType是否有效，如果无效则重置为'ALL'
-        const validActionType = parsed.actionType && ACTION_TYPE_MAP[parsed.actionType] 
-          ? parsed.actionType 
-          : 'ALL';
-        return {
-          dateRange: parsed.dateRange 
-            ? { from: new Date(parsed.dateRange.from), to: new Date(parsed.dateRange.to) }
-            : undefined,
-          actionType: validActionType,
-          targetType: parsed.targetType || 'ALL',
-          actorName: parsed.actorName || '',
-          targetName: parsed.targetName || ''
-        };
+      const response = await api.get('/audit-logs', {
+        params: {
+          page: currentPage,
+          pageSize: pageSize
+        }
+      });
+      
+      if (response.data.success) {
+        setLogs(response.data.data.items);
+        setTotal(response.data.data.total);
       }
-    } catch (e) {
+    } catch (error) {
+      toast.error('Failed to load audit logs');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatTimestamp = (timestamp: string) => {
+    return dayjs(timestamp).format('YYYY-MM-DD HH:mm:ss');
+  };
+
+  const getActionBadgeVariant = (action: string) => {
+    switch (action) {
+      case '创建账号':
+      case '创建角色':
+      case '创建菜单':
+        return 'success' as const;
+      case '更新账号':
+      case '更新角色':
+      case '更新菜单':
+        return 'info' as const;
+      case '删除账号':
+      case '删除角色':
+      case '删除菜单':
+        return 'destructive' as const;
+      case '登录':
+        return 'secondary' as const;
+      default:
+        return 'default' as const;
+    }
+  };
+
+  if (loading && logs.length === 0) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">审计日志</h1>
+          <p className="text-muted-foreground">查看系统操作记录和追踪信息</p>
+        </div>
+        <Card>
+          <CardContent className="p-6">
+            <div className="space-y-4">
+              {Array.from({ length: 10 }).map((_, i) => (
+                <Skeleton key={i} className="h-12 w-full" />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">审计日志</h1>
+        <p className="text-muted-foreground">查看系统操作记录和追踪信息</p>
+      </div>
+
+      <Card>
+        <CardContent className="p-6">
+          {logs.length === 0 ? (
+            <Empty description="暂无审计日志记录" />
+          ) : (
+            <>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>时间</TableHead>
+                    <TableHead>操作人</TableHead>
+                    <TableHead>操作类型</TableHead>
+                    <TableHead>目标对象</TableHead>
+                    <TableHead>描述</TableHead>
+                    <TableHead>IP地址</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {logs.map((log) => (
+                    <TableRow key={log.id}>
+                      <TableCell className="font-mono text-sm">
+                        {formatTimestamp(log.timestamp)}
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        {log.operator}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={getActionBadgeVariant(log.action)}>
+                          {log.action}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{log.target}</TableCell>
+                      <TableCell className="max-w-md truncate">
+                        {log.description}
+                      </TableCell>
+                      <TableCell className="font-mono text-sm">
+                        {log.ipAddress}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+
+              {total > pageSize && (
+                <div className="mt-6 flex justify-center">
+                  <Pagination
+                    currentPage={currentPage}
+                    totalPages={Math.ceil(total / pageSize)}
+                    onPageChange={setCurrentPage}
+                  />
+                </div>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+export default AuditLogPage;
       console.warn('Failed to load saved filters');
     }
     return {

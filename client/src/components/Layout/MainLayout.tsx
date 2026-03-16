@@ -59,6 +59,12 @@ const MainLayout: React.FC<MainLayoutProps> = () => {
 
   const navItems: NavItem[] = [
     {
+      key: '/dashboard',
+      icon: <Layout className="w-4 h-4" />,
+      label: '仪表盘',
+      path: '/dashboard'
+    },
+    {
       key: 'account-management',
       icon: <Users className="w-4 h-4" />,
       label: t('nav.accessControl'),

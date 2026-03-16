@@ -6,6 +6,7 @@ import { LocaleProvider } from './contexts/LocaleContext';
 import { Toaster } from './components/ui/sonner';
 import MainLayout from './components/Layout/MainLayout';
 import Login from './pages/Login';
+import Dashboard from './pages/Dashboard';
 import AccountManagement from './pages/AccountManagement';
 import RoleManagement from './pages/RoleManagement';
 import RoleManagement2 from './pages/RoleManagement2';
@@ -27,7 +28,8 @@ const App: React.FC = () => {
             <Routes>
               <Route path="/login" element={<Login />} />
               <Route path="/" element={<MainLayout />}>
-                <Route index element={<Navigate to="/accounts" replace />} />
+                <Route index element={<Navigate to="/dashboard" replace />} />
+                <Route path="dashboard" element={<Dashboard />} />
                 <Route path="accounts" element={<AccountManagement />} />
                 <Route path="roles" element={<RoleManagement />} />
                 <Route path="roles/create" element={<RoleManagement />} />
