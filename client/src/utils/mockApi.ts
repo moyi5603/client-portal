@@ -5,6 +5,174 @@ const mockDelay = (ms: number = 300) => new Promise(resolve => setTimeout(resolv
 // 生成唯一ID
 const generateId = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
+// 客户数据
+export const mockCustomers = [
+  {
+    id: 'CUST-001',
+    name: 'Apple Inc.',
+    code: 'APPLE',
+    type: 'ENTERPRISE',
+    status: 'ACTIVE',
+    contactEmail: 'contact@apple.com',
+    contactPhone: '+1-408-996-1010',
+    address: 'One Apple Park Way, Cupertino, CA 95014',
+    createdAt: '2024-01-01T00:00:00.000Z'
+  },
+  {
+    id: 'CUST-002',
+    name: 'Microsoft Corporation',
+    code: 'MSFT',
+    type: 'ENTERPRISE',
+    status: 'ACTIVE',
+    contactEmail: 'contact@microsoft.com',
+    contactPhone: '+1-425-882-8080',
+    address: 'One Microsoft Way, Redmond, WA 98052',
+    createdAt: '2024-01-15T00:00:00.000Z'
+  },
+  {
+    id: 'CUST-003',
+    name: 'Google LLC',
+    code: 'GOOGL',
+    type: 'ENTERPRISE',
+    status: 'ACTIVE',
+    contactEmail: 'contact@google.com',
+    contactPhone: '+1-650-253-0000',
+    address: '1600 Amphitheatre Parkway, Mountain View, CA 94043',
+    createdAt: '2024-02-01T00:00:00.000Z'
+  },
+  {
+    id: 'CUST-004',
+    name: 'Amazon.com Inc.',
+    code: 'AMZN',
+    type: 'ENTERPRISE',
+    status: 'ACTIVE',
+    contactEmail: 'contact@amazon.com',
+    contactPhone: '+1-206-266-1000',
+    address: '410 Terry Avenue North, Seattle, WA 98109',
+    createdAt: '2024-02-15T00:00:00.000Z'
+  },
+  {
+    id: 'CUST-005',
+    name: 'Tesla Inc.',
+    code: 'TSLA',
+    type: 'ENTERPRISE',
+    status: 'ACTIVE',
+    contactEmail: 'contact@tesla.com',
+    contactPhone: '+1-512-516-8177',
+    address: '1 Tesla Road, Austin, TX 78725',
+    createdAt: '2024-03-01T00:00:00.000Z'
+  },
+  {
+    id: 'CUST-006',
+    name: 'Meta Platforms Inc.',
+    code: 'META',
+    type: 'ENTERPRISE',
+    status: 'ACTIVE',
+    contactEmail: 'contact@meta.com',
+    contactPhone: '+1-650-543-4800',
+    address: '1 Meta Way, Menlo Park, CA 94025',
+    createdAt: '2024-01-20T00:00:00.000Z'
+  },
+  {
+    id: 'CUST-007',
+    name: 'Netflix Inc.',
+    code: 'NFLX',
+    type: 'STANDARD',
+    status: 'ACTIVE',
+    contactEmail: 'contact@netflix.com',
+    contactPhone: '+1-408-540-3700',
+    address: '100 Winchester Circle, Los Gatos, CA 95032',
+    createdAt: '2024-02-10T00:00:00.000Z'
+  },
+  {
+    id: 'CUST-008',
+    name: 'Spotify Technology S.A.',
+    code: 'SPOT',
+    type: 'STANDARD',
+    status: 'ACTIVE',
+    contactEmail: 'contact@spotify.com',
+    contactPhone: '+46-8-120-140-00',
+    address: 'Regeringsgatan 19, 111 53 Stockholm, Sweden',
+    createdAt: '2024-01-25T00:00:00.000Z'
+  },
+  {
+    id: 'CUST-009',
+    name: 'Uber Technologies Inc.',
+    code: 'UBER',
+    type: 'STANDARD',
+    status: 'ACTIVE',
+    contactEmail: 'contact@uber.com',
+    contactPhone: '+1-415-612-8582',
+    address: '1515 3rd Street, San Francisco, CA 94158',
+    createdAt: '2024-02-20T00:00:00.000Z'
+  },
+  {
+    id: 'CUST-010',
+    name: 'Airbnb Inc.',
+    code: 'ABNB',
+    type: 'STANDARD',
+    status: 'INACTIVE',
+    contactEmail: 'contact@airbnb.com',
+    contactPhone: '+1-415-800-5959',
+    address: '888 Brannan Street, San Francisco, CA 94103',
+    createdAt: '2024-03-05T00:00:00.000Z'
+  }
+];
+
+// 设施数据
+export const mockFacilities = [
+  {
+    id: 'FAC-001',
+    name: 'Apple Park Warehouse',
+    code: 'APW-001',
+    customerId: 'CUST-001',
+    type: 'WAREHOUSE',
+    status: 'ACTIVE',
+    address: 'Apple Park, Cupertino, CA',
+    createdAt: '2024-01-01T00:00:00.000Z'
+  },
+  {
+    id: 'FAC-002',
+    name: 'Apple Retail Store',
+    code: 'ARS-001',
+    customerId: 'CUST-001',
+    type: 'RETAIL',
+    status: 'ACTIVE',
+    address: 'Fifth Avenue, New York, NY',
+    createdAt: '2024-01-01T00:00:00.000Z'
+  },
+  {
+    id: 'FAC-003',
+    name: 'Microsoft Azure DC',
+    code: 'MAD-001',
+    customerId: 'CUST-002',
+    type: 'DATACENTER',
+    status: 'ACTIVE',
+    address: 'Redmond, WA',
+    createdAt: '2024-01-15T00:00:00.000Z'
+  },
+  {
+    id: 'FAC-004',
+    name: 'Google Cloud DC',
+    code: 'GCD-001',
+    customerId: 'CUST-003',
+    type: 'DATACENTER',
+    status: 'ACTIVE',
+    address: 'Mountain View, CA',
+    createdAt: '2024-02-01T00:00:00.000Z'
+  },
+  {
+    id: 'FAC-005',
+    name: 'Amazon Fulfillment Center',
+    code: 'AFC-001',
+    customerId: 'CUST-004',
+    type: 'WAREHOUSE',
+    status: 'ACTIVE',
+    address: 'Seattle, WA',
+    createdAt: '2024-02-15T00:00:00.000Z'
+  }
+];
+
 // 审计日志数据
 let mockAuditLogs = [
   {
@@ -468,9 +636,22 @@ export const mockAccounts = [
     id: 'ACC-001',
     username: 'admin',
     email: 'admin@example.com',
+    phone: '+1-555-0001',
+    firstName: 'System',
+    lastName: 'Administrator',
     accountType: 'MAIN',
     status: 'ACTIVE',
     roles: ['ROLE-001'],
+    customerIds: [],
+    accessibleCustomerIds: ['CUST-001', 'CUST-002', 'CUST-003', 'CUST-004', 'CUST-005'],
+    facilityIds: [],
+    accessibleFacilityIds: ['FAC-001', 'FAC-002', 'FAC-003', 'FAC-004', 'FAC-005'],
+    customerFacilityMappings: [
+      { customerId: 'CUST-001', facilityIds: ['FAC-001', 'FAC-002'] },
+      { customerId: 'CUST-002', facilityIds: ['FAC-003'] },
+      { customerId: 'CUST-003', facilityIds: ['FAC-004'] },
+      { customerId: 'CUST-004', facilityIds: ['FAC-005'] }
+    ],
     createdAt: new Date('2024-01-01').toISOString(),
     updatedAt: new Date().toISOString()
   },
@@ -478,9 +659,20 @@ export const mockAccounts = [
     id: 'ACC-002',
     username: 'john.smith',
     email: 'john.smith@example.com',
+    phone: '+1-555-0002',
+    firstName: 'John',
+    lastName: 'Smith',
     accountType: 'SUB',
     status: 'ACTIVE',
     roles: ['ROLE-002'],
+    customerIds: ['CUST-001'],
+    accessibleCustomerIds: ['CUST-001', 'CUST-002'],
+    facilityIds: ['FAC-001'],
+    accessibleFacilityIds: ['FAC-001', 'FAC-002', 'FAC-003'],
+    customerFacilityMappings: [
+      { customerId: 'CUST-001', facilityIds: ['FAC-001', 'FAC-002'] },
+      { customerId: 'CUST-002', facilityIds: ['FAC-003'] }
+    ],
     createdAt: new Date('2024-01-15').toISOString(),
     updatedAt: new Date().toISOString()
   },
@@ -488,9 +680,20 @@ export const mockAccounts = [
     id: 'ACC-003',
     username: 'mary.johnson',
     email: 'mary.johnson@example.com',
+    phone: '+1-555-0003',
+    firstName: 'Mary',
+    lastName: 'Johnson',
     accountType: 'SUB',
     status: 'ACTIVE',
     roles: ['ROLE-003'],
+    customerIds: ['CUST-002', 'CUST-003'],
+    accessibleCustomerIds: ['CUST-002', 'CUST-003'],
+    facilityIds: ['FAC-003', 'FAC-004'],
+    accessibleFacilityIds: ['FAC-003', 'FAC-004'],
+    customerFacilityMappings: [
+      { customerId: 'CUST-002', facilityIds: ['FAC-003'] },
+      { customerId: 'CUST-003', facilityIds: ['FAC-004'] }
+    ],
     createdAt: new Date('2024-02-01').toISOString(),
     updatedAt: new Date().toISOString()
   },
@@ -498,9 +701,19 @@ export const mockAccounts = [
     id: 'ACC-004',
     username: 'david.wilson',
     email: 'david.wilson@example.com',
+    phone: '+1-555-0004',
+    firstName: 'David',
+    lastName: 'Wilson',
     accountType: 'SUB',
     status: 'ACTIVE',
     roles: ['ROLE-004'],
+    customerIds: ['CUST-004'],
+    accessibleCustomerIds: ['CUST-004', 'CUST-005'],
+    facilityIds: ['FAC-005'],
+    accessibleFacilityIds: ['FAC-005'],
+    customerFacilityMappings: [
+      { customerId: 'CUST-004', facilityIds: ['FAC-005'] }
+    ],
     createdAt: new Date('2024-02-15').toISOString(),
     updatedAt: new Date().toISOString()
   },
@@ -508,9 +721,19 @@ export const mockAccounts = [
     id: 'ACC-005',
     username: 'sarah.brown',
     email: 'sarah.brown@example.com',
+    phone: '+1-555-0005',
+    firstName: 'Sarah',
+    lastName: 'Brown',
     accountType: 'SUB',
     status: 'ACTIVE',
     roles: ['ROLE-005'],
+    customerIds: ['CUST-005'],
+    accessibleCustomerIds: ['CUST-005'],
+    facilityIds: [],
+    accessibleFacilityIds: [],
+    customerFacilityMappings: [
+      { customerId: 'CUST-005', facilityIds: [] }
+    ],
     createdAt: new Date('2024-03-01').toISOString(),
     updatedAt: new Date().toISOString()
   },
@@ -518,9 +741,20 @@ export const mockAccounts = [
     id: 'ACC-006',
     username: 'mike.davis',
     email: 'mike.davis@example.com',
+    phone: '+1-555-0006',
+    firstName: 'Mike',
+    lastName: 'Davis',
     accountType: 'SUB',
     status: 'ACTIVE',
     roles: ['ROLE-006'],
+    customerIds: ['CUST-006'],
+    accessibleCustomerIds: ['CUST-006', 'CUST-007'],
+    facilityIds: [],
+    accessibleFacilityIds: [],
+    customerFacilityMappings: [
+      { customerId: 'CUST-006', facilityIds: [] },
+      { customerId: 'CUST-007', facilityIds: [] }
+    ],
     createdAt: new Date('2024-01-20').toISOString(),
     updatedAt: new Date().toISOString()
   },
@@ -528,9 +762,20 @@ export const mockAccounts = [
     id: 'ACC-007',
     username: 'lisa.garcia',
     email: 'lisa.garcia@example.com',
+    phone: '+1-555-0007',
+    firstName: 'Lisa',
+    lastName: 'Garcia',
     accountType: 'SUB',
     status: 'ACTIVE',
     roles: ['ROLE-003', 'ROLE-006'],
+    customerIds: ['CUST-007', 'CUST-008'],
+    accessibleCustomerIds: ['CUST-007', 'CUST-008'],
+    facilityIds: [],
+    accessibleFacilityIds: [],
+    customerFacilityMappings: [
+      { customerId: 'CUST-007', facilityIds: [] },
+      { customerId: 'CUST-008', facilityIds: [] }
+    ],
     createdAt: new Date('2024-02-10').toISOString(),
     updatedAt: new Date().toISOString()
   },
@@ -538,9 +783,19 @@ export const mockAccounts = [
     id: 'ACC-008',
     username: 'tom.martinez',
     email: 'tom.martinez@example.com',
+    phone: '+1-555-0008',
+    firstName: 'Tom',
+    lastName: 'Martinez',
     accountType: 'SUB',
     status: 'INACTIVE',
     roles: ['ROLE-006'],
+    customerIds: ['CUST-009'],
+    accessibleCustomerIds: ['CUST-009'],
+    facilityIds: [],
+    accessibleFacilityIds: [],
+    customerFacilityMappings: [
+      { customerId: 'CUST-009', facilityIds: [] }
+    ],
     createdAt: new Date('2024-01-25').toISOString(),
     updatedAt: new Date().toISOString()
   },
@@ -548,9 +803,19 @@ export const mockAccounts = [
     id: 'ACC-009',
     username: 'anna.rodriguez',
     email: 'anna.rodriguez@example.com',
+    phone: '+1-555-0009',
+    firstName: 'Anna',
+    lastName: 'Rodriguez',
     accountType: 'SUB',
     status: 'ACTIVE',
     roles: ['ROLE-004', 'ROLE-006'],
+    customerIds: ['CUST-010'],
+    accessibleCustomerIds: ['CUST-010'],
+    facilityIds: [],
+    accessibleFacilityIds: [],
+    customerFacilityMappings: [
+      { customerId: 'CUST-010', facilityIds: [] }
+    ],
     createdAt: new Date('2024-02-20').toISOString(),
     updatedAt: new Date().toISOString()
   },
@@ -558,9 +823,21 @@ export const mockAccounts = [
     id: 'ACC-010',
     username: 'james.lee',
     email: 'james.lee@example.com',
+    phone: '+1-555-0010',
+    firstName: 'James',
+    lastName: 'Lee',
     accountType: 'SUB',
     status: 'ACTIVE',
     roles: ['ROLE-002', 'ROLE-006'],
+    customerIds: ['CUST-001', 'CUST-002'],
+    accessibleCustomerIds: ['CUST-001', 'CUST-002', 'CUST-003'],
+    facilityIds: ['FAC-001', 'FAC-003'],
+    accessibleFacilityIds: ['FAC-001', 'FAC-002', 'FAC-003', 'FAC-004'],
+    customerFacilityMappings: [
+      { customerId: 'CUST-001', facilityIds: ['FAC-001', 'FAC-002'] },
+      { customerId: 'CUST-002', facilityIds: ['FAC-003'] },
+      { customerId: 'CUST-003', facilityIds: ['FAC-004'] }
+    ],
     createdAt: new Date('2024-03-05').toISOString(),
     updatedAt: new Date().toISOString()
   }
@@ -673,9 +950,160 @@ export const mockStatsApi = {
         roleCount: mockRoles.length,
         menuCount: mockMenus.length,
         auditCount: mockAuditLogs.length,
+        customerCount: mockCustomers.length,
+        facilityCount: mockFacilities.length,
         activeAccountCount: mockAccounts.filter(a => a.status === 'ACTIVE').length,
-        activeRoleCount: mockRoles.filter(r => r.status === 'ACTIVE').length
+        activeRoleCount: mockRoles.filter(r => r.status === 'ACTIVE').length,
+        activeCustomerCount: mockCustomers.filter(c => c.status === 'ACTIVE').length,
+        activeFacilityCount: mockFacilities.filter(f => f.status === 'ACTIVE').length
       }
+    };
+  }
+};
+
+// 客户管理 API
+export const mockCustomerApi = {
+  // 获取所有客户
+  getCustomers: async () => {
+    await mockDelay();
+    return {
+      success: true,
+      data: {
+        items: mockCustomers,
+        total: mockCustomers.length
+      }
+    };
+  },
+
+  // 创建客户
+  createCustomer: async (customerData: any) => {
+    await mockDelay();
+    const newCustomer = {
+      id: generateId('CUST'),
+      ...customerData,
+      createdAt: new Date().toISOString()
+    };
+    mockCustomers.push(newCustomer);
+    addAuditLog('创建客户', customerData.name, `创建了新的客户: ${customerData.name}`);
+    return {
+      success: true,
+      data: newCustomer
+    };
+  },
+
+  // 更新客户
+  updateCustomer: async (id: string, customerData: any) => {
+    await mockDelay();
+    const index = mockCustomers.findIndex(c => c.id === id);
+    if (index !== -1) {
+      mockCustomers[index] = { ...mockCustomers[index], ...customerData };
+      addAuditLog('更新客户', customerData.name, `更新了客户: ${customerData.name}`);
+      return {
+        success: true,
+        data: mockCustomers[index]
+      };
+    }
+    return {
+      success: false,
+      error: 'Customer not found'
+    };
+  },
+
+  // 删除客户
+  deleteCustomer: async (id: string) => {
+    await mockDelay();
+    const index = mockCustomers.findIndex(c => c.id === id);
+    if (index !== -1) {
+      const customer = mockCustomers[index];
+      mockCustomers.splice(index, 1);
+      addAuditLog('删除客户', customer.name, `删除了客户: ${customer.name}`);
+      return {
+        success: true
+      };
+    }
+    return {
+      success: false,
+      error: 'Customer not found'
+    };
+  }
+};
+
+// 设施管理 API
+export const mockFacilityApi = {
+  // 获取所有设施
+  getFacilities: async () => {
+    await mockDelay();
+    return {
+      success: true,
+      data: {
+        items: mockFacilities,
+        total: mockFacilities.length
+      }
+    };
+  },
+
+  // 根据客户ID获取设施
+  getFacilitiesByCustomer: async (customerId: string) => {
+    await mockDelay();
+    const facilities = mockFacilities.filter(f => f.customerId === customerId);
+    return {
+      success: true,
+      data: {
+        items: facilities,
+        total: facilities.length
+      }
+    };
+  },
+
+  // 创建设施
+  createFacility: async (facilityData: any) => {
+    await mockDelay();
+    const newFacility = {
+      id: generateId('FAC'),
+      ...facilityData,
+      createdAt: new Date().toISOString()
+    };
+    mockFacilities.push(newFacility);
+    addAuditLog('创建设施', facilityData.name, `创建了新的设施: ${facilityData.name}`);
+    return {
+      success: true,
+      data: newFacility
+    };
+  },
+
+  // 更新设施
+  updateFacility: async (id: string, facilityData: any) => {
+    await mockDelay();
+    const index = mockFacilities.findIndex(f => f.id === id);
+    if (index !== -1) {
+      mockFacilities[index] = { ...mockFacilities[index], ...facilityData };
+      addAuditLog('更新设施', facilityData.name, `更新了设施: ${facilityData.name}`);
+      return {
+        success: true,
+        data: mockFacilities[index]
+      };
+    }
+    return {
+      success: false,
+      error: 'Facility not found'
+    };
+  },
+
+  // 删除设施
+  deleteFacility: async (id: string) => {
+    await mockDelay();
+    const index = mockFacilities.findIndex(f => f.id === id);
+    if (index !== -1) {
+      const facility = mockFacilities[index];
+      mockFacilities.splice(index, 1);
+      addAuditLog('删除设施', facility.name, `删除了设施: ${facility.name}`);
+      return {
+        success: true
+      };
+    }
+    return {
+      success: false,
+      error: 'Facility not found'
     };
   }
 };

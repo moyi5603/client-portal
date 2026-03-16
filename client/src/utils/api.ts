@@ -5,7 +5,9 @@ import {
   mockRoleApi, 
   mockAccountApi, 
   mockAuditApi, 
-  mockStatsApi 
+  mockStatsApi,
+  mockCustomerApi,
+  mockFacilityApi
 } from './mockApi';
 
 // 使用Mock数据确保稳定性
@@ -171,6 +173,112 @@ if (useMockData) {
         if (method === 'delete' && url?.startsWith('/accounts/')) {
           const accountId = url.split('/')[2];
           const result = await mockAccountApi.deleteAccount(accountId);
+          return Promise.reject({
+            response: {
+              data: result,
+              status: 200,
+              statusText: 'OK'
+            }
+          });
+        }
+        
+        // 客户接口
+        if (method === 'get' && url === '/customers') {
+          const result = await mockCustomerApi.getCustomers();
+          return Promise.reject({
+            response: {
+              data: result,
+              status: 200,
+              statusText: 'OK'
+            }
+          });
+        }
+        
+        if (method === 'post' && url === '/customers') {
+          const result = await mockCustomerApi.createCustomer(data);
+          return Promise.reject({
+            response: {
+              data: result,
+              status: 201,
+              statusText: 'Created'
+            }
+          });
+        }
+        
+        if (method === 'put' && url?.startsWith('/customers/')) {
+          const customerId = url.split('/')[2];
+          const result = await mockCustomerApi.updateCustomer(customerId, data);
+          return Promise.reject({
+            response: {
+              data: result,
+              status: 200,
+              statusText: 'OK'
+            }
+          });
+        }
+        
+        if (method === 'delete' && url?.startsWith('/customers/')) {
+          const customerId = url.split('/')[2];
+          const result = await mockCustomerApi.deleteCustomer(customerId);
+          return Promise.reject({
+            response: {
+              data: result,
+              status: 200,
+              statusText: 'OK'
+            }
+          });
+        }
+        
+        // 设施接口
+        if (method === 'get' && url === '/facilities') {
+          const result = await mockFacilityApi.getFacilities();
+          return Promise.reject({
+            response: {
+              data: result,
+              status: 200,
+              statusText: 'OK'
+            }
+          });
+        }
+        
+        if (method === 'get' && url?.startsWith('/facilities/customer/')) {
+          const customerId = url.split('/')[3];
+          const result = await mockFacilityApi.getFacilitiesByCustomer(customerId);
+          return Promise.reject({
+            response: {
+              data: result,
+              status: 200,
+              statusText: 'OK'
+            }
+          });
+        }
+        
+        if (method === 'post' && url === '/facilities') {
+          const result = await mockFacilityApi.createFacility(data);
+          return Promise.reject({
+            response: {
+              data: result,
+              status: 201,
+              statusText: 'Created'
+            }
+          });
+        }
+        
+        if (method === 'put' && url?.startsWith('/facilities/')) {
+          const facilityId = url.split('/')[2];
+          const result = await mockFacilityApi.updateFacility(facilityId, data);
+          return Promise.reject({
+            response: {
+              data: result,
+              status: 200,
+              statusText: 'OK'
+            }
+          });
+        }
+        
+        if (method === 'delete' && url?.startsWith('/facilities/')) {
+          const facilityId = url.split('/')[2];
+          const result = await mockFacilityApi.deleteFacility(facilityId);
           return Promise.reject({
             response: {
               data: result,

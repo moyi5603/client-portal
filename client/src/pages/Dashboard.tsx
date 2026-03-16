@@ -9,8 +9,12 @@ interface Stats {
   roleCount: number;
   menuCount: number;
   auditCount: number;
+  customerCount: number;
+  facilityCount: number;
   activeAccountCount: number;
   activeRoleCount: number;
+  activeCustomerCount: number;
+  activeFacilityCount: number;
 }
 
 const Dashboard: React.FC = () => {
@@ -19,8 +23,12 @@ const Dashboard: React.FC = () => {
     roleCount: 0,
     menuCount: 0,
     auditCount: 0,
+    customerCount: 0,
+    facilityCount: 0,
     activeAccountCount: 0,
-    activeRoleCount: 0
+    activeRoleCount: 0,
+    activeCustomerCount: 0,
+    activeFacilityCount: 0
   });
   const [loading, setLoading] = useState(true);
 
@@ -57,18 +65,32 @@ const Dashboard: React.FC = () => {
       color: 'text-green-600'
     },
     {
+      title: '客户数量',
+      value: stats.customerCount || 0,
+      icon: UserCheck,
+      description: `${stats.activeCustomerCount || 0} 个激活客户`,
+      color: 'text-purple-600'
+    },
+    {
+      title: '设施数量',
+      value: stats.facilityCount || 0,
+      icon: Activity,
+      description: `${stats.activeFacilityCount || 0} 个激活设施`,
+      color: 'text-orange-600'
+    },
+    {
       title: '菜单项目',
       value: stats.menuCount,
       icon: Menu,
       description: '系统菜单总数',
-      color: 'text-purple-600'
+      color: 'text-indigo-600'
     },
     {
       title: '审计记录',
       value: stats.auditCount,
       icon: FileText,
       description: '操作日志总数',
-      color: 'text-orange-600'
+      color: 'text-red-600'
     }
   ];
 
@@ -90,7 +112,7 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* 统计卡片 */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         {statCards.map((card, index) => {
           const Icon = card.icon;
           return (
@@ -133,6 +155,14 @@ const Dashboard: React.FC = () => {
             <div className="flex items-center gap-3">
               <div className="w-2 h-2 bg-green-500 rounded-full"></div>
               <span className="text-sm">菜单管理 - 系统菜单结构层级管理</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              <span className="text-sm">客户管理 - 客户信息和关系管理</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              <span className="text-sm">设施管理 - 客户设施和位置管理</span>
             </div>
             <div className="flex items-center gap-3">
               <div className="w-2 h-2 bg-green-500 rounded-full"></div>
