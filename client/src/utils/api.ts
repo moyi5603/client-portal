@@ -1,9 +1,8 @@
 import axios from 'axios';
 import { mockAuth, mockMenus, mockRoles, mockAccounts } from './mockApi';
 
-// 检查是否在生产环境且没有真实 API
-const isProduction = import.meta.env.PROD;
-const useMockData = isProduction; // 在生产环境使用 Mock 数据
+// 始终使用 Mock 数据，确保本地和生产环境数据一致
+const useMockData = true;
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || '/api',
@@ -83,6 +82,52 @@ if (useMockData) {
             statusText: 'OK'
           } 
         });
+      }
+      
+      // 菜单CRUD操作
+      if (method === 'post' && url === '/menus') {
+        const newMenu = config.data;
+        const id = String(mockMenus.length + 1);
+        const menu = { ...newMenu, id };
+        mockMenus.push(menu);
+        return Promise.reject({
+          response: {
+            data: { success: true, data: menu },
+            status: 201,
+            statusText: 'Created'
+          }
+        });
+      }
+      
+      if (method === 'put' && url?.startsWith('/menus/')) {
+        const menuId = url.split('/')[2];
+        const updatedMenu = config.data;
+        const index = mockMenus.findIndex(m => m.id === menuId);
+        if (index !== -1) {
+          mockMenus[index] = { ...mockMenus[index], ...updatedMenu };
+          return Promise.reject({
+            response: {
+              data: { success: true, data: mockMenus[index] },
+              status: 200,
+              statusText: 'OK'
+            }
+          });
+        }
+      }
+      
+      if (method === 'delete' && url?.startsWith('/menus/')) {
+        const menuId = url.split('/')[2];
+        const index = mockMenus.findIndex(m => m.id === menuId);
+        if (index !== -1) {
+          mockMenus.splice(index, 1);
+          return Promise.reject({
+            response: {
+              data: { success: true },
+              status: 200,
+              statusText: 'OK'
+            }
+          });
+        }
       }
       
       // 如果没有匹配的Mock接口，返回404
