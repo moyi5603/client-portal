@@ -6,7 +6,12 @@ if (!fs.existsSync('public')) {
   fs.mkdirSync('public');
 }
 
-// 复制client/dist的内容到public
+// 确保public/api目录存在
+if (!fs.existsSync('public/api')) {
+  fs.mkdirSync('public/api');
+}
+
+// 复制目录的函数
 function copyDir(src, dest) {
   if (!fs.existsSync(src)) {
     console.log('Source directory does not exist:', src);
@@ -30,11 +35,22 @@ function copyDir(src, dest) {
   }
 }
 
-// 复制构建文件
+// 复制前端构建文件
 if (fs.existsSync('client/dist')) {
   console.log('Copying client/dist to public...');
   copyDir('client/dist', 'public');
-  console.log('Copy completed!');
+  console.log('Frontend files copied!');
 } else {
   console.log('client/dist not found. Build may have failed.');
 }
+
+// 复制API文件
+if (fs.existsSync('api')) {
+  console.log('Copying API files to public/api...');
+  copyDir('api', 'public/api');
+  console.log('API files copied!');
+} else {
+  console.log('api directory not found.');
+}
+
+console.log('Build completed!');
