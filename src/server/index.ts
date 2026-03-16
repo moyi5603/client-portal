@@ -51,8 +51,9 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-app.listen(PORT, () => {
-  console.log(`服务器运行在 http://localhost:${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 服务器运行在 http://0.0.0.0:${PORT}`);
+  console.log(`🏥 健康检查: http://0.0.0.0:${PORT}/health`);
 });
 
 export default app;
