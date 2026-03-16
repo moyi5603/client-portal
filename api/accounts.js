@@ -1,86 +1,5 @@
 // 账号管理API
-const accounts = [
-  {
-    id: 'ACC-001',
-    username: 'admin',
-    email: 'admin@example.com',
-    accountType: 'MAIN',
-    status: 'ACTIVE',
-    roles: ['ROLE-000'],
-    createdAt: new Date('2024-01-01').toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-  {
-    id: 'ACC-002',
-    username: 'john.smith',
-    email: 'john.smith@example.com',
-    accountType: 'SUB',
-    status: 'ACTIVE',
-    roles: ['ROLE-001'],
-    createdAt: new Date('2024-01-15').toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-  {
-    id: 'ACC-003',
-    username: 'jane.doe',
-    email: 'jane.doe@example.com',
-    accountType: 'SUB',
-    status: 'ACTIVE',
-    roles: ['ROLE-002'],
-    createdAt: new Date('2024-02-01').toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-  {
-    id: 'ACC-004',
-    username: 'mike.wilson',
-    email: 'mike.wilson@example.com',
-    accountType: 'SUB',
-    status: 'ACTIVE',
-    roles: ['ROLE-003'],
-    createdAt: new Date('2024-02-15').toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-  {
-    id: 'ACC-005',
-    username: 'sarah.johnson',
-    email: 'sarah.johnson@example.com',
-    accountType: 'SUB',
-    status: 'ACTIVE',
-    roles: ['ROLE-004'],
-    createdAt: new Date('2024-03-01').toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-  {
-    id: 'ACC-006',
-    username: 'david.brown',
-    email: 'david.brown@example.com',
-    accountType: 'SUB',
-    status: 'INACTIVE',
-    roles: ['ROLE-003'],
-    createdAt: new Date('2024-01-20').toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-  {
-    id: 'ACC-007',
-    username: 'lisa.davis',
-    email: 'lisa.davis@example.com',
-    accountType: 'SUB',
-    status: 'ACTIVE',
-    roles: ['ROLE-002', 'ROLE-003'],
-    createdAt: new Date('2024-02-10').toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-  {
-    id: 'ACC-008',
-    username: 'robert.miller',
-    email: 'robert.miller@example.com',
-    accountType: 'SUB',
-    status: 'ACTIVE',
-    roles: ['ROLE-001'],
-    createdAt: new Date('2024-02-20').toISOString(),
-    updatedAt: new Date().toISOString()
-  }
-];
+const mockData = require('./mock-data');
 
 module.exports = async (req, res) => {
   // 设置CORS头
@@ -98,10 +17,62 @@ module.exports = async (req, res) => {
       res.status(200).json({
         success: true,
         data: {
-          items: accounts,
-          total: accounts.length
+          items: mockData.accounts,
+          total: mockData.getAccountsCount()
         }
       });
+    } else if (req.method === 'POST') {
+      // 创建新账号
+      const newAccount = req.body;
+      const id = `ACC-${String(mockData.getAccountsCount() + 1).padStart(3, '0')}`;
+      const account = { 
+        ...newAccount, 
+        id,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      mockData.accounts.push(account);
+      
+      res.status(201).json({
+        success: true,
+        data: account
+      });
+    } else if (req.method === 'PUT') {
+      // 更新账号
+      const { id, ...updates } = req.body;
+      const accountIndex = mockData.accounts.findIndex(acc => acc.id === id);
+      if (accountIndex !== -1) {
+        mockData.accounts[accountIndex] = {
+          ...mockData.accounts[accountIndex],
+          ...updates,
+          updatedAt: new Date().toISOString()
+        };
+        res.status(200).json({
+          success: true,
+          data: mockData.accounts[accountIndex]
+        });
+      } else {
+        res.status(404).json({
+          success: false,
+          error: 'Account not found'
+        });
+      }
+    } else if (req.method === 'DELETE') {
+      // 删除账号
+      const { id } = req.query;
+      const accountIndex = mockData.accounts.findIndex(acc => acc.id === id);
+      if (accountIndex !== -1) {
+        mockData.accounts.splice(accountIndex, 1);
+        res.status(200).json({
+          success: true,
+          message: 'Account deleted successfully'
+        });
+      } else {
+        res.status(404).json({
+          success: false,
+          error: 'Account not found'
+        });
+      }
     } else {
       res.status(405).json({
         success: false,

@@ -1,56 +1,5 @@
 // 角色管理API
-const roles = [
-  {
-    id: 'ROLE-000',
-    name: 'Super Administrator',
-    description: 'Full system access with all permissions',
-    status: 'ACTIVE',
-    permissions: ['*'],
-    usageCount: 1,
-    createdAt: new Date('2024-01-01').toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-  {
-    id: 'ROLE-001',
-    name: 'System Administrator',
-    description: 'System management access',
-    status: 'ACTIVE',
-    permissions: ['system.*', 'menu.*', 'role.*', 'account.*'],
-    usageCount: 2,
-    createdAt: new Date('2024-01-15').toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-  {
-    id: 'ROLE-002',
-    name: 'Customer Administrator',
-    description: 'Customer management permissions',
-    status: 'ACTIVE',
-    permissions: ['customer.*', 'order.view'],
-    usageCount: 3,
-    createdAt: new Date('2024-02-01').toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-  {
-    id: 'ROLE-003',
-    name: 'Customer Service Representative',
-    description: 'Customer support and service',
-    status: 'ACTIVE',
-    permissions: ['customer.view', 'order.view', 'support.*'],
-    usageCount: 5,
-    createdAt: new Date('2024-02-15').toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-  {
-    id: 'ROLE-004',
-    name: 'Order Manager',
-    description: 'Order management permissions',
-    status: 'ACTIVE',
-    permissions: ['order.*', 'inventory.view'],
-    usageCount: 2,
-    createdAt: new Date('2024-03-01').toISOString(),
-    updatedAt: new Date().toISOString()
-  }
-];
+const mockData = require('./mock-data');
 
 module.exports = async (req, res) => {
   // 设置CORS头
@@ -68,10 +17,63 @@ module.exports = async (req, res) => {
       res.status(200).json({
         success: true,
         data: {
-          items: roles,
-          total: roles.length
+          items: mockData.roles,
+          total: mockData.getRolesCount()
         }
       });
+    } else if (req.method === 'POST') {
+      // 创建新角色
+      const newRole = req.body;
+      const id = `ROLE-${String(mockData.getRolesCount() + 1).padStart(3, '0')}`;
+      const role = { 
+        ...newRole, 
+        id,
+        usageCount: 0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      mockData.roles.push(role);
+      
+      res.status(201).json({
+        success: true,
+        data: role
+      });
+    } else if (req.method === 'PUT') {
+      // 更新角色
+      const { id, ...updates } = req.body;
+      const roleIndex = mockData.roles.findIndex(role => role.id === id);
+      if (roleIndex !== -1) {
+        mockData.roles[roleIndex] = {
+          ...mockData.roles[roleIndex],
+          ...updates,
+          updatedAt: new Date().toISOString()
+        };
+        res.status(200).json({
+          success: true,
+          data: mockData.roles[roleIndex]
+        });
+      } else {
+        res.status(404).json({
+          success: false,
+          error: 'Role not found'
+        });
+      }
+    } else if (req.method === 'DELETE') {
+      // 删除角色
+      const { id } = req.query;
+      const roleIndex = mockData.roles.findIndex(role => role.id === id);
+      if (roleIndex !== -1) {
+        mockData.roles.splice(roleIndex, 1);
+        res.status(200).json({
+          success: true,
+          message: 'Role deleted successfully'
+        });
+      } else {
+        res.status(404).json({
+          success: false,
+          error: 'Role not found'
+        });
+      }
     } else {
       res.status(405).json({
         success: false,

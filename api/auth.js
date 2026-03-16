@@ -1,16 +1,5 @@
 // 认证API
-const bcrypt = require('bcryptjs');
-
-// 模拟用户数据
-const users = [
-  {
-    id: '1',
-    username: 'admin',
-    password: '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', // password
-    accountType: 'MAIN',
-    roles: ['ROLE-000']
-  }
-];
+const mockData = require('./mock-data');
 
 module.exports = async (req, res) => {
   // 设置CORS头
@@ -27,15 +16,27 @@ module.exports = async (req, res) => {
     try {
       const { username, password } = req.body;
       
-      if (username === 'admin' && password === 'admin123') {
+      // 查找用户
+      const user = mockData.accounts.find(acc => acc.username === username);
+      
+      if (user && password === 'admin123') {
+        // 获取用户角色信息
+        const userRoles = user.roles.map(roleId => mockData.getRoleById(roleId)).filter(Boolean);
+        
         res.status(200).json({
           success: true,
           data: {
             token: 'jwt-token-' + Date.now(),
             user: {
-              id: '1',
-              username: 'admin',
-              accountType: 'MAIN'
+              id: user.id,
+              username: user.username,
+              email: user.email,
+              accountType: user.accountType,
+              tenantId: user.tenantId,
+              roles: userRoles,
+              customerIds: user.customerIds || [],
+              facilityIds: user.facilityIds || [],
+              customerFacilityMappings: user.customerFacilityMappings || []
             }
           }
         });
