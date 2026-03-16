@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Client Portal - 演示版本</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 40px; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container { 
+            max-width: 1000px; 
+            margin: 0 auto; 
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+        .warning { color: #ffc107; }
+        button { 
+            padding: 12px 24px; 
+            margin: 10px 5px; 
+            cursor: pointer; 
+            background: #007bff; 
+            color: white; 
+            border: none; 
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        button:hover { 
+            background: #0056b3; 
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,123,255,0.3);
+        }
+        .test-section {
+            margin: 30px 0;
+            padding: 25px;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            background: #f8f9fa;
+        }
+        .test-section h3 {
+            color: #495057;
+            margin-top: 0;
+            font-size: 18px;
+        }
+        pre { 
+            background: #2d3748; 
+            color: #e2e8f0;
+            padding: 20px; 
+            border-radius: 8px; 
+            overflow-x: auto; 
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        .result {
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #007bff;
+        }
+        .result.success { 
+            background: #d4edda; 
+            border-left-color: #28a745; 
+        }
+        .result.error { 
+            background: #f8d7da; 
+            border-left-color: #dc3545; 
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .header h1 {
+            font-size: 2.5em;
+            margin: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .feature-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .feature-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            background: #e8f5e8;
+            border-radius: 8px;
+        }
+        .feature-item::before {
+            content: "✅";
+            margin-right: 10px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <!-- 加载Mock数据 -->
+    <script src="client-mock-data.js"></script>
+    
+    <div class="container">
+        <div class="header">
+            <h1>🎉 Client Portal</h1>
+            <p style="font-size: 18px; color: #666;">权限管理系统 - 演示版本</p>
+        </div>
+
+        <!-- 数据统计 -->
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-number" id="accountCount">0</div>
+                <div>测试账号</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="roleCount">0</div>
+                <div>系统角色</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="menuCount">0</div>
+                <div>菜单项目</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="logCount">0</div>
+                <div>审计记录</div>
+            </div>
+        </div>
+
+        <!-- 功能测试区域 -->
+        <div class="test-section">
+            <h3>🔧 功能测试</h3>
+            <button onclick="testLogin()">测试登录 (admin/admin123)</button>
+            <button onclick="testAccounts()">测试账号管理</button>
+            <button onclick="testRoles()">测试角色管理</button>
+            <button onclick="testMenus()">测试菜单管理</button>
+            <button onclick="testAuditLogs()">测试审计日志</button>
+            <button onclick="testAllData()">测试所有数据</button>
+        </div>
+
+        <!-- 结果显示区域 -->
+        <div id="result"></div>
+
+        <!-- 系统信息 -->
+        <div class="test-section">
+            <h3>📋 系统信息</h3>
+            <ul style="list-style: none; padding: 0;">
+                <li><strong>项目:</strong> Client Portal 权限管理系统</li>
+                <li><strong>版本:</strong> 2.0.0 (演示版)</li>
+                <li><strong>部署方式:</strong> 纯前端 + Mock数据</li>
+                <li><strong>登录凭据:</strong> admin / admin123</li>
+                <li><strong>数据类型:</strong> 本地Mock数据 (无需后端)</li>
+            </ul>
+        </div>
+
+        <!-- 可用功能 -->
+        <div class="test-section">
+            <h3>✨ 可用功能</h3>
+            <div class="feature-list">
+                <div class="feature-item">账号管理 (完整CRUD)</div>
+                <div class="feature-item">角色管理 (权限配置)</div>
+                <div class="feature-item">菜单管理 (树形结构)</div>
+                <div class="feature-item">权限查看 (矩阵展示)</div>
+                <div class="feature-item">审计日志 (操作记录)</div>
+                <div class="feature-item">用户页面 (自定义页面)</div>
+                <div class="feature-item">客户管理 (客户数据)</div>
+                <div class="feature-item">设施管理 (仓库信息)</div>
+            </div>
+        </div>
+
+        <!-- 快速链接 -->
+        <div class="test-section">
+            <h3>🔗 快速链接</h3>
+            <p>
+                <a href="api-test.html" target="_blank" style="color: #007bff; text-decoration: none;">🔧 API测试页面</a> |
+                <a href="https://github.com/moyi5603/client-portal" target="_blank" style="color: #007bff; text-decoration: none;">📁 GitHub仓库</a> |
+                <a href="client/index.html" target="_blank" style="color: #007bff; text-decoration: none;">🚀 完整应用</a>
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // 页面加载时初始化数据统计
+        document.addEventListener('DOMContentLoaded', function() {
+            updateStats();
+        });
+
+        function updateStats() {
+            document.getElementById('accountCount').textContent = window.mockData.accounts.length;
+            document.getElementById('roleCount').textContent = window.mockData.roles.length;
+            document.getElementById('menuCount').textContent = window.mockData.menus.length;
+            document.getElementById('logCount').textContent = window.mockData.auditLogs.length;
+        }
+
+        function showResult(title, data, isSuccess = true) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = `
+                <div class="result ${isSuccess ? 'success' : 'error'}">
+                    <h4>${isSuccess ? '✅' : '❌'} ${title}</h4>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                </div>
+            `;
+        }
+
+        function testLogin() {
+            try {
+                const result = window.mockData.mockAPI.auth('admin', 'admin123');
+                showResult('登录测试', result, result.success);
+            } catch (error) {
+                showResult('登录测试', { error: error.message }, false);
+            }
+        }
+
+        function testAccounts() {
+            try {
+                const result = window.mockData.mockAPI.getAccounts();
+                showResult('账号管理测试', result, result.success);
+            } catch (error) {
+                showResult('账号管理测试', { error: error.message }, false);
+            }
+        }
+
+        function testRoles() {
+            try {
+                const result = window.mockData.mockAPI.getRoles();
+                showResult('角色管理测试', result, result.success);
+            } catch (error) {
+                showResult('角色管理测试', { error: error.message }, false);
+            }
+        }
+
+        function testMenus() {
+            try {
+                const result = window.mockData.mockAPI.getMenus();
+                showResult('菜单管理测试', result, result.success);
+            } catch (error) {
+                showResult('菜单管理测试', { error: error.message }, false);
+            }
+        }
+
+        function testAuditLogs() {
+            try {
+                const result = window.mockData.mockAPI.getAuditLogs();
+                showResult('审计日志测试', result, result.success);
+            } catch (error) {
+                showResult('审计日志测试', { error: error.message }, false);
+            }
+        }
+
+        function testAllData() {
+            try {
+                const results = {
+                    login: window.mockData.mockAPI.auth('admin', 'admin123'),
+                    accounts: window.mockData.mockAPI.getAccounts(),
+                    roles: window.mockData.mockAPI.getRoles(),
+                    menus: window.mockData.mockAPI.getMenus(),
+                    auditLogs: window.mockData.mockAPI.getAuditLogs(),
+                    customers: window.mockData.mockAPI.getCustomers(),
+                    facilities: window.mockData.mockAPI.getFacilities(),
+                    userPages: window.mockData.mockAPI.getUserPages()
+                };
+
+                const successCount = Object.values(results).filter(r => r.success).length;
+                const totalCount = Object.keys(results).length;
+
+                showResult(`所有数据测试 (${successCount}/${totalCount} 成功)`, results, successCount === totalCount);
+            } catch (error) {
+                showResult('所有数据测试', { error: error.message }, false);
+            }
+        }
+    </script>
+</body>
+</html>

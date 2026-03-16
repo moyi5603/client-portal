@@ -2,50 +2,14 @@
   "version": 2,
   "builds": [
     {
-      "src": "index.html",
+      "src": "**/*",
       "use": "@vercel/static"
-    },
-    {
-      "src": "api/*.js",
-      "use": "@vercel/node"
     }
   ],
   "routes": [
     {
-      "src": "/api/accounts",
-      "dest": "/api/data?path=accounts"
-    },
-    {
-      "src": "/api/roles",
-      "dest": "/api/data?path=roles"
-    },
-    {
-      "src": "/api/menus",
-      "dest": "/api/data?path=menus"
-    },
-    {
-      "src": "/api/audit-logs",
-      "dest": "/api/data?path=audit-logs"
-    },
-    {
-      "src": "/api/customers",
-      "dest": "/api/data?path=customers"
-    },
-    {
-      "src": "/api/facilities",
-      "dest": "/api/data?path=facilities"
-    },
-    {
-      "src": "/api/permission-matrix",
-      "dest": "/api/data?path=permission-matrix"
-    },
-    {
-      "src": "/api/user-pages",
-      "dest": "/api/data?path=user-pages"
-    },
-    {
-      "src": "/api/(.*)",
-      "dest": "/api/$1"
+      "src": "/",
+      "dest": "/demo-index.html"
     },
     {
       "src": "/(.*)",
