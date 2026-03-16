@@ -72,7 +72,7 @@ const roles = [
   }
 ];
 
-export default function handler(req, res) {
+module.exports = (req, res) => {
   // 设置CORS头
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -105,4 +105,4 @@ export default function handler(req, res) {
       error: 'Internal server error'
     });
   }
-}
+};

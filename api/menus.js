@@ -151,7 +151,7 @@ let menus = [
   }
 ];
 
-export default function handler(req, res) {
+module.exports = (req, res) => {
   // 设置CORS头
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -170,7 +170,7 @@ export default function handler(req, res) {
       });
     } else if (req.method === 'POST') {
       const newMenu = req.body;
-      const id = String(Date.now()); // 使用时间戳作为ID
+      const id = String(Date.now());
       const menu = { ...newMenu, id };
       menus.push(menu);
       
@@ -179,7 +179,6 @@ export default function handler(req, res) {
         data: menu
       });
     } else if (req.method === 'PUT') {
-      // 处理更新菜单
       const { id } = req.query;
       const updatedMenu = req.body;
       const index = menus.findIndex(m => m.id === id);
@@ -197,7 +196,6 @@ export default function handler(req, res) {
         });
       }
     } else if (req.method === 'DELETE') {
-      // 处理删除菜单
       const { id } = req.query;
       const index = menus.findIndex(m => m.id === id);
       
@@ -225,4 +223,4 @@ export default function handler(req, res) {
       error: 'Internal server error'
     });
   }
-}
+};
